@@ -1,0 +1,14 @@
+node_modules/
+.DS_Store
+.env
+.env.*
+!.env.example
+*.zip
+*.log
+*.bak
+*.sqlite
+*.db
+local-data/
+backups/
+coverage/
+tests/resultado_tests.json

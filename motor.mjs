@@ -1,0 +1,248 @@
+// ARSLAN LISTAS — laboratorio de auditoría aislado. No toca el sistema publicado.
+export const STORE_ORDER=['SP','SL','ST'];
+export const DESTINATIONS=[
+ {id:'SP',name:'SAN PABLO',kind:'tienda'},
+ {id:'SL',name:'SAN LESMES',kind:'tienda'},
+ {id:'ST',name:'SANTIAGO',kind:'tienda'},
+ {id:'BC',name:'BRASEROS · CENTRO',kind:'restaurante'},
+ {id:'BF',name:'BRASEROS · FORUM',kind:'restaurante'},
+ {id:'BS',name:'BRASEROS · SEVERO',kind:'restaurante'},
+ {id:'BE',name:'BRASEROS · EDIFICIO',kind:'restaurante'},
+ {id:'BT',name:'BRASEROS · TOMILLARES',kind:'restaurante'},
+ {id:'RV',name:'RIVIERA',kind:'restaurante'}
+];
+export const SUPPLIERS=['ESMO','MONTENEGRO','ÁNGEL VACA','JOSÉ ANTONIO','JAVI','ANGELO','COMPRA EXTERNA'];
+const catalogList=`MANZANA PINK LADY|CHIRIMOYA|MANDARINA PLASENCIA|MARACUYA|MANDARINA COLOMBE|PINA|MELON|BROCOLI|MANZANA GOLDEN 28|LIMON SEGUNDA|PLATANO CANARIO PRIMERA|PAPAYA|MANGO|MANZANA GOLDEN 24|NARANJA MESA SONRISA|NARANJA HOJA|BATAVIA|PEREJIL|CHAMPINON|UVA BLANCA|UVA ROJA|CEREZA|ZANAHORIA|TOMATE ASURCADO MARRON|TOMATE ROSA|CEBOLLA DULCE|CEBOLLA NORMAL|MANDARINA HOJA|MANZANA GRANNY SMITH|KIWI ZESPRI GOLD|VALVENOSTA GOLDEN|KIWI ZESPRI|PERA RINCON DEL SOTO|GRANADA|PERA LIMONERA|NUECES|AGUACATE GRANEL|PERA CONFERENCIA SEGUNDA|KIWI SEGUNDA|KAKI|REINETA PARDA|COLIFLOR|ICEBERG|GUINDILLA|PIMIENTO PADRON|CASTANA|ESCAROLA|ACELGAS|ESPINACA|APIO|NARANJA ZUMO|ARANDANOS|SETAS|BERENJENA|CALABACIN|PIMIENTO ITALIANO ROJO|PUERROS|PEPINO|BONIATO|TOMATE PERA|TOMATE RAFF|TOMATE RAMA|TOMATE ASURCADO AZUL|CEBOLLA ROJA|PATATA 5 KG|AJO PRIMERA|REMOLACHA|MANZANA GOLDEN 20|MANZANA GOLDEN 24|MANZANA GOLDEN 28|MANZANA ROYAL GALA 24|REINETA 24|REINETA 28|PATATA 10 KG|PATATA 25 KG|CILANTRO|KIWI TOMASIN|YAUTIA|YAME|MACHO VERDE|MACHO MADURO|CEBOLLA ROJA|SANDIA|NARANJA ZUMO`; 
+export const SEED_CATALOG=[...new Set(catalogList.split('|'))].sort((a,b)=>a.localeCompare(b,'es',{numeric:true}));
+export function canonical(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]+/g,' ').replace(/\s+/g,' ').trim();}
+export function display(s){return canonical(s);}
+export function suggest(name,catalog){
+ const t=canonical(name), c=catalog.map(x=>canonical(x));
+ // Los términos varietales/numéricos tienen preferencia sobre coincidencias de otras familias.
+ const words=t.split(' '),family=words[0];
+ const candidates=c.filter(v=>v.split(' ')[0]===family || (family==='GOLDEN'&&v.includes('GOLDEN')) || (family==='GRNNY'&&v.includes('GRANNY')) || (t.includes('GRNNY')&&v.includes('GRANNY')));
+ const lev=(a,b)=>{const m=a.length,n=b.length,dp=Array.from({length:m+1},()=>Array(n+1).fill(0));for(let i=0;i<=m;i++)dp[i][0]=i;for(let j=0;j<=n;j++)dp[0][j]=j;for(let i=1;i<=m;i++)for(let j=1;j<=n;j++)dp[i][j]=Math.min(dp[i-1][j]+1,dp[i][j-1]+1,dp[i-1][j-1]+(a[i-1]===b[j-1]?0:1));return dp[m][n];};
+ return (candidates.length?candidates:c).map(x=>({x,score:lev(t,x)})).filter(v=>v.score<=Math.max(2,Math.ceil(t.length*.32))).sort((a,b)=>a.score-b.score).slice(0,3).map(v=>v.x);
+}
+let serial=0;const id=(p)=>`${p}_${++serial}`;
+export function createState(){return {day:'2026-11-19',catalog:[...SEED_CATALOG],aliases:{},orders:[],allocations:[],manual:[],receipts:[],delivery:{},load:{},shortageAllocation:{},riderAssignments:{},riders:['REPARTIDOR 1','REPARTIDOR 2'],destinations:structuredClone(DESTINATIONS),history:[],sentMessages:[],importedFingerprints:[]};}
+export function matchCatalog(name,state){const k=canonical(name);return state.catalog.find(c=>canonical(c)===k)||state.aliases[k]||null;}
+const num=(x)=>Number(String(x).replace(',','.'));
+export function parseOrderLine(line,state){
+ const text=String(line).replace(/^[-•*]\s*/,'').trim();if(!text)return null;
+ let name=text,q=null,unit='BULTO';
+ // 3TOMATE RAMA; 1,5 KG TOMATE; 3 x MANZANA; 7 PATATA 5 KG
+ const m=text.match(/^(\d+\/\d+|\d+(?:[,.]\d+)?)\s*(?:[xX*]\s*)?(KG|KGS|CAJAS?|MANOJOS?|SACOS?|UNDS?|UDS?)?\s*(.+)$/i);
+ if(m){q=m[1].includes('/')?m[1].split('/').map(Number).reduce((a,b)=>a/b):num(m[1]);name=m[3];if(m[2]){const token=canonical(m[2]);unit=token.startsWith('KG')?'KG':token.startsWith('CAJA')?'CAJA':token.startsWith('SACO')?'SACO':token.startsWith('MANOJO')?'MANOJO':'UD';}}
+ else {
+   // Nombre terminado en cantidad: GOLDEN 28 3 y PATATA 5 KG 7.
+   const last=text.match(/^(.+?)\s+(\d+(?:[,.]\d+)?)$/);
+   if(last){const maybeFull=canonical(text);const end=last[2];const calibreLike=/\b(GOLDEN|REINETA|FUJI|ROYAL GALA|PATATA)\b/.test(canonical(last[1]))&&(/^\d{2}$/.test(end)||/\b\d+\s*KG$/i.test(text));
+     if(!matchCatalog(maybeFull,state)&&!calibreLike){name=last[1];q=num(end);}
+   }
+ }
+ // GOLDEN 28 3 se interpreta como qty 3, calibre 28; nunca 28 cajas.
+ if(!Number.isFinite(q)||q<=0)q=null;
+ const k=canonical(name);let found=matchCatalog(k,state);
+ // Un alias abreviado sólo si el calibre coincide exactamente.
+ if(!found&&/^GOLDEN\s+\d{2}$/.test(k))found=matchCatalog('MANZANA '+k,state);
+ const issues=[];
+ if(!found)issues.push('PRODUCTO_NO_EN_CATALOGO');
+ if(q===null)issues.push('CANTIDAD_SIN_CONFIRMAR');
+ return {id:id('line'),raw:text,sourceName:k,product:found||k,q,unit,review:issues.length>0,issues,suggestions:found?[]:suggest(k,state.catalog)};
+}
+function parseHeader(line,state){
+ let h=line.replace(/^\[[^\]]+\]\s*[^:]{1,120}:\s*/,'').replace(/🛒/g,'').replace(/\*/g,'').trim();
+ const match=h.match(/^PEDIDO\s+(.+)$/i);if(!match)return null;
+ const raw=canonical(match[1]);const labels={SL:'SL',SP:'SP',ST:'ST','SAN PABLO':'SP','SAN LESMES':'SL',SANTIAGO:'ST','BRASEROS CENTRO':'BC','BRASEROS FORUM':'BF','BRASEROS SEVERO':'BS','BRASEROS EDIFICIO':'BE','BRASEROS TOMILLARES':'BT','RIVIERA':'RV','BRASEROS TOMILLARES':'BT','BRASEROS CENTRO GENERAL':'BC'};
+ return labels[raw] || state.destinations.find(d=>canonical(d.name)===raw)?.id || 'UNKNOWN:'+raw;
+}
+export function importBlocks(state,text,{replace=false}={}){
+ const fingerprint=canonical(text);if(!replace&&state.importedFingerprints?.includes(fingerprint))throw Error('Estas listas ya se han pegado en esta jornada. Evita duplicar pedidos.');
+ let dest=null,n=0;const issues=[];const seen=new Set();
+ for(const raw of String(text).split(/\r?\n/)){
+  if(!raw.trim())continue;
+  const heading=parseHeader(raw,state);
+  if(heading){dest=heading.startsWith('UNKNOWN:')?null:heading;if(!dest)issues.push('Destino no reconocido: '+heading.substring(8));if(replace&&dest&&!seen.has(dest)){if(state.allocations.some(a=>a.status==='sent')||state.manual.length||Object.keys(state.delivery).length)throw Error('No se pueden sustituir pedidos con compras o bajadas ya iniciadas; importa una corrección aparte');state.orders=state.orders.filter(o=>o.dest!==dest);seen.add(dest);}continue;}
+  if(!dest){if(raw.trim().startsWith('['))continue;issues.push('Línea sin destino: '+raw.trim());continue;}
+  const parsed=parseOrderLine(raw,state);if(parsed){state.orders.push({...parsed,dest});n++;}
+ }
+ if(!state.importedFingerprints)state.importedFingerprints=[];state.importedFingerprints.push(fingerprint);
+ return {imported:n,issues};
+}
+export function confirmProduct(state,lineId,target,{create=false,remember=true}={}){
+ const line=state.orders.find(l=>l.id===lineId);if(!line)throw Error('No existe la línea');
+ const clean=canonical(target);
+ const priorKey=canonical(line.product)+'|'+line.unit;
+ if(canonical(line.product)!==clean&&(state.allocations.some(a=>a.key===priorKey&&a.status==='sent')||Object.keys(state.delivery).some(k=>k.startsWith(priorKey+'@'))))throw Error('No cambies un producto ya enviado o bajado sin una corrección de compras');
+ if(!clean)throw Error('Nombre vacío');
+ const existing=matchCatalog(clean,state);
+ if(!existing&&!create)throw Error('Producto inexistente: usa Crear nuevo');
+ if(!existing)state.catalog.push(clean);
+ const targetName=existing||clean;
+ const original=canonical(line.sourceName);
+ if(remember&&original!==canonical(targetName)){
+   const prior=matchCatalog(original,state);if(!prior||canonical(prior)===canonical(targetName))state.aliases[original]=targetName;
+ }
+ line.product=targetName;line.review=false;line.issues=line.q==null?['CANTIDAD_SIN_CONFIRMAR']:[];line.suggestions=[];
+ if(line.issues.length)line.review=true;
+ return targetName;
+}
+export function setQuantity(state,lineId,value){const line=state.orders.find(l=>l.id===lineId);if(!line)throw Error('Línea no encontrada');const q=num(value);if(!Number.isFinite(q)||q<=0)throw Error('Cantidad positiva requerida');line.q=q;line.issues=line.issues.filter(x=>x!=='CANTIDAD_SIN_CONFIRMAR');line.review=line.issues.length>0;}
+export function addDestination(state,name,kind='restaurante'){const key=canonical(name);let d=state.destinations.find(x=>canonical(x.name)===key);if(d)return d;d={id:id('dest'),name:key,kind};state.destinations.push(d);return d;}
+export function totals(state){
+ const map=new Map();for(const l of state.orders){if(!l.q)continue;const key=canonical(l.product)+'|'+l.unit;let item=map.get(key);if(!item){item={key,product:l.product,unit:l.unit,total:0,by:{},unresolved:false};map.set(key,item);}
+ item.total=fix(item.total+l.q);item.by[l.dest]=fix((item.by[l.dest]||0)+l.q);item.unresolved ||= l.review;
+ }
+ return [...map.values()].sort((a,b)=>a.product.localeCompare(b.product,'es',{numeric:true}));
+}
+export function qtyRequested(state,key){return totals(state).find(t=>t.key===key)?.total||0;}
+export function fix(n){return Math.round((Number(n)||0)*1000)/1000;}
+export function assignSupplier(state,key,supplier,quantity){if(!SUPPLIERS.includes(supplier))throw Error('Proveedor desconocido');const row=totals(state).find(t=>t.key===key);if(!row)throw Error('Producto inexistente');if(row.unresolved)throw Error('Revisa el nombre en rojo antes de asignar');
+ const q=quantity??row.total; if(!(q>0))throw Error('Cantidad no válida');
+ // Prevent multiple draft assignments that exceed requested qty (extra requires separate manual purchase).
+ const active=state.allocations.filter(a=>a.key===key&&a.status!=='cancelled');const existing=active.find(a=>a.supplier===supplier&&a.status==='draft');
+ const others=active.reduce((s,a)=>s+a.q,0)-(existing?.q||0);
+ if(others+q>row.total+1e-8)throw Error('La asignación supera la cantidad pedida');
+ if(existing)existing.q=fix(q);else state.allocations.push({id:id('prov'),key,supplier,q:fix(q),status:'draft'});
+}
+export function moveDraftToSupplier(state,key,supplier){
+ const active=state.allocations.filter(a=>a.key===key&&a.status!=='cancelled');
+ if(active.some(a=>a.status==='sent'))throw Error('Este producto ya se envió: corrige el pedido en vez de moverlo silenciosamente');
+ state.allocations=state.allocations.filter(a=>a.key!==key||a.status==='cancelled');
+ return assignSupplier(state,key,supplier,qtyRequested(state,key));
+}
+export function supplierLines(state,supplier,includeSent=true){return state.allocations.filter(a=>a.supplier===supplier&&a.status!=='cancelled'&&(includeSent||a.status==='draft')).map(a=>({ ...a,product:totals(state).find(t=>t.key===a.key)?.product||a.key.split('|')[0] })).sort((a,b)=>a.product.localeCompare(b.product,'es',{numeric:true}));}
+const qtyLabel=n=>String(n).replace('.',',');
+export function supplierTXT(state,supplier){return supplierLines(state,supplier).map(a=>`${qtyLabel(a.q)}${display(a.product)}`).join('\n');}
+export function prepareWhatsApp(state,supplier){return {supplier,text:supplierTXT(state,supplier),url:`https://wa.me/?text=${encodeURIComponent('PEDIDO '+supplier+'\n'+supplierTXT(state,supplier))}`};}
+export function markSupplierSent(state,supplier){const lines=supplierLines(state,supplier,false);if(!lines.length)throw Error('No hay líneas nuevas para enviar');const packet={id:id('envio'),supplier,text:lines.map(x=>`${qtyLabel(x.q)}${display(x.product)}`).join('\n'),timestamp:new Date().toISOString(),simulation:true};for(const a of state.allocations)if(a.supplier===supplier&&a.status==='draft')a.status='sent';state.sentMessages.push(packet);return packet;}
+export function manualBuy(state,key,q){const row=totals(state).find(t=>t.key===key);if(!row)throw Error('No existe producto');if(row.unresolved)throw Error('Confirma el producto antes de comprar');if(!(q>0))throw Error('Cantidad positiva requerida');state.manual.push({id:id('manual'),key,q:fix(q),confirmed:true});}
+export function receiveSupplier(state,allocationId,q){const a=state.allocations.find(x=>x.id===allocationId&&x.status==='sent');if(!a)throw Error('El pedido debe estar enviado');if(!(q>0))throw Error('Cantidad inválida');const previous=state.receipts.filter(x=>x.allocationId===allocationId).reduce((s,x)=>s+x.q,0);if(previous+q>a.q+1e-8)throw Error('No se recibe más de lo enviado sin registrar una compra extra');state.receipts.push({id:id('receipt'),allocationId,q:fix(q)});}
+export function authorizedQty(state,key){const sent=state.allocations.filter(a=>a.key===key&&a.status==='sent').reduce((s,a)=>s+a.q,0);const manual=state.manual.filter(m=>m.key===key&&m.confirmed).reduce((s,a)=>s+a.q,0);return fix(sent+manual);}
+export function actuallyReceived(state,key){const manual=state.manual.filter(m=>m.key===key&&m.confirmed).reduce((s,x)=>s+x.q,0);
+ const received=state.receipts.filter(r=>state.allocations.find(a=>a.id===r.allocationId)?.key===key).reduce((s,x)=>s+x.q,0);return fix(manual+received);
+}
+
+/** Regla única de negocio usada por Global, Compras y Reparto.
+ * Un borrador asignado NO autoriza bajadas. Un pedido realmente marcado
+ * como enviado o una compra manual confirmada SÍ las autoriza.
+ * La carga permanece completamente independiente.
+ */
+export function productStatus(state,key){
+ const requested=qtyRequested(state,key);
+ const active=state.allocations.filter(a=>a.key===key&&a.status!=='cancelled');
+ const assignedDraft=fix(active.filter(a=>a.status==='draft').reduce((sum,a)=>sum+a.q,0));
+ const assignedSent=fix(active.filter(a=>a.status==='sent').reduce((sum,a)=>sum+a.q,0));
+ const manuallyBought=fix(state.manual.filter(m=>m.key===key&&m.confirmed).reduce((sum,m)=>sum+m.q,0));
+ const supplierReceived=fix(state.receipts.filter(r=>active.some(a=>a.id===r.allocationId)).reduce((sum,r)=>sum+r.q,0));
+ const authorized=fix(assignedSent+manuallyBought);
+ const status=authorized>0?'REPARTO_HABILITADO':assignedDraft>0?'ASIGNADO_SIN_ENVIAR':'SIN_GESTIONAR';
+ return {requested,assignedDraft,assignedSent,manuallyBought,supplierReceived,authorized,status,remainingToAuthorize:fix(Math.max(0,requested-authorized)),extraPurchased:fix(Math.max(0,supplierReceived+manuallyBought-requested))};
+}
+
+/** Asignación rápida: una pulsación añade o mueve, y una segunda en el mismo
+ * proveedor quita el borrador. Nunca borra ni cambia un envío confirmado.
+ */
+export function quickAssign(state,key,supplier){
+ const row=totals(state).find(t=>t.key===key);
+ if(!row)throw Error('Producto no encontrado');
+ if(row.unresolved)throw Error('Revisa el nombre en rojo antes de asignar');
+ if(!SUPPLIERS.includes(supplier)||supplier==='COMPRA EXTERNA')throw Error('Selecciona un proveedor válido');
+ const active=state.allocations.filter(a=>a.key===key&&a.status!=='cancelled');
+ if(active.some(a=>a.status==='sent'))throw Error('Ya enviado: cualquier cambio requiere una corrección explícita');
+ if(active.length&&active.every(a=>a.supplier===supplier&&a.status==='draft')){
+  state.allocations=state.allocations.filter(a=>a.key!==key||a.status!=='draft');
+  return 'DESASIGNADO';
+ }
+ const manual=productStatus(state,key).manuallyBought;
+ const q=fix(row.total-manual);
+ if(q<=0)throw Error('Ya está comprado manualmente: no dupliques la compra al asignar un proveedor');
+ state.allocations=state.allocations.filter(a=>a.key!==key||a.status!=='draft');
+ assignSupplier(state,key,supplier,q);
+ return 'ASIGNADO';
+}
+
+/** Compra separada de recepción de proveedor.
+ * - Nunca registra la recepción de un proveedor existente.
+ * - Si existe borrador de proveedor, necesita retirarlo expresamente.
+ * - Si excede la cantidad pedida, necesita confirmación adicional.
+ */
+export function manualBuySafe(state,key,q,{removeDraft=false,allowExtra=false}={}){
+ const row=totals(state).find(t=>t.key===key);
+ if(!row)throw Error('Producto no encontrado');
+ if(row.unresolved)throw Error('Confirma el nombre en rojo antes de comprar');
+ const qty=fix(Number(String(q).replace(',','.')));
+ if(!(qty>0))throw Error('Cantidad de compra positiva requerida');
+ const status=productStatus(state,key);
+ if(status.assignedDraft>0&&!removeDraft)throw Error('Existe pedido a proveedor sin enviar: elige retirarlo antes de la compra manual');
+ const expected=fix(status.authorized+qty);
+ if(expected>row.total+1e-8&&!allowExtra)throw Error('Compra superior al pedido: confirma expresamente la cantidad extra');
+ if(removeDraft){
+  // Reduce el borrador exactamente por la compra manual, sin borrar
+  // silenciosamente los otros bultos que aún se esperan del proveedor.
+  let toReduce=qty;
+  for(const a of state.allocations.filter(a=>a.key===key&&a.status==='draft')){
+   if(toReduce<=0)break;
+   const reduction=Math.min(toReduce,a.q);
+   a.q=fix(a.q-reduction);
+   toReduce=fix(toReduce-reduction);
+  }
+  state.allocations=state.allocations.filter(a=>!(a.key===key&&a.status==='draft'&&a.q<=0));
+ }
+ manualBuy(state,key,qty);
+ return productStatus(state,key);
+}
+
+/** Vista de control: la lista sin gestionar sigue visible en compras, aunque
+ * Reparto únicamente reciba los autorizados.
+ */
+export function pendingPurchases(state){
+ return totals(state).map(row=>({...row,...productStatus(state,row.key)}));
+}
+
+const dOrder=(a,b)=>{const ai=STORE_ORDER.indexOf(a),bi=STORE_ORDER.indexOf(b);if(ai>=0&&bi>=0)return ai-bi;if(ai>=0)return -1;if(bi>=0)return 1;return a.localeCompare(b);};
+export function planShortage(state,key,by){
+ const row=totals(state).find(t=>t.key===key);if(!row)throw Error('Producto no encontrado');
+ const authorized=authorizedQty(state,key);let total=0;
+ for(const [dest,rawQty] of Object.entries(by)){
+  const q=num(rawQty);if(!Number.isFinite(q)||q<0)throw Error('Cantidad inválida');
+  if(q>(row.by[dest]||0)+1e-8)throw Error('No se pueden asignar más de las cajas pedidas por tienda');
+  if(q+(1e-8)<(state.delivery[key+'@'+dest]||0))throw Error('No se puede quitar mercancía ya bajada');
+  total+=q;
+ }
+ if(total>authorized+1e-8)throw Error('Se supera la mercancía habilitada');
+ state.shortageAllocation[key]=Object.fromEntries(Object.entries(by).map(([d,q])=>[d,fix(num(q))]));
+ return state.shortageAllocation[key];
+}
+export function deliveryPlan(state){const eligible=[],blocked=[],short=[],needsReview=[];let all=totals(state);
+ for(const t of all){const authorized=productStatus(state,t.key).authorized;
+  if(!authorized){blocked.push({...t,reason:'SIN ENVIAR NI COMPRAR'});continue;}
+  const sorted=Object.entries(t.by).sort((a,b)=>dOrder(a[0],b[0]));
+  // Si afecta a varias tiendas y falta producto, no se elige arbitrariamente quién recibe menos.
+  const partial=authorized<t.total-1e-8&&sorted.length>1;
+  const specified=state.shortageAllocation[t.key];
+  if(partial&&!specified){needsReview.push({...t,authorized,reason:'REPARTO INSUFICIENTE: ELIGE CANTIDADES POR DESTINO'});continue;}
+  let left=authorized;
+  for(const [dest,demand] of sorted){const proposal=partial?fix(specified[dest]||0):demand;const allowed=fix(Math.min(demand,left,proposal));
+   if(allowed>0){const delivered=fix(state.delivery[t.key+'@'+dest]||0);eligible.push({key:t.key,dest,product:t.product,unit:t.unit,requested:demand,allowed,delivered,remaining:fix(Math.max(0,allowed-delivered))});}
+   if(allowed<demand)short.push({key:t.key,dest,product:t.product,missing:fix(demand-allowed),unit:t.unit});
+   left=fix(Math.max(0,left-allowed));}
+ }
+ return {eligible:eligible.sort((a,b)=>dOrder(a.dest,b.dest)||a.product.localeCompare(b.product,'es',{numeric:true})),blocked,short,needsReview};
+}
+
+export function deliver(state,key,dest,q=null){const row=deliveryPlan(state).eligible.find(r=>r.key===key&&r.dest===dest);if(!row)throw Error('Producto no habilitado para reparto');const add=q===null?row.remaining:num(q);if(!(add>0)||add>row.remaining+1e-8)throw Error('Cantidad superior al reparto habilitado');const k=key+'@'+dest;state.delivery[k]=fix((state.delivery[k]||0)+add);return state.delivery[k];}
+export function undoDelivery(state,key,dest){delete state.delivery[key+'@'+dest];}
+export function loadItem(state,key,dest,q){state.load[key+'@'+dest]=fix(q);}
+export function surplus(state){const out=[];for(const t of totals(state)){const extra=fix(Math.max(0,actuallyReceived(state,t.key)-t.total));if(extra>0)out.push({...t,extra});}return out;}
+export function distributeSurplus(extra,{fractional=false}={}){
+ if(!(extra>0))return {SP:0,SL:0,ST:0};
+ if(fractional)return {SP:fix(extra*.6),SL:fix(extra*.2),ST:fix(extra-fix(extra*.6)-fix(extra*.2))};
+ const total=Math.round(extra);const exact=[total*.6,total*.2,total*.2];const amounts=exact.map(Math.floor);let rem=total-amounts.reduce((a,b)=>a+b,0);const places=exact.map((v,i)=>({i,r:v-amounts[i]})).sort((a,b)=>b.r-a.r||a.i-b.i);
+ for(let i=0;i<rem;i++)amounts[places[i%3].i]++;
+ return {SP:amounts[0],SL:amounts[1],ST:amounts[2]};
+}
+export function assignRider(state,dest,name){if(!state.destinations.some(x=>x.id===dest))throw Error('Destino desconocido');const rider=canonical(name);if(!rider)throw Error('Repartidor vacío');if(!state.riders.includes(rider))state.riders.push(rider);state.riderAssignments[dest]=rider;}
+export function newDay(state,newDate){if(!/^\d{4}-\d{2}-\d{2}$/.test(newDate))throw Error('Fecha inválida');const before={day:state.day,orders:state.orders,allocations:state.allocations,manual:state.manual,receipts:state.receipts,delivery:state.delivery,load:state.load,shortageAllocation:state.shortageAllocation||{},riderAssignments:state.riderAssignments||{},sentMessages:state.sentMessages||[]};state.history.push(structuredClone(before));state.day=newDate;state.orders=[];state.allocations=[];state.manual=[];state.receipts=[];state.delivery={};state.load={};state.shortageAllocation={};state.riderAssignments={};state.sentMessages=[];state.importedFingerprints=[];}
+export function summary(state){const t=totals(state),p=deliveryPlan(state);return {day:state.day,destinations:state.destinations.length,originalLines:state.orders.length,products:t.length,quantities:fix(t.reduce((s,x)=>s+x.total,0)),unreviewed:state.orders.filter(x=>x.review).length,assignedDraft:state.allocations.filter(a=>a.status==='draft').length,assignedSent:state.allocations.filter(a=>a.status==='sent').length,manualBought:state.manual.length,deliverable:p.eligible.length,blocked:p.blocked.length,shortages:p.short.length,shortageReview:p.needsReview.length,delivered:Object.keys(state.delivery).length};}

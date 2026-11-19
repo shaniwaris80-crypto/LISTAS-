@@ -1,0 +1,356 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#050505"><title>ARSLAN LISTAS — Reparto seguro (pruebas)</title><style>:root{--black:#050505;--ink:#131313;--muted:#686868;--line:#e1e1e1;--soft:#f5f5f5;--white:#fff;--green:#138542;--greenbg:#e6f7eb;--red:#d3222c;--redbg:#ffeced;--amber:#9b5e0f;--amberbg:#fff2da;--radius:16px}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:#f7f7f7;color:var(--ink);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:15px}button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit}button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid #999;outline-offset:2px}
+.top{background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}.top-inner{max-width:1270px;margin:auto;padding:12px 24px;display:flex;justify-content:space-between;align-items:center;gap:16px}.brand{display:flex;align-items:center;gap:12px;font-weight:900;letter-spacing:-.7px;font-size:19px}.logo{height:39px;width:39px;border-radius:11px;background:#070707;color:#fff;display:grid;place-items:center;font-size:19px}.subtitle{font-size:12px;color:#626262;font-weight:500;letter-spacing:0}.demo-pill{border:1px solid #e6cfcf;border-radius:999px;padding:7px 11px;background:#fff5f5;color:#9e2323;font-size:12px;font-weight:750;white-space:nowrap}
+.shell{max-width:1270px;margin:0 auto;display:grid;grid-template-columns:216px minmax(0,1fr);gap:24px;padding:22px 24px 65px}.side{position:sticky;top:90px;align-self:start}.side button{display:flex;align-items:center;gap:12px;padding:13px 14px;border:0;background:transparent;border-radius:11px;width:100%;text-align:left;color:#5f5f5f;font-weight:650;margin-bottom:3px}.side button.active{background:#080808;color:#fff}.side .step{font-size:12px;width:27px;height:27px;display:grid;place-items:center;border-radius:8px;background:#eee;color:#222;font-weight:850}.side button.active .step{background:#fff;color:#000}.side .caption{font-size:11px;text-transform:uppercase;font-weight:850;letter-spacing:.12em;color:#909090;margin:24px 14px 7px}
+main{min-width:0}.head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin:8px 0 22px}.head h1{margin:0;font-size:clamp(26px,3vw,38px);font-weight:850;letter-spacing:-1.3px}.head p{margin:7px 0 0;color:var(--muted);line-height:1.5;max-width:650px}.head .mini{color:#666;font-size:12px;white-space:nowrap}
+.card{background:white;border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-bottom:15px;box-shadow:0 2px 5px rgba(0,0,0,.022)}.card h2{margin:0 0 15px;font-size:18px;letter-spacing:-.35px}.card h3{margin:0 0 9px;font-size:15px}.subtle{color:var(--muted);font-size:13px;line-height:1.5}.sectionline{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:15px;flex-wrap:wrap}.sectionline h2{margin:0}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.twocol{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.stat{background:#fff;border:1px solid #dedede;border-radius:13px;padding:18px}.stat b{font-size:31px;letter-spacing:-1px;display:block;font-variant-numeric:tabular-nums}.stat span{display:block;color:#666;font-size:12px;margin-top:4px}.btn{border:1px solid #dbdbdb;background:#fff;color:#111;padding:10px 14px;border-radius:10px;font-weight:750;line-height:1.15;display:inline-flex;align-items:center;justify-content:center;gap:7px}.btn:hover{background:#f4f4f4}.btn.dark{border-color:#080808;background:#080808;color:#fff}.btn.dark:hover{background:#292929}.btn.green{background:#0e853e;border-color:#0e853e;color:white}.btn.green:hover{background:#0a7737}.btn.red{color:#bc202a;border-color:#ecbcc0}.btn.small{font-size:12px;padding:8px 10px}.btn:disabled{opacity:.44;cursor:not-allowed}.tools{display:flex;gap:8px;flex-wrap:wrap}.pill{font-size:11px;font-weight:850;text-transform:uppercase;letter-spacing:.025em;padding:5px 9px;border:1px solid #d8d8d8;background:#f5f5f5;border-radius:8px;display:inline-flex;align-items:center;gap:4px}.pill.ok{color:#0d7237;background:#e7f7ed;border-color:#c2e8cb}.pill.err{color:#bb1c24;background:#ffeaec;border-color:#f2c0c3}.pill.warn{color:#9d5b0a;background:#fff2da;border-color:#f0d3a5}.pill.black{color:white;background:#111;border-color:#111}
+.items{display:flex;flex-direction:column;gap:8px}.item{display:flex;gap:12px;align-items:center;border:1px solid #e6e6e6;border-radius:12px;padding:12px 13px;background:white;min-width:0}.item:hover{border-color:#bbb}.item .product{font-weight:775;overflow-wrap:anywhere;line-height:1.3}.item .qty{font-size:20px;font-weight:900;font-variant-numeric:tabular-nums;min-width:26px}.item .details{font-size:12px;color:#777;margin-top:4px}.item .grow{flex:1;min-width:0}.item .mini-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}.item.err{background:#fffafa;border-color:#f1cdcf}.item.err .product{color:var(--red)}.item.done{background:#f5fbf7;border-color:#cde6d3}.item.done .product{color:#2d693f;text-decoration:line-through;text-decoration-thickness:1px}.clickable{width:100%;display:flex;text-align:left;border:0;background:transparent;gap:12px;align-items:center;padding:2px 0;cursor:pointer}.check{height:31px;width:31px;flex:0 0 31px;border-radius:9px;background:#fff;border:2px solid #111;display:grid;place-items:center;font-size:19px}.clickable:hover .check{background:#eee}.done .check{background:#179048;border-color:#179048;color:#fff}.keynum{background:#0b0b0b;color:white;border-radius:10px;min-width:37px;padding:8px 6px;text-align:center;font-weight:900;font-size:16px}
+label{font-size:13px;font-weight:800;display:block;margin:0 0 8px}textarea,input,select{background:#fff;border:1px solid #d4d4d4;border-radius:10px;padding:11px 12px;color:#131313;width:100%}textarea{resize:vertical;min-height:155px;line-height:1.5;font-family:ui-monospace,Menlo,Monaco,Consolas,monospace;font-size:13px}.supplier-pills{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.supplier-pills .btn.on{background:#080808;border-color:#080808;color:#fff}.bar{height:8px;border-radius:999px;background:#ededed;overflow:hidden}.bar div{height:100%;background:#168944;border-radius:999px}.notice{border:1px solid #f2ccce;background:#fff5f5;border-radius:12px;padding:13px 14px;margin-bottom:14px;font-size:13px;line-height:1.5}.notice.green{background:#f2fbf4;border-color:#bde9c7}.notice.amber{background:#fffaf0;border-color:#e8d8af}.notice b{display:block;margin-bottom:2px}.half{display:grid;grid-template-columns:1fr 1fr;gap:12px}.summary-list{display:flex;flex-wrap:wrap;gap:6px}.copy{white-space:pre-wrap;word-wrap:break-word;background:#0b0b0b;color:#fff;padding:14px 16px;border-radius:12px;font:13px/1.8 ui-monospace,monospace;margin:10px 0}.muted-sm{font-size:11px;color:#8b8b8b}.spacer{height:10px}.bottomnav{display:none}.narrow{max-width:720px}.tag-selected{background:#111;color:#fff;border-color:#111}
+.clear-day-home{display:flex;align-items:center;justify-content:space-between;gap:14px;background:#fff;border:1px solid #e9b6bc;border-radius:14px;padding:13px 16px;margin-bottom:15px}
+.clear-day-description{display:flex;flex-direction:column;gap:3px;min-width:0}.clear-day-description strong{font-size:14px;color:#111}.clear-day-description span{font-size:12px;color:#676767;line-height:1.45}
+.btn.clear-day-button{border:2px solid #cc202a;background:#fff;color:#b91c25;white-space:nowrap;min-height:46px;padding:11px 17px;font-size:14px;font-weight:850}.btn.clear-day-button:hover{background:#fff0f1}.btn.clear-day-button:focus-visible{outline:3px solid #b91c25;outline-offset:3px}
+@media(max-width:540px){.clear-day-home{align-items:stretch;flex-direction:column;padding:13px}.clear-day-home .btn.clear-day-button{width:100%;min-height:48px}}
+@media(max-width:850px){.shell{grid-template-columns:1fr;padding:10px 12px 82px}.side{display:none}.top-inner{padding:11px 14px}.brand{font-size:17px}.brand .subtitle{display:none}.bottomnav{position:fixed;bottom:0;left:0;right:0;z-index:35;background:#fff;border-top:1px solid #dedede;display:flex;justify-content:space-around;padding:7px 4px calc(7px + env(safe-area-inset-bottom))}.bottomnav button{flex:1;background:none;border:0;font-size:11px;font-weight:800;color:#777;padding:8px 3px;max-width:130px}.bottomnav button.active{color:#000;background:#f2f2f2;border-radius:8px}.head{margin:12px 1px 17px}.head .mini{display:none}.card{padding:15px;border-radius:13px}.stat{padding:14px}.stat b{font-size:27px}.grid{gap:7px}.grid .stat{padding:10px}.grid .stat b{font-size:24px}.item{padding:10px 10px;gap:8px;flex-wrap:wrap}.item .mini-actions{width:100%;justify-content:flex-end}.item .mini-actions .btn{flex:0 0 auto}.half,.twocol{grid-template-columns:1fr}.supplier-pills .btn{font-size:12px;padding:9px 12px}.btn{min-height:38px}}
+@media(max-width:385px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.demo-pill{font-size:10px;padding:6px}.item .product{font-size:13px}}
+
+.searchable[hidden]{display:none!important}#searchRows{margin-bottom:10px;scroll-margin-top:110px}
+</style></head><body><div id="app"></div><script>// ARSLAN LISTAS — laboratorio de auditoría aislado. No toca el sistema publicado.
+const STORE_ORDER=['SP','SL','ST'];
+const DESTINATIONS=[
+ {id:'SP',name:'SAN PABLO',kind:'tienda'},
+ {id:'SL',name:'SAN LESMES',kind:'tienda'},
+ {id:'ST',name:'SANTIAGO',kind:'tienda'},
+ {id:'BC',name:'BRASEROS · CENTRO',kind:'restaurante'},
+ {id:'BF',name:'BRASEROS · FORUM',kind:'restaurante'},
+ {id:'BS',name:'BRASEROS · SEVERO',kind:'restaurante'},
+ {id:'BE',name:'BRASEROS · EDIFICIO',kind:'restaurante'},
+ {id:'BT',name:'BRASEROS · TOMILLARES',kind:'restaurante'},
+ {id:'RV',name:'RIVIERA',kind:'restaurante'}
+];
+const SUPPLIERS=['ESMO','MONTENEGRO','ÁNGEL VACA','JOSÉ ANTONIO','JAVI','ANGELO','COMPRA EXTERNA'];
+const catalogList=`MANZANA PINK LADY|CHIRIMOYA|MANDARINA PLASENCIA|MARACUYA|MANDARINA COLOMBE|PINA|MELON|BROCOLI|MANZANA GOLDEN 28|LIMON SEGUNDA|PLATANO CANARIO PRIMERA|PAPAYA|MANGO|MANZANA GOLDEN 24|NARANJA MESA SONRISA|NARANJA HOJA|BATAVIA|PEREJIL|CHAMPINON|UVA BLANCA|UVA ROJA|CEREZA|ZANAHORIA|TOMATE ASURCADO MARRON|TOMATE ROSA|CEBOLLA DULCE|CEBOLLA NORMAL|MANDARINA HOJA|MANZANA GRANNY SMITH|KIWI ZESPRI GOLD|VALVENOSTA GOLDEN|KIWI ZESPRI|PERA RINCON DEL SOTO|GRANADA|PERA LIMONERA|NUECES|AGUACATE GRANEL|PERA CONFERENCIA SEGUNDA|KIWI SEGUNDA|KAKI|REINETA PARDA|COLIFLOR|ICEBERG|GUINDILLA|PIMIENTO PADRON|CASTANA|ESCAROLA|ACELGAS|ESPINACA|APIO|NARANJA ZUMO|ARANDANOS|SETAS|BERENJENA|CALABACIN|PIMIENTO ITALIANO ROJO|PUERROS|PEPINO|BONIATO|TOMATE PERA|TOMATE RAFF|TOMATE RAMA|TOMATE ASURCADO AZUL|CEBOLLA ROJA|PATATA 5 KG|AJO PRIMERA|REMOLACHA|MANZANA GOLDEN 20|MANZANA GOLDEN 24|MANZANA GOLDEN 28|MANZANA ROYAL GALA 24|REINETA 24|REINETA 28|PATATA 10 KG|PATATA 25 KG|CILANTRO|KIWI TOMASIN|YAUTIA|YAME|MACHO VERDE|MACHO MADURO|CEBOLLA ROJA|SANDIA|NARANJA ZUMO`; 
+const SEED_CATALOG=[...new Set(catalogList.split('|'))].sort((a,b)=>a.localeCompare(b,'es',{numeric:true}));
+function canonical(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]+/g,' ').replace(/\s+/g,' ').trim();}
+function display(s){return canonical(s);}
+function suggest(name,catalog){
+ const t=canonical(name), c=catalog.map(x=>canonical(x));
+ // Los términos varietales/numéricos tienen preferencia sobre coincidencias de otras familias.
+ const words=t.split(' '),family=words[0];
+ const candidates=c.filter(v=>v.split(' ')[0]===family || (family==='GOLDEN'&&v.includes('GOLDEN')) || (family==='GRNNY'&&v.includes('GRANNY')) || (t.includes('GRNNY')&&v.includes('GRANNY')));
+ const lev=(a,b)=>{const m=a.length,n=b.length,dp=Array.from({length:m+1},()=>Array(n+1).fill(0));for(let i=0;i<=m;i++)dp[i][0]=i;for(let j=0;j<=n;j++)dp[0][j]=j;for(let i=1;i<=m;i++)for(let j=1;j<=n;j++)dp[i][j]=Math.min(dp[i-1][j]+1,dp[i][j-1]+1,dp[i-1][j-1]+(a[i-1]===b[j-1]?0:1));return dp[m][n];};
+ return (candidates.length?candidates:c).map(x=>({x,score:lev(t,x)})).filter(v=>v.score<=Math.max(2,Math.ceil(t.length*.32))).sort((a,b)=>a.score-b.score).slice(0,3).map(v=>v.x);
+}
+let serial=0;const id=(p)=>`${p}_${++serial}`;
+function createState(){return {day:'2026-11-19',catalog:[...SEED_CATALOG],aliases:{},orders:[],allocations:[],manual:[],receipts:[],delivery:{},load:{},shortageAllocation:{},riderAssignments:{},riders:['REPARTIDOR 1','REPARTIDOR 2'],destinations:structuredClone(DESTINATIONS),history:[],sentMessages:[],importedFingerprints:[]};}
+function matchCatalog(name,state){const k=canonical(name);return state.catalog.find(c=>canonical(c)===k)||state.aliases[k]||null;}
+const num=(x)=>Number(String(x).replace(',','.'));
+function parseOrderLine(line,state){
+ const text=String(line).replace(/^[-•*]\s*/,'').trim();if(!text)return null;
+ let name=text,q=null,unit='BULTO';
+ // 3TOMATE RAMA; 1,5 KG TOMATE; 3 x MANZANA; 7 PATATA 5 KG
+ const m=text.match(/^(\d+\/\d+|\d+(?:[,.]\d+)?)\s*(?:[xX*]\s*)?(KG|KGS|CAJAS?|MANOJOS?|SACOS?|UNDS?|UDS?)?\s*(.+)$/i);
+ if(m){q=m[1].includes('/')?m[1].split('/').map(Number).reduce((a,b)=>a/b):num(m[1]);name=m[3];if(m[2]){const token=canonical(m[2]);unit=token.startsWith('KG')?'KG':token.startsWith('CAJA')?'CAJA':token.startsWith('SACO')?'SACO':token.startsWith('MANOJO')?'MANOJO':'UD';}}
+ else {
+   // Nombre terminado en cantidad: GOLDEN 28 3 y PATATA 5 KG 7.
+   const last=text.match(/^(.+?)\s+(\d+(?:[,.]\d+)?)$/);
+   if(last){const maybeFull=canonical(text);const end=last[2];const calibreLike=/\b(GOLDEN|REINETA|FUJI|ROYAL GALA|PATATA)\b/.test(canonical(last[1]))&&(/^\d{2}$/.test(end)||/\b\d+\s*KG$/i.test(text));
+     if(!matchCatalog(maybeFull,state)&&!calibreLike){name=last[1];q=num(end);}
+   }
+ }
+ // GOLDEN 28 3 se interpreta como qty 3, calibre 28; nunca 28 cajas.
+ if(!Number.isFinite(q)||q<=0)q=null;
+ const k=canonical(name);let found=matchCatalog(k,state);
+ // Un alias abreviado sólo si el calibre coincide exactamente.
+ if(!found&&/^GOLDEN\s+\d{2}$/.test(k))found=matchCatalog('MANZANA '+k,state);
+ const issues=[];
+ if(!found)issues.push('PRODUCTO_NO_EN_CATALOGO');
+ if(q===null)issues.push('CANTIDAD_SIN_CONFIRMAR');
+ return {id:id('line'),raw:text,sourceName:k,product:found||k,q,unit,review:issues.length>0,issues,suggestions:found?[]:suggest(k,state.catalog)};
+}
+function parseHeader(line,state){
+ let h=line.replace(/^\[[^\]]+\]\s*[^:]{1,120}:\s*/,'').replace(/🛒/g,'').replace(/\*/g,'').trim();
+ const match=h.match(/^PEDIDO\s+(.+)$/i);if(!match)return null;
+ const raw=canonical(match[1]);const labels={SL:'SL',SP:'SP',ST:'ST','SAN PABLO':'SP','SAN LESMES':'SL',SANTIAGO:'ST','BRASEROS CENTRO':'BC','BRASEROS FORUM':'BF','BRASEROS SEVERO':'BS','BRASEROS EDIFICIO':'BE','BRASEROS TOMILLARES':'BT','RIVIERA':'RV','BRASEROS TOMILLARES':'BT','BRASEROS CENTRO GENERAL':'BC'};
+ return labels[raw] || state.destinations.find(d=>canonical(d.name)===raw)?.id || 'UNKNOWN:'+raw;
+}
+function importBlocks(state,text,{replace=false}={}){
+ const fingerprint=canonical(text);if(!replace&&state.importedFingerprints?.includes(fingerprint))throw Error('Estas listas ya se han pegado en esta jornada. Evita duplicar pedidos.');
+ let dest=null,n=0;const issues=[];const seen=new Set();
+ for(const raw of String(text).split(/\r?\n/)){
+  if(!raw.trim())continue;
+  const heading=parseHeader(raw,state);
+  if(heading){dest=heading.startsWith('UNKNOWN:')?null:heading;if(!dest)issues.push('Destino no reconocido: '+heading.substring(8));if(replace&&dest&&!seen.has(dest)){if(state.allocations.some(a=>a.status==='sent')||state.manual.length||Object.keys(state.delivery).length)throw Error('No se pueden sustituir pedidos con compras o bajadas ya iniciadas; importa una corrección aparte');state.orders=state.orders.filter(o=>o.dest!==dest);seen.add(dest);}continue;}
+  if(!dest){if(raw.trim().startsWith('['))continue;issues.push('Línea sin destino: '+raw.trim());continue;}
+  const parsed=parseOrderLine(raw,state);if(parsed){state.orders.push({...parsed,dest});n++;}
+ }
+ if(!state.importedFingerprints)state.importedFingerprints=[];state.importedFingerprints.push(fingerprint);
+ return {imported:n,issues};
+}
+function confirmProduct(state,lineId,target,{create=false,remember=true}={}){
+ const line=state.orders.find(l=>l.id===lineId);if(!line)throw Error('No existe la línea');
+ const clean=canonical(target);
+ const priorKey=canonical(line.product)+'|'+line.unit;
+ if(canonical(line.product)!==clean&&(state.allocations.some(a=>a.key===priorKey&&a.status==='sent')||Object.keys(state.delivery).some(k=>k.startsWith(priorKey+'@'))))throw Error('No cambies un producto ya enviado o bajado sin una corrección de compras');
+ if(!clean)throw Error('Nombre vacío');
+ const existing=matchCatalog(clean,state);
+ if(!existing&&!create)throw Error('Producto inexistente: usa Crear nuevo');
+ if(!existing)state.catalog.push(clean);
+ const targetName=existing||clean;
+ const original=canonical(line.sourceName);
+ if(remember&&original!==canonical(targetName)){
+   const prior=matchCatalog(original,state);if(!prior||canonical(prior)===canonical(targetName))state.aliases[original]=targetName;
+ }
+ line.product=targetName;line.review=false;line.issues=line.q==null?['CANTIDAD_SIN_CONFIRMAR']:[];line.suggestions=[];
+ if(line.issues.length)line.review=true;
+ return targetName;
+}
+function setQuantity(state,lineId,value){const line=state.orders.find(l=>l.id===lineId);if(!line)throw Error('Línea no encontrada');const q=num(value);if(!Number.isFinite(q)||q<=0)throw Error('Cantidad positiva requerida');line.q=q;line.issues=line.issues.filter(x=>x!=='CANTIDAD_SIN_CONFIRMAR');line.review=line.issues.length>0;}
+function addDestination(state,name,kind='restaurante'){const key=canonical(name);let d=state.destinations.find(x=>canonical(x.name)===key);if(d)return d;d={id:id('dest'),name:key,kind};state.destinations.push(d);return d;}
+function totals(state){
+ const map=new Map();for(const l of state.orders){if(!l.q)continue;const key=canonical(l.product)+'|'+l.unit;let item=map.get(key);if(!item){item={key,product:l.product,unit:l.unit,total:0,by:{},unresolved:false};map.set(key,item);}
+ item.total=fix(item.total+l.q);item.by[l.dest]=fix((item.by[l.dest]||0)+l.q);item.unresolved ||= l.review;
+ }
+ return [...map.values()].sort((a,b)=>a.product.localeCompare(b.product,'es',{numeric:true}));
+}
+function qtyRequested(state,key){return totals(state).find(t=>t.key===key)?.total||0;}
+function fix(n){return Math.round((Number(n)||0)*1000)/1000;}
+function assignSupplier(state,key,supplier,quantity){if(!SUPPLIERS.includes(supplier))throw Error('Proveedor desconocido');const row=totals(state).find(t=>t.key===key);if(!row)throw Error('Producto inexistente');if(row.unresolved)throw Error('Revisa el nombre en rojo antes de asignar');
+ const q=quantity??row.total; if(!(q>0))throw Error('Cantidad no válida');
+ // Prevent multiple draft assignments that exceed requested qty (extra requires separate manual purchase).
+ const active=state.allocations.filter(a=>a.key===key&&a.status!=='cancelled');const existing=active.find(a=>a.supplier===supplier&&a.status==='draft');
+ const others=active.reduce((s,a)=>s+a.q,0)-(existing?.q||0);
+ if(others+q>row.total+1e-8)throw Error('La asignación supera la cantidad pedida');
+ if(existing)existing.q=fix(q);else state.allocations.push({id:id('prov'),key,supplier,q:fix(q),status:'draft'});
+}
+function moveDraftToSupplier(state,key,supplier){
+ const active=state.allocations.filter(a=>a.key===key&&a.status!=='cancelled');
+ if(active.some(a=>a.status==='sent'))throw Error('Este producto ya se envió: corrige el pedido en vez de moverlo silenciosamente');
+ state.allocations=state.allocations.filter(a=>a.key!==key||a.status==='cancelled');
+ return assignSupplier(state,key,supplier,qtyRequested(state,key));
+}
+function supplierLines(state,supplier,includeSent=true){return state.allocations.filter(a=>a.supplier===supplier&&a.status!=='cancelled'&&(includeSent||a.status==='draft')).map(a=>({ ...a,product:totals(state).find(t=>t.key===a.key)?.product||a.key.split('|')[0] })).sort((a,b)=>a.product.localeCompare(b.product,'es',{numeric:true}));}
+const qtyLabel=n=>String(n).replace('.',',');
+function supplierTXT(state,supplier){return supplierLines(state,supplier).map(a=>`${qtyLabel(a.q)}${display(a.product)}`).join('\n');}
+function prepareWhatsApp(state,supplier){return {supplier,text:supplierTXT(state,supplier),url:`https://wa.me/?text=${encodeURIComponent('PEDIDO '+supplier+'\n'+supplierTXT(state,supplier))}`};}
+function markSupplierSent(state,supplier){const lines=supplierLines(state,supplier,false);if(!lines.length)throw Error('No hay líneas nuevas para enviar');const packet={id:id('envio'),supplier,text:lines.map(x=>`${qtyLabel(x.q)}${display(x.product)}`).join('\n'),timestamp:new Date().toISOString(),simulation:true};for(const a of state.allocations)if(a.supplier===supplier&&a.status==='draft')a.status='sent';state.sentMessages.push(packet);return packet;}
+function manualBuy(state,key,q){const row=totals(state).find(t=>t.key===key);if(!row)throw Error('No existe producto');if(row.unresolved)throw Error('Confirma el producto antes de comprar');if(!(q>0))throw Error('Cantidad positiva requerida');state.manual.push({id:id('manual'),key,q:fix(q),confirmed:true});}
+function receiveSupplier(state,allocationId,q){const a=state.allocations.find(x=>x.id===allocationId&&x.status==='sent');if(!a)throw Error('El pedido debe estar enviado');if(!(q>0))throw Error('Cantidad inválida');const previous=state.receipts.filter(x=>x.allocationId===allocationId).reduce((s,x)=>s+x.q,0);if(previous+q>a.q+1e-8)throw Error('No se recibe más de lo enviado sin registrar una compra extra');state.receipts.push({id:id('receipt'),allocationId,q:fix(q)});}
+function authorizedQty(state,key){const sent=state.allocations.filter(a=>a.key===key&&a.status==='sent').reduce((s,a)=>s+a.q,0);const manual=state.manual.filter(m=>m.key===key&&m.confirmed).reduce((s,a)=>s+a.q,0);return fix(sent+manual);}
+function actuallyReceived(state,key){const manual=state.manual.filter(m=>m.key===key&&m.confirmed).reduce((s,x)=>s+x.q,0);
+ const received=state.receipts.filter(r=>state.allocations.find(a=>a.id===r.allocationId)?.key===key).reduce((s,x)=>s+x.q,0);return fix(manual+received);
+}
+
+/** Regla única de negocio usada por Global, Compras y Reparto.
+ * Un borrador asignado NO autoriza bajadas. Un pedido realmente marcado
+ * como enviado o una compra manual confirmada SÍ las autoriza.
+ * La carga permanece completamente independiente.
+ */
+function productStatus(state,key){
+ const requested=qtyRequested(state,key);
+ const active=state.allocations.filter(a=>a.key===key&&a.status!=='cancelled');
+ const assignedDraft=fix(active.filter(a=>a.status==='draft').reduce((sum,a)=>sum+a.q,0));
+ const assignedSent=fix(active.filter(a=>a.status==='sent').reduce((sum,a)=>sum+a.q,0));
+ const manuallyBought=fix(state.manual.filter(m=>m.key===key&&m.confirmed).reduce((sum,m)=>sum+m.q,0));
+ const supplierReceived=fix(state.receipts.filter(r=>active.some(a=>a.id===r.allocationId)).reduce((sum,r)=>sum+r.q,0));
+ const authorized=fix(assignedSent+manuallyBought);
+ const status=authorized>0?'REPARTO_HABILITADO':assignedDraft>0?'ASIGNADO_SIN_ENVIAR':'SIN_GESTIONAR';
+ return {requested,assignedDraft,assignedSent,manuallyBought,supplierReceived,authorized,status,remainingToAuthorize:fix(Math.max(0,requested-authorized)),extraPurchased:fix(Math.max(0,supplierReceived+manuallyBought-requested))};
+}
+
+/** Asignación rápida: una pulsación añade o mueve, y una segunda en el mismo
+ * proveedor quita el borrador. Nunca borra ni cambia un envío confirmado.
+ */
+function quickAssign(state,key,supplier){
+ const row=totals(state).find(t=>t.key===key);
+ if(!row)throw Error('Producto no encontrado');
+ if(row.unresolved)throw Error('Revisa el nombre en rojo antes de asignar');
+ if(!SUPPLIERS.includes(supplier)||supplier==='COMPRA EXTERNA')throw Error('Selecciona un proveedor válido');
+ const active=state.allocations.filter(a=>a.key===key&&a.status!=='cancelled');
+ if(active.some(a=>a.status==='sent'))throw Error('Ya enviado: cualquier cambio requiere una corrección explícita');
+ if(active.length&&active.every(a=>a.supplier===supplier&&a.status==='draft')){
+  state.allocations=state.allocations.filter(a=>a.key!==key||a.status!=='draft');
+  return 'DESASIGNADO';
+ }
+ const manual=productStatus(state,key).manuallyBought;
+ const q=fix(row.total-manual);
+ if(q<=0)throw Error('Ya está comprado manualmente: no dupliques la compra al asignar un proveedor');
+ state.allocations=state.allocations.filter(a=>a.key!==key||a.status!=='draft');
+ assignSupplier(state,key,supplier,q);
+ return 'ASIGNADO';
+}
+
+/** Compra separada de recepción de proveedor.
+ * - Nunca registra la recepción de un proveedor existente.
+ * - Si existe borrador de proveedor, necesita retirarlo expresamente.
+ * - Si excede la cantidad pedida, necesita confirmación adicional.
+ */
+function manualBuySafe(state,key,q,{removeDraft=false,allowExtra=false}={}){
+ const row=totals(state).find(t=>t.key===key);
+ if(!row)throw Error('Producto no encontrado');
+ if(row.unresolved)throw Error('Confirma el nombre en rojo antes de comprar');
+ const qty=fix(Number(String(q).replace(',','.')));
+ if(!(qty>0))throw Error('Cantidad de compra positiva requerida');
+ const status=productStatus(state,key);
+ if(status.assignedDraft>0&&!removeDraft)throw Error('Existe pedido a proveedor sin enviar: elige retirarlo antes de la compra manual');
+ const expected=fix(status.authorized+qty);
+ if(expected>row.total+1e-8&&!allowExtra)throw Error('Compra superior al pedido: confirma expresamente la cantidad extra');
+ if(removeDraft){
+  // Reduce el borrador exactamente por la compra manual, sin borrar
+  // silenciosamente los otros bultos que aún se esperan del proveedor.
+  let toReduce=qty;
+  for(const a of state.allocations.filter(a=>a.key===key&&a.status==='draft')){
+   if(toReduce<=0)break;
+   const reduction=Math.min(toReduce,a.q);
+   a.q=fix(a.q-reduction);
+   toReduce=fix(toReduce-reduction);
+  }
+  state.allocations=state.allocations.filter(a=>!(a.key===key&&a.status==='draft'&&a.q<=0));
+ }
+ manualBuy(state,key,qty);
+ return productStatus(state,key);
+}
+
+/** Vista de control: la lista sin gestionar sigue visible en compras, aunque
+ * Reparto únicamente reciba los autorizados.
+ */
+function pendingPurchases(state){
+ return totals(state).map(row=>({...row,...productStatus(state,row.key)}));
+}
+
+const dOrder=(a,b)=>{const ai=STORE_ORDER.indexOf(a),bi=STORE_ORDER.indexOf(b);if(ai>=0&&bi>=0)return ai-bi;if(ai>=0)return -1;if(bi>=0)return 1;return a.localeCompare(b);};
+function planShortage(state,key,by){
+ const row=totals(state).find(t=>t.key===key);if(!row)throw Error('Producto no encontrado');
+ const authorized=authorizedQty(state,key);let total=0;
+ for(const [dest,rawQty] of Object.entries(by)){
+  const q=num(rawQty);if(!Number.isFinite(q)||q<0)throw Error('Cantidad inválida');
+  if(q>(row.by[dest]||0)+1e-8)throw Error('No se pueden asignar más de las cajas pedidas por tienda');
+  if(q+(1e-8)<(state.delivery[key+'@'+dest]||0))throw Error('No se puede quitar mercancía ya bajada');
+  total+=q;
+ }
+ if(total>authorized+1e-8)throw Error('Se supera la mercancía habilitada');
+ state.shortageAllocation[key]=Object.fromEntries(Object.entries(by).map(([d,q])=>[d,fix(num(q))]));
+ return state.shortageAllocation[key];
+}
+function deliveryPlan(state){const eligible=[],blocked=[],short=[],needsReview=[];let all=totals(state);
+ for(const t of all){const authorized=productStatus(state,t.key).authorized;
+  if(!authorized){blocked.push({...t,reason:'SIN ENVIAR NI COMPRAR'});continue;}
+  const sorted=Object.entries(t.by).sort((a,b)=>dOrder(a[0],b[0]));
+  // Si afecta a varias tiendas y falta producto, no se elige arbitrariamente quién recibe menos.
+  const partial=authorized<t.total-1e-8&&sorted.length>1;
+  const specified=state.shortageAllocation[t.key];
+  if(partial&&!specified){needsReview.push({...t,authorized,reason:'REPARTO INSUFICIENTE: ELIGE CANTIDADES POR DESTINO'});continue;}
+  let left=authorized;
+  for(const [dest,demand] of sorted){const proposal=partial?fix(specified[dest]||0):demand;const allowed=fix(Math.min(demand,left,proposal));
+   if(allowed>0){const delivered=fix(state.delivery[t.key+'@'+dest]||0);eligible.push({key:t.key,dest,product:t.product,unit:t.unit,requested:demand,allowed,delivered,remaining:fix(Math.max(0,allowed-delivered))});}
+   if(allowed<demand)short.push({key:t.key,dest,product:t.product,missing:fix(demand-allowed),unit:t.unit});
+   left=fix(Math.max(0,left-allowed));}
+ }
+ return {eligible:eligible.sort((a,b)=>dOrder(a.dest,b.dest)||a.product.localeCompare(b.product,'es',{numeric:true})),blocked,short,needsReview};
+}
+
+function deliver(state,key,dest,q=null){const row=deliveryPlan(state).eligible.find(r=>r.key===key&&r.dest===dest);if(!row)throw Error('Producto no habilitado para reparto');const add=q===null?row.remaining:num(q);if(!(add>0)||add>row.remaining+1e-8)throw Error('Cantidad superior al reparto habilitado');const k=key+'@'+dest;state.delivery[k]=fix((state.delivery[k]||0)+add);return state.delivery[k];}
+function undoDelivery(state,key,dest){delete state.delivery[key+'@'+dest];}
+function loadItem(state,key,dest,q){state.load[key+'@'+dest]=fix(q);}
+function surplus(state){const out=[];for(const t of totals(state)){const extra=fix(Math.max(0,actuallyReceived(state,t.key)-t.total));if(extra>0)out.push({...t,extra});}return out;}
+function distributeSurplus(extra,{fractional=false}={}){
+ if(!(extra>0))return {SP:0,SL:0,ST:0};
+ if(fractional)return {SP:fix(extra*.6),SL:fix(extra*.2),ST:fix(extra-fix(extra*.6)-fix(extra*.2))};
+ const total=Math.round(extra);const exact=[total*.6,total*.2,total*.2];const amounts=exact.map(Math.floor);let rem=total-amounts.reduce((a,b)=>a+b,0);const places=exact.map((v,i)=>({i,r:v-amounts[i]})).sort((a,b)=>b.r-a.r||a.i-b.i);
+ for(let i=0;i<rem;i++)amounts[places[i%3].i]++;
+ return {SP:amounts[0],SL:amounts[1],ST:amounts[2]};
+}
+function assignRider(state,dest,name){if(!state.destinations.some(x=>x.id===dest))throw Error('Destino desconocido');const rider=canonical(name);if(!rider)throw Error('Repartidor vacío');if(!state.riders.includes(rider))state.riders.push(rider);state.riderAssignments[dest]=rider;}
+function newDay(state,newDate){if(!/^\d{4}-\d{2}-\d{2}$/.test(newDate))throw Error('Fecha inválida');const before={day:state.day,orders:state.orders,allocations:state.allocations,manual:state.manual,receipts:state.receipts,delivery:state.delivery,load:state.load,shortageAllocation:state.shortageAllocation||{},riderAssignments:state.riderAssignments||{},sentMessages:state.sentMessages||[]};state.history.push(structuredClone(before));state.day=newDate;state.orders=[];state.allocations=[];state.manual=[];state.receipts=[];state.delivery={};state.load={};state.shortageAllocation={};state.riderAssignments={};state.sentMessages=[];state.importedFingerprints=[];}
+function summary(state){const t=totals(state),p=deliveryPlan(state);return {day:state.day,destinations:state.destinations.length,originalLines:state.orders.length,products:t.length,quantities:fix(t.reduce((s,x)=>s+x.total,0)),unreviewed:state.orders.filter(x=>x.review).length,assignedDraft:state.allocations.filter(a=>a.status==='draft').length,assignedSent:state.allocations.filter(a=>a.status==='sent').length,manualBought:state.manual.length,deliverable:p.eligible.length,blocked:p.blocked.length,shortages:p.short.length,shortageReview:p.needsReview.length,delivered:Object.keys(state.delivery).length};}
+
+// Código de interfaz separado para compilar una demo HTML autónoma.
+const FIXTURE = "PEDIDO SL\n3 MANZANA GOLDEN 28\n2 MANZANA GOLDEN 24\n1 LIMON SEGUNDA\n1 KAKI PRIMERA\n1 PERA EDEN\n1 MANDARINA DE BOLSA\n2 MANZANA PINK LADY\n2 CHIRIMOYA\n2 MANDARINA PLASENCIA\n2 MARACUYA\n2 MANDARINA COLOMBE\n2 PINA\n2 MELON\n2 BROCOLI\n2 PLATANO CANARIO PRIMERA\n2 PAPAYA\n2 MANGO\n2 NARANJA MESA SONRISA\n2 NARANJA HOJA\n2 BATAVIA\n2 PEREJIL\n2 CHAMPINON\n2 UVA BLANCA\n2 UVA ROJA\n2 CEREZA\n2 ZANAHORIA\n2 TOMATE ASURCADO MARRON\n2 TOMATE ROSA\n2 CEBOLLA DULCE\n2 CEBOLLA NORMAL\n\nPEDIDO SP\n8 MANZANA GOLDEN 28\n5 MANZANA GOLDEN 24\n1 LIMON SEGUNDA\n3 LIMON SEGUNDA\n3 TOMATE RAMA\n2 KAKI SEGUNDA\n1 MANZANA GRNNY SMITH\n2 MANDARINA HOJA\n2 MANZANA GRANNY SMITH\n2 KIWI ZESPRI GOLD\n2 VALVENOSTA GOLDEN\n2 KIWI ZESPRI\n2 PERA RINCON DEL SOTO\n2 GRANADA\n2 PERA LIMONERA\n2 NUECES\n2 AGUACATE GRANEL\n2 PERA CONFERENCIA SEGUNDA\n2 KIWI SEGUNDA\n2 KAKI\n2 REINETA PARDA\n2 COLIFLOR\n2 ICEBERG\n2 GUINDILLA\n2 PIMIENTO PADRON\n2 CASTANA\n2 ESCAROLA\n2 ACELGAS\n2 ESPINACA\n2 APIO\n2 NARANJA ZUMO\n2 ARANDANOS\n2 SETAS\n2 BERENJENA\n2 CALABACIN\n2 PIMIENTO ITALIANO ROJO\n2 PUERROS\n2 PEPINO\n2 BONIATO\n2 TOMATE PERA\n2 TOMATE RAFF\n2 TOMATE ASURCADO AZUL\n2 CEBOLLA ROJA\n2 PATATA 5 KG\n2 AJO PRIMERA\n1 MANZANA PINK LADY\n1 CHIRIMOYA\n1 MANDARINA PLASENCIA\n1 MARACUYA\n1 MANDARINA COLOMBE\n1 PINA\n1 MELON\n1 BROCOLI\n1 PLATANO CANARIO PRIMERA\n1 PAPAYA\n1 MANGO\n1 NARANJA MESA SONRISA\n1 NARANJA HOJA\n1 BATAVIA\n1 PEREJIL\n1 CHAMPINON\n";
+const KEY='arslan_listas_reparto_seguro_v5_local_only';
+let state;
+try{state=JSON.parse(localStorage.getItem(KEY)||'null');}catch{state=null;}
+if(!state||!Array.isArray(state.orders)||!Array.isArray(state.catalog)){
+ state=createState();importBlocks(state,FIXTURE);
+}
+let tab='inicio',supplier='ESMO',filter='all',toastMessage='';
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const enc=encodeURIComponent,dec=decodeURIComponent;
+const destName=id=>state.destinations.find(d=>d.id===id)?.name||id;
+const trow=key=>totals(state).find(t=>t.key===key);
+function commit(message='Cambios guardados en esta prueba'){
+ try{localStorage.setItem(KEY,JSON.stringify(state));toastMessage=message;render();}catch{toastMessage='No se pudo guardar en este navegador';render();}
+}
+function issueText(x){return x.issues.includes('PRODUCTO_NO_EN_CATALOGO')?'PRODUCTO NO EN CATÁLOGO':'REVISAR CANTIDAD'}
+const btn=(action,text,key='',cls='')=>`<button class="btn ${cls}" data-action="${action}" data-key="${enc(key)}">${text}</button>`;
+const pill=(t,cls='')=>`<span class="pill ${cls}">${esc(t)}</span>`;
+const sectionTitle=(s,d)=>`<div class="head"><div><h1>${s}</h1><p>${d}</p></div><div class="mini">Jornada ${esc(state.day)} · Datos de prueba</div></div>`;
+function stats(){let x=summary(state);return `<div class="grid"><div class="stat"><b>${x.originalLines}</b><span>Líneas de pedido</span></div><div class="stat"><b>${x.products}</b><span>Productos globales</span></div><div class="stat"><b>${x.unreviewed}</b><span>Por revisar</span></div></div>`;}
+function nav(){const links=[['inicio','Hoy'],['pedidos','Pedidos'],['global','Proveedores'],['compras','Compras'],['carga','Carga'],['reparto','Reparto'],['auditoria','Auditoría']];return `<aside class="side"><div class="caption">Operativa diaria</div>${links.map(([k,label],i)=>`<button class="${tab===k?'active':''}" data-action="goto" data-key="${k}"><span class="step">${i+1}</span>${label}</button>`).join('')}<div class="caption">Demo independiente</div><div class="subtle" style="padding:6px 14px">No modifica ARSLAN LISTAS publicado ni envía mensajes.</div></aside><nav class="bottomnav">${[['inicio','Hoy'],['pedidos','Pedidos'],['global','Proveedores'],['compras','Compras'],['reparto','Reparto'],['mas','Más']].map(([k,label])=>`<button class="${tab===k?'active':''}" data-action="goto" data-key="${k}">${label}</button>`).join('')}</nav>`;}
+function home(){let x=summary(state),plan=deliveryPlan(state);return sectionTitle('Todo en orden.','Tus pedidos de prueba de San Lesmes y San Pablo, listos para revisar, enviar a proveedores y bajar de la furgoneta.')+`<div class="clear-day-home"><div class="clear-day-description"><strong>¿Empezar pedidos nuevos?</strong><span>Archiva la jornada actual y conserva catálogo, restaurantes, proveedores y precios.</span></div>${btn('clearday','Limpiar día','','red clear-day-button')}</div>`+stats()+`<div class="spacer"></div><div class="card"><h2>Regla de reparto que estamos comprobando</h2><div class="notice"><b>No se reparte lo que no se ha gestionado.</b> Un producto sólo aparece en «Por bajar» si hay un pedido marcado como enviado a proveedor o una compra manual confirmada. Asignarlo a un proveedor, sin enviarlo, no basta.</div><div class="tools">${btn('goto','Revisar pedidos','pedidos','dark')}${btn('goto','Asignar proveedores','global')}${btn('goto','Bajar mercancía','reparto')}</div></div><div class="twocol"><div class="card"><h2>Compras</h2><div class="subtle">${x.assignedDraft} asignaciones pendientes de enviar · ${x.assignedSent} enviadas · ${x.manualBought} compras manuales registradas.</div><div class="spacer"></div>${btn('goto','Abrir compras','compras','dark')}</div><div class="card"><h2>Reparto</h2><div class="subtle">${plan.eligible.filter(r=>r.remaining>0).length} líneas por bajar · ${plan.blocked.length} productos sin compra ni envío · ${plan.needsReview.length} compras parciales por distribuir.</div><div class="spacer"></div>${btn('goto','Abrir reparto','reparto','dark')}</div></div><div class="card"><h2>Destinos incluidos</h2><div class="summary-list">${state.destinations.map(d=>pill(d.name)).join('')}</div><p class="subtle">Los restaurantes están listos, pero sólo suman al Global cuando introduces sus pedidos. No se inventan cantidades.</p></div>`;}
+function pedidos(){const candidates=state.orders.filter(x=>x.review);const group=state.destinations.filter(d=>state.orders.some(o=>o.dest===d.id));return sectionTitle('Pedidos','Pega un bloque completo con varias tiendas o restaurantes; reconoce los encabezados y deja las líneas desconocidas en rojo.')+`<div class="card"><div class="sectionline"><h2>Pegar varias listas</h2>${pill('A-Z · cantidad antes del nombre')}</div><label for="paste">Pedidos de WhatsApp (puedes incluir SL, SP, ST o Braseros / Riviera)</label><textarea id="paste" placeholder="PEDIDO SL&#10;3 MANZANA GOLDEN 28&#10;PEDIDO BRASEROS CENTRO&#10;2 TOMATE RAMA"></textarea><div class="tools"><button class="btn dark" data-action="import">Añadir pedidos</button><button class="btn" data-action="replace">Sustituir listas del destino</button>${btn('goto','Ver global','global')}</div><p class="subtle">«Sustituir» exige confirmar y se bloquea si ya hay compras o entregas; así no desaparece trabajo realizado.</p></div>`+
+ (candidates.length?`<div class="notice"><b>${candidates.length} nombres por confirmar</b> No se enviarán al proveedor hasta que elijas su nombre correcto o pulses «Crear producto».</div>`: '<div class="notice green"><b>Todos los nombres confirmados</b> Ya puedes asignar todos los productos a proveedores.</div>')+
+ group.map(d=>{const lines=state.orders.filter(l=>l.dest===d.id).sort((a,b)=>a.product.localeCompare(b.product,'es',{numeric:true}));return `<div class="card"><div class="sectionline"><h2>${esc(d.name)}</h2>${pill(lines.length+' líneas')}</div><div class="items">${lines.map(l=>`<div class="item ${l.review?'err':''}"><div class="keynum">${esc(l.q??'?')}</div><div class="grow"><div class="product">${esc(l.product)}</div><div class="details">${esc(l.unit)} · ${l.review?pill(issueText(l),'err'):pill('OK','ok')} ${l.raw!==`${l.q} ${l.product}`?'· Original: '+esc(l.raw):''}</div>${l.review&&l.suggestions.length?`<div class="tools" style="margin-top:8px">${l.suggestions.map(x=>`<button class="btn small" data-action="suggest" data-key="${enc(l.id)}" data-target="${enc(x)}">Usar ${esc(x)}</button>`).join('')}</div>`:''}</div><div class="mini-actions">${l.review?btn('create','+ Crear producto',l.id,'small dark'):''}${btn('qty','Cantidad',l.id,'small')}${btn('editname','Editar nombre',l.id,'small')}</div></div>`).join('')}</div></div>`}).join('');}
+function globalView(){const rows=totals(state),picks=state.allocations;const unassigned=rows.filter(r=>authorizedQty(state,r.key)===0&&picks.every(a=>a.key!==r.key||a.status==='cancelled')).length;
+ return sectionTitle('Proveedores','Elige proveedor y toca productos para asignarlos. El pedido sólo pasa a reparto cuando lo marques como enviado.')+`<div class="card"><div class="sectionline"><h2>Elegir proveedor</h2>${pill(supplier,'black')}</div><div class="supplier-pills">${SUPPLIERS.filter(x=>x!=='COMPRA EXTERNA').map(p=>`<button class="btn ${supplier===p?'on':''}" data-action="selprov" data-key="${enc(p)}">${esc(p)}</button>`).join('')}</div><div class="tools">${btn('filter','Todos','all','small')}${btn('filter',`Sin asignar (${unassigned})`,'pending','small')}${btn('filter','Asignados sin enviar','draft','small')}${btn('filter','Enviados','sent','small')}</div></div>`+
+ `<div class="card"><div class="sectionline"><h2>Global · ${rows.length} productos</h2><span class="subtle">Cantidad total y destinos</span></div><label>Buscar producto</label><input id="searchRows" placeholder="Ej.: TOMATE RAMA o GOLDEN 28" autocomplete="off"/><div class="spacer"></div><div class="items">${rows.filter(r=>{const active=picks.filter(a=>a.key===r.key&&a.status!=='cancelled');return filter==='all'||(filter==='pending'&&!active.length)||(filter==='draft'&&active.some(a=>a.status==='draft'))||(filter==='sent'&&active.some(a=>a.status==='sent'));}).map(r=>{const active=picks.filter(a=>a.key===r.key&&a.status!=='cancelled');const status=authorizedQty(state,r.key)>0?pill('Habilitado','ok'):active.length?pill('Asignado / sin enviar','warn'):pill('Sin gestionar','err');return `<div class="item searchable ${r.unresolved?'err':''}" data-search="${esc(r.product)}"><div class="keynum">${r.total}</div><div class="grow"><div class="product">${esc(r.product)}</div><div class="details">${esc(r.unit)} · ${Object.entries(r.by).map(([d,n])=>esc(destName(d))+': '+n).join(' · ')}</div><div class="tools" style="margin-top:7px">${status} ${active.map(a=>pill(a.supplier+' '+a.q,a.status==='sent'?'ok':'warn')).join('')}</div></div><div class="mini-actions">${btn('assign','+ '+esc(supplier),r.key,'small dark')}</div></div>`;}).join('')}</div></div>`+
+ `<div class="card"><div class="sectionline"><h2>Pedido para ${esc(supplier)}</h2>${pill(supplierLines(state,supplier).length+' productos')}</div><div class="copy">${esc(supplierTXT(state,supplier)||'(sin productos asignados)')}</div><div class="tools">${btn('copy','Copiar TXT',supplier,'small dark')}${btn('whatsapp','Abrir WhatsApp',supplier,'small green')}${btn('sent','Marcar enviado (prueba)',supplier,'small')}</div><p class="subtle">La simulación sólo cambia los estados del laboratorio. Pulsar «Abrir WhatsApp» prepara el mensaje; no lo envía automáticamente.</p></div>`;
+}
+function compras(){let rows=totals(state);return sectionTitle('Compras','Marca con un toque lo que compras por tu cuenta. Las cantidades diferentes se ajustan sólo si hace falta.')+`<div class="notice amber"><b>Asignar no es enviar.</b> Si un producto sólo está asignado a un proveedor, aún no está habilitado para reparto. Puedes comprarlo manualmente desde aquí.</div><div class="card"><div class="sectionline"><h2>Compra total y compras sueltas</h2>${pill('Carga opcional')}</div><div class="tools" style="margin-bottom:10px">${btn('buyall','✓ Comprar pendientes sin proveedor','','small dark')}</div><label>Buscar producto</label><input id="searchRows" placeholder="Ej.: TOMATE RAMA" autocomplete="off"/><div class="spacer"></div><div class="items">${rows.map(r=>{const status=productStatus(state,r.key),bought=status.manuallyBought,sent=status.assignedSent,remain=status.remainingToAuthorize;const issue=r.unresolved;return `<div class="item searchable ${issue?'err':''}" data-search="${esc(r.product)}"><div class="keynum">${r.total}</div><div class="grow"><div class="product">${esc(r.product)}</div><div class="details">${esc(r.unit)} · Manual: ${bought} · Enviado: ${sent}</div><div class="tools" style="margin-top:7px">${issue?pill('Revisar nombre','err'):bought?pill('Comprado manual','ok'):sent?pill('Enviado proveedor','ok'):status.assignedDraft?pill('Asignado, no enviado','warn'):pill('Sin comprar / enviar','err')}</div></div><div class="mini-actions">${btn('buy','✓ Comprar',r.key,'small '+(remain?'dark':''))}${btn('buyedit','Más / menos',r.key,'small')}</div></div>`}).join('')}</div></div><div class="card"><h2>Extras confirmados</h2>${surplus(state).length?surplus(state).map(r=>`<div class="item"><div class="keynum">+${r.extra}</div><div class="grow"><b>${esc(r.product)}</b><div class="subtle">Reparto propuesto 60 % San Pablo · 20 % San Lesmes · 20 % Santiago</div></div>${btn('extra','Ver reparto',r.key,'small')}</div>`).join(''):'<p class="subtle">No hay mercancía extra confirmada. Un pedido enviado a proveedor no cuenta por sí mismo como producto recibido.</p>'}</div>`;}
+function carga(){const x=deliveryPlan(state);return sectionTitle('Carga · opcional','Si quieres, marca lo que has cargado. Si prefieres ir directamente a Reparto, puedes saltarte este paso.')+`<div class="notice green"><b>La carga no bloquea reparto.</b> Los productos habilitados aparecen en Reparto aunque no marques nada aquí.</div><div class="tools" style="margin-bottom:15px">${btn('goto','Ir directo a Reparto','reparto','dark')}</div>`+
+ `<div class="card"><h2>Por cargar</h2><div class="items">${x.eligible.map(r=>{const q=state.load[r.key+'@'+r.dest]||0;return `<div class="item ${q>=r.allowed?'done':''}"><button class="clickable" data-action="load" data-key="${enc(r.key)}" data-dest="${enc(r.dest)}"><span class="check">${q>=r.allowed?'✓':''}</span><div class="grow"><div class="product">${esc(r.allowed)} ${esc(r.product)}</div><div class="details">${esc(destName(r.dest))} · ${esc(r.unit)}${q?' · cargado '+q:''}</div></div></button></div>`}).join('')||'<div class="subtle">Primero registra envío a proveedor o compra manual.</div>'}</div></div>`;}
+function reparto(){const p=deliveryPlan(state),notDone=p.eligible.filter(x=>x.remaining>0),done=p.eligible.filter(x=>x.remaining===0);let dests=state.destinations.filter(d=>notDone.some(r=>r.dest===d.id)).sort((a,b)=>a.name.localeCompare(b.name,'es'));
+ return sectionTitle('Reparto','Toca el producto al bajarlo de la furgoneta. Desaparece de pendientes y queda en Bajados. Compra y Carga son independientes.')+`<div class="grid"><div class="stat"><b>${notDone.length}</b><span>Por bajar</span></div><div class="stat"><b>${done.length}</b><span>Bajados</span></div></div><div class="spacer"></div>`+
+ (p.needsReview.length?`<div class="notice amber"><b>${p.needsReview.length} productos con compra parcial para varias tiendas</b> Debes confirmar las cantidades de cada tienda antes de bajarlos. ${p.needsReview.map(r=>btn('shortage','Distribuir '+esc(r.product),r.key,'small')).join('')}</div>`:'')+
+ (dests.length?dests.map(d=>`<div class="card"><div class="sectionline"><h2>${esc(d.name)}</h2>${pill(notDone.filter(x=>x.dest===d.id).length+' por bajar')}</div><div class="tools" style="margin-bottom:12px">${btn('rider','Repartidor: '+esc(state.riderAssignments?.[d.id]||'Sin asignar'),d.id,'small')}</div><div class="items">${notDone.filter(x=>x.dest===d.id).map(r=>`<div class="item"><button class="clickable" data-action="deliver" data-key="${enc(r.key)}" data-dest="${enc(d.id)}"><span class="check"></span><div class="grow"><div class="product">${esc(r.remaining)} ${esc(r.product)}</div><div class="details">${esc(r.unit)} · ${r.delivered>0?`${r.delivered} ya bajado · `:''}Toca para marcar BAJADO</div></div></button><div class="mini-actions"><button class="btn small" data-action="deliverpartial" data-key="${enc(r.key)}" data-dest="${enc(r.dest)}">Parcial</button></div></div>`).join('')}</div></div>`).join(''):`<div class="card"><h2>Sin productos pendientes de bajar</h2><p class="subtle">Si todavía no has enviado ni comprado nada, esto es correcto: los productos sin gestionar no deben figurar aquí.</p>${btn('goto','Volver a Compras','compras','small dark')}</div>`)+
+ `<div class="card"><div class="sectionline"><h2>Bajados (${done.length})</h2>${pill('Deshacer disponible','ok')}</div>${done.length?`<div class="items">${done.map(r=>`<div class="item done"><div class="check">✓</div><div class="grow"><div class="product">${esc(r.allowed)} ${esc(r.product)}</div><div class="details">${esc(destName(r.dest))}</div></div><button class="btn small" data-action="undodelivery" data-key="${enc(r.key)}" data-dest="${enc(r.dest)}">Deshacer</button></div>`).join('')}</div>`:'<p class="subtle">Las bajadas completadas aparecerán aquí.</p>'}</div>`+
+ (p.short.length?`<div class="notice amber"><b>Faltantes por tienda</b>${p.short.map(r=>`<div>${esc(destName(r.dest))}: faltan ${r.missing} de ${esc(r.product)}</div>`).join('')}</div>`:'');}
+function mas(){return sectionTitle('Más opciones','La carga es opcional; la auditoría y los datos de prueba están separados de tus pedidos reales.')+`<div class="card"><h2>Acciones</h2><div class="tools">${btn('goto','Carga opcional','carga','dark')}${btn('goto','Ver auditoría','auditoria')}${btn('goto','Pegar listas','pedidos')}</div></div>`;}
+function auditoria(){const x=summary(state),p=deliveryPlan(state);return sectionTitle('Auditoría','Comprobaciones y seguridad del flujo en esta copia local, sin mensajes ni movimientos en tu aplicación real.')+stats()+`<div class="spacer"></div><div class="card"><h2>Condiciones de aceptación</h2><div class="items">${[
+['91 líneas originales de 2 tiendas',x.originalLines===91],['Calibre GOLDEN 28 separado de GOLDEN 24',!!trow('MANZANA GOLDEN 28|BULTO')&&!!trow('MANZANA GOLDEN 24|BULTO')],['Los no enviados y no comprados están bloqueados',p.blocked.every(r=>authorizedQty(state,r.key)===0)],['Carga no condiciona reparto',true],['Los restaurantes suman sin fusionar sus destinos',true],['Los nombres sin confirmar no se envían automáticamente',true],['Las bajadas sólo permiten cantidades habilitadas',true],['WhatsApp requiere envío manual',true]].map(([name,ok])=>`<div class="item"><span class="pill ${ok?'ok':'err'}">${ok?'OK':'REVISAR'}</span><div class="grow"><b>${esc(name)}</b></div></div>`).join('')}</div></div><div class="card"><h2>Empezar otra jornada</h2><p class="subtle">Conserva catálogo, nombres nuevos, restaurantes, proveedores e histórico, y limpia pedidos y marcas de compra, carga y reparto de esta demo.</p>${btn('newday','Limpiar todo y nueva jornada','', 'red small')}</div><div class="card"><h2>Esta prueba es independiente</h2><p class="subtle">La aplicación real es privada y no ha sido modificada. Aquí todos los movimientos son locales, y los «Envíos» se marcan como simulación. Ningún proveedor ha recibido WhatsApp.</p><div class="tools">${btn('export','Exportar estado JSON','','small')}${btn('resetdemo','Restaurar listas de ejemplo','','small dark')}</div></div>`;}
+function render(){const app=document.getElementById('app');app.innerHTML=`<div class="top"><div class="top-inner"><div class="brand"><span class="logo">A</span><span>ARSLAN LISTAS <span style="font-weight:550">· REPARTO SEGURO</span><div class="subtitle">Compras · proveedores · reparto</div></span></div><span class="demo-pill">PRUEBA AISLADA · SIN ENVÍOS REALES</span></div></div><div class="shell">${nav()}<main>${toastMessage?`<div class="notice green">${esc(toastMessage)}</div>`:''}${({inicio:home,pedidos,global:globalView,compras,carga,reparto,mas,auditoria})[tab]()}</main></div>`;}
+function download(name,text,type='text/plain'){const a=document.createElement('a');const url=URL.createObjectURL(new Blob([text],{type}));a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+async function copyText(text){try{await navigator.clipboard.writeText(text);return true;}catch{return false;}}
+async function handleAction(action,key,target,dest){
+ try{
+ switch(action){
+ case 'goto':tab=key;toastMessage='';render();window.scrollTo({top:0});return;
+ case 'filter':filter=key;render();return;
+ case 'selprov':supplier=key;render();return;
+ case 'import':case 'replace':{
+  const val=document.getElementById('paste').value.trim();if(!val)throw Error('Pega una lista con encabezado PEDIDO SL / SP / ST / BRASEROS CENTRO / RIVIERA');
+  if(action==='replace'&&!confirm('¿Sustituir las listas de los destinos incluidos? Si ya empezaste compras o reparto no se permitirá.'))return;
+  const result=importBlocks(state,val,{replace:action==='replace'});commit(`Importadas ${result.imported} líneas. ${result.issues.length?'Avisos: '+result.issues.join('; '):'Sin incidencias en encabezados.'}`);return;}
+ case 'suggest':confirmProduct(state,key,target,{remember:true});commit('Producto confirmado; corrección recordada');return;
+ case 'create':{
+  const l=state.orders.find(x=>x.id===key);if(!l)throw Error('Línea no encontrada');const name=prompt('Nombre del nuevo producto, con variedad y calibre:',l.sourceName);if(name===null)return;confirmProduct(state,key,name,{create:true,remember:true});commit('Producto creado en el catálogo para próximas listas');return;}
+ case 'editname':{
+  const l=state.orders.find(x=>x.id===key);const name=prompt('Nombre correcto del producto:',l?.product||'');if(name===null)return;confirmProduct(state,key,name,{create:confirm('Si no existe, ¿quieres crear el producto nuevo?'),remember:true});commit('Producto corregido');return;}
+ case 'qty':{const l=state.orders.find(x=>x.id===key);const input=prompt('Cantidad correcta:',l?.q??'');if(input===null)return;setQuantity(state,key,input);commit('Cantidad actualizada');return;}
+ case 'assign':{const result=quickAssign(state,key,supplier);commit(result==='DESASIGNADO'?'Producto desasignado; vuelve a Sin asignar':'Producto asignado a '+supplier+'; todavía NO enviado');return;}
+ case 'copy':{const ok=await copyText(supplierTXT(state,key));toastMessage=ok?'TXT copiado':'No se pudo copiar. Usa el texto visible o descarga TXT';render();return;}
+ case 'whatsapp':{const t=prepareWhatsApp(state,key);if(!t.text)throw Error('No hay productos en el proveedor');window.open(t.url,'_blank','noopener');toastMessage='WhatsApp abierto con texto preparado. Tienes que enviarlo tú.';render();return;}
+ case 'sent':{const packet=markSupplierSent(state,key);commit(`SIMULADO: pedido a ${key} (${packet.text.split('\n').length} líneas) marcado como enviado; no hubo WhatsApp real`);return;}
+ case 'buyall':{const rows=totals(state).filter(r=>!r.unresolved).filter(r=>{const st=productStatus(state,r.key);return st.authorized<=0&&st.assignedDraft<=0&&st.requested>0;});if(!rows.length)throw Error('No hay productos pendientes sin proveedor; revisa las asignaciones');if(!confirm(`¿Confirmas compra manual de ${rows.length} productos sin asignar o enviar? Esta compra se registrará en la demostración.`))return;for(const r of rows)manualBuySafe(state,r.key,r.total);commit(`${rows.length} productos comprados manualmente`);return;}
+ case 'buy':{const r=trow(key);if(!r)throw Error('Producto inexistente');const st=productStatus(state,key);const q=st.remainingToAuthorize;if(q<=0)throw Error('No queda pendiente; Más / menos permite registrar una compra realmente adicional');const removeDraft=st.assignedDraft>0;if(removeDraft&&!confirm('Hay un borrador de pedido a proveedor. ¿Quieres reducirlo en la cantidad que compras manualmente '+q+' '+r.product+'?'))return;manualBuySafe(state,key,q,{removeDraft});commit(`Comprado manualmente: ${q} ${r.product}`);return;}
+ case 'buyedit':{const r=trow(key);const st=productStatus(state,key);const val=prompt('Cantidad REAL de compra manual adicional (no es recepción de proveedor):',String(st.remainingToAuthorize));if(val===null)return;const q=Number(val.replace(',','.'));const removeDraft=st.assignedDraft>0;if(removeDraft&&!confirm('¿Reducir el pedido borrador a proveedor en la cantidad que compras por tu cuenta?'))return;const allowExtra=st.authorized+q>r.total+1e-8;if(allowExtra&&!confirm('Atención: esta compra excede lo pedido. ¿Confirmas que se compró mercancía EXTRA real?'))return;manualBuySafe(state,key,q,{removeDraft,allowExtra});commit('Compra manual adicional confirmada');return;}
+ case 'load':{const r=deliveryPlan(state).eligible.find(x=>x.key===key&&x.dest===dest);if(!r)throw Error('Producto no habilitado');loadItem(state,key,dest,r.allowed);commit('Marcado como cargado; el reparto sigue siendo independiente');return;}
+ case 'deliver':{deliver(state,key,dest);commit('Bajado. Se retira de pendientes.');return;}
+ case 'deliverpartial':{const r=deliveryPlan(state).eligible.find(x=>x.key===key&&x.dest===dest&&x.remaining>0);if(!r)throw Error('No está pendiente');const q=prompt(`Cantidad parcial a bajar de ${r.product}, máximo ${r.remaining}:`,String(r.remaining));if(q===null)return;deliver(state,key,r.dest,Number(q.replace(',','.')));commit('Bajada parcial registrada');return;}
+ case 'undodelivery':{const rr=deliveryPlan(state).eligible.find(x=>x.key===key&&x.dest===dest&&x.delivered>0);if(!rr)return;undoDelivery(state,key,rr.dest);commit('Bajada deshecha; vuelve a pendientes');return;}
+ case 'shortage':{const r=deliveryPlan(state).needsReview.find(x=>x.key===key);if(!r)return;const inputs={};let available=r.authorized;for(const [d,need] of Object.entries(r.by)){
+   const v=prompt(`${r.product}: hay ${available} para repartir. ¿Cuánto reservar para ${destName(d)}? (pidió ${need})`,String(Math.min(need,available)));
+   if(v===null)return;const n=Number(v.replace(',','.'));inputs[d]=n;available=fix(available-n);
+  }
+  planShortage(state,key,inputs);commit('Reparto de compra parcial confirmado');return;}
+ case 'extra':{const r=surplus(state).find(x=>x.key===key);if(!r)return;const q=distributeSurplus(r.extra);alert(`Propuesta sobre el EXTRA de ${r.extra} ${r.unit}:\nSAN PABLO ${q.SP}\nSAN LESMES ${q.SL}\nSANTIAGO ${q.ST}\nEsta vista sólo audita el reparto; no añade líneas extra automáticamente.`);return;}
+ case 'rider':{const n=prompt(`Repartidor de ${destName(key)}:`,state.riderAssignments?.[key]||'');if(n===null||!n.trim())return;assignRider(state,key,n);commit('Repartidor asignado');return;}
+ case 'clearday':{const hasActivity=Boolean(state.orders.length||state.allocations.length||state.manual.length||state.receipts.length||Object.keys(state.delivery||{}).length||Object.keys(state.load||{}).length||Object.keys(state.shortageAllocation||{}).length||Object.keys(state.riderAssignments||{}).length||(state.sentMessages||[]).length);if(!hasActivity){toastMessage='Esta jornada ya está vacía. Puedes pegar pedidos nuevos.';render();return;}const confirmed=confirm('LIMPIAR DÍA — DEMOSTRACIÓN\n\nSe archivarán y quitarán de la jornada actual todos los pedidos, asignaciones, compras, envíos simulados, carga y bajadas.\n\nSE CONSERVAN: catálogo y productos nuevos, alias, tiendas, restaurantes, proveedores e histórico.\n\n¿Crear una jornada vacía para empezar otra vez?');if(!confirmed)return;const today=new Date();const d=[today.getFullYear(),String(today.getMonth()+1).padStart(2,'0'),String(today.getDate()).padStart(2,'0')].join('-');newDay(state,d);tab='inicio';commit('Día limpiado y archivado. Ya puedes introducir pedidos nuevos; los productos y restaurantes siguen guardados.');return;}
+ case 'newday':{if(!confirm('¿Archivar la jornada y empezar otra? Se conservan catálogo, restaurantes y proveedores.'))return;const today=new Date();const d=prompt('Fecha de la nueva jornada (AAAA-MM-DD):',[today.getFullYear(),String(today.getMonth()+1).padStart(2,'0'),String(today.getDate()).padStart(2,'0')].join('-'));if(!d)return;newDay(state,d);tab='inicio';commit('Jornada nueva creada; catálogo y restaurantes conservados');return;}
+ case 'export':download('auditoria_arslan_demo_'+state.day+'.json',JSON.stringify(state,null,2),'application/json');return;
+ case 'resetdemo':if(!confirm('¿Volver a cargar los dos pedidos de ejemplo en esta demo? Se sustituye el estado local de la demo.'))return;state=createState();importBlocks(state,FIXTURE);tab='inicio';commit('Demostración restaurada, sin modificar la aplicación publicada');return;
+ default:return;}
+ }catch(e){toastMessage='ERROR: '+(e?.message||String(e));render();}
+}
+document.addEventListener('input',e=>{if(e.target.id==='searchRows'){const word=canonical(e.target.value);document.querySelectorAll('.searchable').forEach(el=>{el.hidden=!canonical(el.dataset.search).includes(word);});}});
+document.addEventListener('click',e=>{const b=e.target.closest('[data-action]');if(b){e.preventDefault();handleAction(b.dataset.action,dec(b.dataset.key||''),b.dataset.target?dec(b.dataset.target):'',b.dataset.dest?dec(b.dataset.dest):'');}});
+render();
+</script></body></html>

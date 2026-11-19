@@ -1,0 +1,40 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import * as M from '../motor.mjs';
+
+const text=readFileSync(new URL('./pedidos_ejemplo_sinteticos.txt',import.meta.url),'utf8');
+const fresh=()=>{const s=M.createState();M.importBlocks(s,text);return s;};
+const key=(s,name,unit='BULTO')=>M.totals(s).find(x=>x.product===name&&x.unit===unit)?.key;
+let pass=0;
+function t(name,fn){try{fn();pass++;}catch(e){console.error('FALLO:',name,e);process.exitCode=1;}}
+
+t('Todo pendiente antes de la compra',()=>{const s=fresh();assert.equal(M.deliveryPlan(s).eligible.length,0);assert.equal(M.deliveryPlan(s).blocked.length,71);});
+t('Asignar a ESMO deja bloqueado el reparto',()=>{const s=fresh(),k=key(s,'MANZANA GOLDEN 28');assert.equal(M.quickAssign(s,k,'ESMO'),'ASIGNADO');assert.equal(M.productStatus(s,k).status,'ASIGNADO_SIN_ENVIAR');assert.ok(!M.deliveryPlan(s).eligible.some(x=>x.key===k));});
+t('Una segunda pulsación al proveedor desasigna',()=>{const s=fresh(),k=key(s,'MANZANA GOLDEN 28');M.quickAssign(s,k,'ESMO');assert.equal(M.quickAssign(s,k,'ESMO'),'DESASIGNADO');assert.equal(M.supplierLines(s,'ESMO').length,0);});
+t('Cambiar borrador a Montenegro no duplica',()=>{const s=fresh(),k=key(s,'MANZANA GOLDEN 28');M.quickAssign(s,k,'ESMO');M.quickAssign(s,k,'MONTENEGRO');assert.equal(M.supplierLines(s,'ESMO').length,0);assert.equal(M.supplierLines(s,'MONTENEGRO').length,1);});
+t('Marcar enviado habilita ambos destinos GOLDEN 28',()=>{const s=fresh(),k=key(s,'MANZANA GOLDEN 28');M.quickAssign(s,k,'ESMO');M.markSupplierSent(s,'ESMO');const rows=M.deliveryPlan(s).eligible.filter(x=>x.key===k);assert.equal(rows.length,2);assert.equal(M.productStatus(s,k).authorized,11);});
+t('Pedido enviado no equivale a recibido físicamente',()=>{const s=fresh(),k=key(s,'MANZANA GOLDEN 28');M.quickAssign(s,k,'ESMO');M.markSupplierSent(s,'ESMO');assert.equal(M.actuallyReceived(s,k),0);});
+t('No se puede desasignar algo enviado',()=>{const s=fresh(),k=key(s,'MANZANA GOLDEN 28');M.quickAssign(s,k,'ESMO');M.markSupplierSent(s,'ESMO');assert.throws(()=>M.quickAssign(s,k,'ESMO'),/Ya enviado/);});
+t('Tomate rama no enviado ni comprado no aparece en reparto',()=>{const s=fresh(),k=key(s,'TOMATE RAMA');assert.equal(M.productStatus(s,k).authorized,0);assert.ok(!M.deliveryPlan(s).eligible.some(x=>x.key===k));});
+t('Compra manual tomate habilita sin proveedor',()=>{const s=fresh(),k=key(s,'TOMATE RAMA');M.manualBuySafe(s,k,3);assert.equal(M.deliveryPlan(s).eligible.find(x=>x.key===k).remaining,3);});
+t('Compra manual es independiente de carga',()=>{const s=fresh(),k=key(s,'TOMATE RAMA');M.manualBuySafe(s,k,3);M.deliver(s,k,'SP');assert.deepEqual(s.load,{});assert.equal(M.deliveryPlan(s).eligible.find(x=>x.key===k).remaining,0);});
+t('Bajada completa desaparece de pendientes y deshacer la recupera',()=>{const s=fresh(),k=key(s,'TOMATE RAMA');M.manualBuySafe(s,k,3);M.deliver(s,k,'SP');assert.equal(M.deliveryPlan(s).eligible.filter(x=>x.remaining>0).length,0);M.undoDelivery(s,k,'SP');assert.equal(M.deliveryPlan(s).eligible.find(x=>x.key===k).remaining,3);});
+t('Compra inferior habilita solo lo comprado en un destino',()=>{const s=fresh(),k=key(s,'TOMATE RAMA');M.manualBuySafe(s,k,2);assert.equal(M.deliveryPlan(s).eligible.find(x=>x.key===k).allowed,2);assert.throws(()=>M.deliver(s,k,'SP',3),/superior/);});
+t('Compra insuficiente para dos tiendas exige reparto manual',()=>{const s=fresh(),k=key(s,'MANZANA GOLDEN 28');M.manualBuySafe(s,k,5);assert.ok(M.deliveryPlan(s).needsReview.some(x=>x.key===k));});
+t('No se inventa 60/20/20 para faltantes',()=>{const s=fresh(),k=key(s,'MANZANA GOLDEN 28');M.manualBuySafe(s,k,5);assert.ok(!M.deliveryPlan(s).eligible.some(x=>x.key===k));M.planShortage(s,k,{SP:4,SL:1});assert.equal(M.deliveryPlan(s).eligible.filter(x=>x.key===k).length,2);});
+t('Borrador proveedor bloquea compra manual sin decisión',()=>{const s=fresh(),k=key(s,'TOMATE RAMA');M.quickAssign(s,k,'ESMO');assert.throws(()=>M.manualBuySafe(s,k,3),/sin enviar|borrador/);});
+t('Compra manual puede retirar borrador con confirmación explícita',()=>{const s=fresh(),k=key(s,'TOMATE RAMA');M.quickAssign(s,k,'ESMO');M.manualBuySafe(s,k,3,{removeDraft:true});assert.equal(M.supplierLines(s,'ESMO').length,0);assert.equal(M.productStatus(s,k).manuallyBought,3);});
+t('Compra parcial reduce solo la cantidad correspondiente del borrador',()=>{const s=fresh(),k=key(s,'TOMATE RAMA');M.quickAssign(s,k,'ESMO');M.manualBuySafe(s,k,1,{removeDraft:true});assert.equal(M.supplierLines(s,'ESMO')[0].q,2);assert.equal(M.productStatus(s,k).authorized,1);});
+t('Compra superior a pedido requiere confirmar extra',()=>{const s=fresh(),k=key(s,'TOMATE RAMA');assert.throws(()=>M.manualBuySafe(s,k,4),/EXTRA|extra/);M.manualBuySafe(s,k,4,{allowExtra:true});assert.equal(M.surplus(s).find(x=>x.key===k).extra,1);});
+t('No cuenta doble la recepción de proveedor',()=>{const s=fresh(),k=key(s,'MANZANA GOLDEN 28');M.quickAssign(s,k,'ESMO');M.markSupplierSent(s,'ESMO');const a=s.allocations.find(x=>x.key===k);M.receiveSupplier(s,a.id,7);assert.equal(M.productStatus(s,k).authorized,11);assert.equal(M.productStatus(s,k).supplierReceived,7);});
+t('Comprar lo ya enviado requiere confirmación explícita de extra',()=>{const s=fresh(),k=key(s,'MANZANA GOLDEN 28');M.quickAssign(s,k,'ESMO');M.markSupplierSent(s,'ESMO');assert.throws(()=>M.manualBuySafe(s,k,2),/extra/);M.manualBuySafe(s,k,2,{allowExtra:true});assert.equal(M.productStatus(s,k).authorized,13);});
+t('Lo comprado manualmente no se vuelve a asignar completo',()=>{const s=fresh(),k=key(s,'MANZANA GOLDEN 28');M.manualBuySafe(s,k,2);M.quickAssign(s,k,'ESMO');assert.equal(M.supplierLines(s,'ESMO')[0].q,9);});
+t('Compra completa manual bloquea duplicar asignación',()=>{const s=fresh(),k=key(s,'TOMATE RAMA');M.manualBuySafe(s,k,3);assert.throws(()=>M.quickAssign(s,k,'ESMO'),/comprado/);});
+t('Los desconocidos requieren confirmación antes de compra',()=>{const s=fresh(),k=key(s,'PERA EDEN');assert.throws(()=>M.manualBuySafe(s,k,1),/rojo/);});
+t('Crear producto desconocido conserva catálogo para próxima jornada',()=>{const s=fresh(),l=s.orders.find(x=>x.product==='PERA EDEN');M.confirmProduct(s,l.id,'PERA EDEN',{create:true});M.newDay(s,'2026-11-20');M.importBlocks(s,'PEDIDO SP\n2 PERA EDEN');assert.ok(!s.orders[0].review);});
+t('Restaurantes independientes suman cantidades',()=>{const s=fresh();M.importBlocks(s,'PEDIDO BRASEROS CENTRO\n2 TOMATE RAMA\nPEDIDO BRASEROS FORUM\n1 TOMATE RAMA\nPEDIDO RIVIERA\n3 TOMATE RAMA');assert.equal(M.totals(s).find(x=>x.product==='TOMATE RAMA').total,9);});
+t('WhatsApp/TXT no incluye espacio entre cantidad y producto',()=>{const s=fresh(),k=key(s,'MANZANA GOLDEN 28');M.quickAssign(s,k,'ESMO');assert.equal(M.supplierTXT(s,'ESMO'),'11MANZANA GOLDEN 28');});
+t('Preparar WhatsApp no marca enviado automáticamente',()=>{const s=fresh(),k=key(s,'MANZANA GOLDEN 28');M.quickAssign(s,k,'ESMO');M.prepareWhatsApp(s,'ESMO');assert.equal(M.productStatus(s,k).status,'ASIGNADO_SIN_ENVIAR');});
+t('Compra manual no usa ni cambia las marcas de reparto',()=>{const s=fresh(),k=key(s,'TOMATE RAMA');M.manualBuySafe(s,k,3);assert.equal(Object.keys(s.delivery).length,0);});
+t('Cambio de jornada conserva catálogo y elimina compras',()=>{const s=fresh(),k=key(s,'TOMATE RAMA'),n=s.catalog.length;M.manualBuySafe(s,k,3);M.newDay(s,'2026-11-20');assert.equal(s.catalog.length,n);assert.equal(s.orders.length,0);assert.equal(s.manual.length,0);});
+console.log(`REPARTO SEGURO: ${pass} pruebas correctas`);
