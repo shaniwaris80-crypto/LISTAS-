@@ -55,7 +55,7 @@ Tras `npm run check`, puedes ejecutar `python tests/test_browser_ui.py` con Pyth
 
 ## Gestión de restaurantes
 
-En **Pedidos**, puedes pegar varios pedidos juntos (`PEDIDO SP`, `PEDIDO SL`, `PEDIDO ST`, `PEDIDO BRASEROS CENTRO`, `PEDIDO BRASEROS FORUM`, `PEDIDO RIVIERA`), o utilizar **+ Pegar / añadir pedido** en el destino deseado. Cada restaurante conserva su pedido por separado y solo suma al Global lo que realmente se ha introducido.
+En **Pedidos**, puedes pegar varios pedidos juntos (`PEDIDO SP`, `PEDIDO SL`, `PEDIDO ST`, `PEDIDO BRASEROS CENTRO`, `PEDIDO BRASEROS FORUM`, `PEDIDO RIVIERA`), o utilizar **+ Pegar / añadir pedido** en el destino deseado. Cada restaurante conserva su pedido por separado y solo suma al Global lo que realmente se ha introducido. Para otras empresas (por ejemplo ALESAL PAN), utiliza **+ Nuevo restaurante**: crea la ficha sin inventar cantidades y permite registrar su propio pedido.
 
 ## Estados en Proveedores
 

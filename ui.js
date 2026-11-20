@@ -40,7 +40,7 @@ function pedidos(){
  return sectionTitle('Pedidos','Tiendas y restaurantes separados. Pega varios encabezados o escribe cada lista desde el móvil.')+
  `<div class="card"><div class="sectionline"><h2>Pegar varias listas juntas</h2>${pill('SP / SL / ST / BRASEROS / RIVIERA')}</div><label for="paste">Pedidos de WhatsApp con encabezados</label><textarea id="paste" placeholder="PEDIDO SP&#10;3 MANZANA GOLDEN 28&#10;PEDIDO SL&#10;2 TOMATE RAMA&#10;PEDIDO BRASEROS CENTRO&#10;1 BROCOLI"></textarea><div class="tools"><button class="btn dark" data-action="import">Añadir pedidos</button><button class="btn" data-action="replace">Sustituir listas del destino</button>${btn('goto','Ver Global','global')}</div></div>`+
  (candidates.length?`<div class="notice"><b>${candidates.length} nombres por confirmar</b> Elige una sugerencia o crea producto nuevo y se recordará.</div>`:'<div class="notice green"><b>Nombres confirmados</b> Puedes organizar las compras.</div>')+
- `<h2>Tiendas</h2>`+stores.map(orderCard).join('')+`<div class="sectionline"><h2>Pedidos de restaurantes</h2>${pill(restaurants.filter(d=>state.orders.some(o=>o.dest===d.id)).length+' con pedido','ok')}</div>`+
+ `<h2>Tiendas</h2>`+stores.map(orderCard).join('')+`<div class="sectionline"><h2>Pedidos de restaurantes</h2><div class="tools">${pill(restaurants.filter(d=>state.orders.some(o=>o.dest===d.id)).length+' con pedido','ok')}${btn('newdest','+ Nuevo restaurante','','small dark')}</div></div>`+
  occupied.map(orderCard).join('')+
  `<div class="card"><h3>Restaurantes disponibles</h3><p class="subtle">Braseros Centro, Forum, Severo, Edificio, Tomillares y Riviera. Se suman al Global sólo si tienen pedido.</p><div class="tools">${empty.length?empty.map(d=>btn('destedit','+ '+esc(d.name),d.id,'small')).join(''):'<span class="subtle">Todos tienen pedido o están abiertos para editar.</span>'}</div></div>`;
 }
@@ -100,6 +100,7 @@ async function handleAction(action,key,target,dest){
  case 'filter':filter=key;render();return;
  case 'selprov':supplier=key;render();return;
  case 'breakdown':expandedPurchaseKey=expandedPurchaseKey===key?'':key;render();return;
+ case 'newdest':{const name=prompt('Nombre del nuevo restaurante:');if(name===null)return;const d=addDestination(state,name,'restaurante');editingDestination=d.id;commit('Restaurante '+d.name+' creado, sin pedido todavía');document.querySelector(`[data-destination=\"${d.id}\"]`)?.scrollIntoView({behavior:'smooth',block:'start'});return;}
  case 'destedit':editingDestination=editingDestination===key?'':key;render();if(editingDestination)document.querySelector(`[data-destination=\"${editingDestination}\"]`)?.scrollIntoView({behavior:'smooth',block:'start'});return;
  case 'destadd':{const d=state.destinations.find(x=>x.id===key);if(!d)throw Error('Destino desconocido');const v=document.getElementById('destorder-'+key)?.value?.trim();if(!v)throw Error('Introduce al menos un producto');const header='PEDIDO '+(key==='SP'||key==='SL'||key==='ST'?key:display(d.name));const r=importBlocks(state,header+'\n'+v);editingDestination='';commit(`Añadidas ${r.imported} líneas a ${d.name}`);return;}
  case 'destcopy':{const t=destinationTXT(state,key);if(!t)throw Error('Este destino aún no tiene pedido');const ok=await copyText(t);toastMessage=ok?'Pedido de '+destName(key)+' copiado':'No se pudo copiar. Descarga TXT';render();return;}

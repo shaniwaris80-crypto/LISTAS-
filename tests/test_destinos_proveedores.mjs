@@ -12,6 +12,7 @@ t('Pedidos independientes por Forum, Riviera y Severo',()=>{const s=state();M.im
 t('Restaurantes suman al Global sin mezclar destinos',()=>{const s=state();const before=M.totals(s).find(r=>r.product==='TOMATE RAMA').total;M.importBlocks(s,'PEDIDO BRASEROS CENTRO\n2 TOMATE RAMA\nPEDIDO RIVIERA\n3 TOMATE RAMA');const row=M.totals(s).find(r=>r.product==='TOMATE RAMA');assert.equal(row.total,before+5);assert.equal(row.by.BC,2);assert.equal(row.by.RV,3);});
 t('WhatsApp para restaurante contiene su encabezado y no envía',()=>{const s=state();M.importBlocks(s,'PEDIDO BRASEROS FORUM\n3 TOMATE RAMA');const t=M.destinationWhatsApp(s,'BF');assert.ok(decodeURIComponent(t.url).includes('PEDIDO BRASEROS FORUM'));assert.ok(t.text.includes('3TOMATE RAMA'));assert.equal(s.allocations.length,0);});
 t('TXT agrega duplicados de mismo destino sin confundir calibres',()=>{const s=state();M.importBlocks(s,'PEDIDO BRASEROS CENTRO\n1 MANZANA GOLDEN 24\n3 MANZANA GOLDEN 24\n2 MANZANA GOLDEN 28');assert.ok(M.destinationTXT(s,'BC').includes('4MANZANA GOLDEN 24'));assert.ok(M.destinationTXT(s,'BC').includes('2MANZANA GOLDEN 28'));});
+t('Restaurante nuevo solo suma cuando tiene pedido',()=>{const s=state(),n=M.totals(s).length;const d=M.addDestination(s,'ALESAL PAN');assert.equal(M.totals(s).length,n);M.importBlocks(s,'PEDIDO ALESAL PAN\n2 BROCOLI');assert.equal(M.destinationTXT(s,d.id),'2BROCOLI');});
 t('No generar WhatsApp para restaurantes vacíos',()=>{const s=state();assert.equal(M.destinationWhatsApp(s,'RV').url,'');});
 t('Una referencia de destino inexistente falla',()=>{const s=state();assert.throws(()=>M.destinationTXT(s,'X_ERROR'),/Destino desconocido/);});
 t('Click asignación: sale de Sin asignar y entra en ESMO',()=>{const s=state(),k=key(s,'MANZANA GOLDEN 28');assert.ok(M.unassignedProducts(s).some(x=>x.key===k));M.quickAssign(s,k,'ESMO');assert.ok(!M.unassignedProducts(s).some(x=>x.key===k));assert.equal(M.supplierLines(s,'ESMO')[0].product,'MANZANA GOLDEN 28');});
@@ -27,7 +28,7 @@ t('No se habilita solo al asignar',()=>{const s=state(),k=key(s,'TOMATE RAMA');M
 const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
 t('Selector en Reparto por destino',()=>{assert.match(html,/id="deliveryDestination"/);assert.match(html,/selectedDeliveryDest/);});
 t('No se mezclan varias tarjetas de Reparto',()=>{const fragment=html.slice(html.indexOf('function reparto(){'),html.indexOf('function mas(){'));assert.ok(!fragment.includes('dests.map(d=>`<div class="card"'));assert.ok(fragment.includes('x.dest===dest'));});
-t('Lista de restaurantes con WhatsApp y TXT',()=>{assert.match(html,/destwa/);assert.match(html,/destdownload/);assert.match(html,/Pedidos de restaurantes/);});
+t('Lista de restaurantes con WhatsApp y TXT',()=>{assert.match(html,/newdest/);assert.match(html,/destwa/);assert.match(html,/destdownload/);assert.match(html,/Pedidos de restaurantes/);});
 t('Proveedor con TXT descargable y casilla enviado',()=>{assert.match(html,/provdownload/);assert.match(html,/Marcar enviado/);assert.match(html,/supplierDraftTXT/);});
 t('Compras con desglose expandible por producto',()=>{assert.match(html,/data-action="breakdown"/);assert.match(html,/purchase-breakdown/);});
 console.log(`DESTINOS, PROVEEDORES, COMPRAS Y BAJADAS: ${ok} pruebas correctas`);
