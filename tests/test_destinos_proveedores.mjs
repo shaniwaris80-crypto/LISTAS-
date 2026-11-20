@@ -1,0 +1,33 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import * as M from '../motor.mjs';
+const state=()=>{const s=M.createState(); M.importBlocks(s,readFileSync(new URL('./pedidos_ejemplo_sinteticos.txt',import.meta.url),'utf8'));return s;};
+const key=(s,name)=>M.totals(s).find(x=>x.product===name)?.key;
+let ok=0;
+function t(name,run){try{run();ok++;}catch(e){console.error('FALLO: '+name,e);process.exitCode=1;}}
+
+t('Restaurantes vacíos no generan productos ni totales',()=>{const s=state();const before=M.totals(s).length;for(const d of ['BC','BF','BS','BE','BT','RV'])assert.equal(M.destinationLines(s,d).length,0);assert.equal(M.totals(s).length,before);});
+t('Pedido de Braseros Centro independiente',()=>{const s=state();M.importBlocks(s,'PEDIDO BRASEROS CENTRO\n2 TOMATE RAMA');assert.equal(M.destinationTXT(s,'BC'),'2TOMATE RAMA');assert.equal(M.destinationTXT(s,'BF'),'');});
+t('Pedidos independientes por Forum, Riviera y Severo',()=>{const s=state();M.importBlocks(s,'PEDIDO BRASEROS FORUM\n3 TOMATE RAMA\nPEDIDO BRASEROS SEVERO\n1 TOMATE RAMA\nPEDIDO RIVIERA\n4 TOMATE RAMA');assert.equal(M.destinationTXT(s,'BF'),'3TOMATE RAMA');assert.equal(M.destinationTXT(s,'BS'),'1TOMATE RAMA');assert.equal(M.destinationTXT(s,'RV'),'4TOMATE RAMA');});
+t('Restaurantes suman al Global sin mezclar destinos',()=>{const s=state();const before=M.totals(s).find(r=>r.product==='TOMATE RAMA').total;M.importBlocks(s,'PEDIDO BRASEROS CENTRO\n2 TOMATE RAMA\nPEDIDO RIVIERA\n3 TOMATE RAMA');const row=M.totals(s).find(r=>r.product==='TOMATE RAMA');assert.equal(row.total,before+5);assert.equal(row.by.BC,2);assert.equal(row.by.RV,3);});
+t('WhatsApp para restaurante contiene su encabezado y no envía',()=>{const s=state();M.importBlocks(s,'PEDIDO BRASEROS FORUM\n3 TOMATE RAMA');const t=M.destinationWhatsApp(s,'BF');assert.ok(decodeURIComponent(t.url).includes('PEDIDO BRASEROS FORUM'));assert.ok(t.text.includes('3TOMATE RAMA'));assert.equal(s.allocations.length,0);});
+t('TXT agrega duplicados de mismo destino sin confundir calibres',()=>{const s=state();M.importBlocks(s,'PEDIDO BRASEROS CENTRO\n1 MANZANA GOLDEN 24\n3 MANZANA GOLDEN 24\n2 MANZANA GOLDEN 28');assert.ok(M.destinationTXT(s,'BC').includes('4MANZANA GOLDEN 24'));assert.ok(M.destinationTXT(s,'BC').includes('2MANZANA GOLDEN 28'));});
+t('No generar WhatsApp para restaurantes vacíos',()=>{const s=state();assert.equal(M.destinationWhatsApp(s,'RV').url,'');});
+t('Una referencia de destino inexistente falla',()=>{const s=state();assert.throws(()=>M.destinationTXT(s,'X_ERROR'),/Destino desconocido/);});
+t('Click asignación: sale de Sin asignar y entra en ESMO',()=>{const s=state(),k=key(s,'MANZANA GOLDEN 28');assert.ok(M.unassignedProducts(s).some(x=>x.key===k));M.quickAssign(s,k,'ESMO');assert.ok(!M.unassignedProducts(s).some(x=>x.key===k));assert.equal(M.supplierLines(s,'ESMO')[0].product,'MANZANA GOLDEN 28');});
+t('Quitar borrador devuelve a Sin asignar',()=>{const s=state(),k=key(s,'TOMATE RAMA');M.quickAssign(s,k,'ESMO');M.quickAssign(s,k,'ESMO');assert.ok(M.unassignedProducts(s).some(r=>r.key===k));});
+t('Enviados no entran dos veces en TXT pendiente',()=>{const s=state(),k=key(s,'MANZANA GOLDEN 28');M.quickAssign(s,k,'ESMO');assert.equal(M.supplierDraftTXT(s,'ESMO'),'11MANZANA GOLDEN 28');M.markSupplierSent(s,'ESMO');assert.equal(M.supplierDraftTXT(s,'ESMO'),'');assert.equal(M.supplierTXT(s,'ESMO'),'11MANZANA GOLDEN 28');});
+t('WhatsApp de proveedor incluye sólo borrador',()=>{const s=state(),k=key(s,'MANZANA GOLDEN 28'),k2=key(s,'MANZANA GOLDEN 24');M.quickAssign(s,k,'ESMO');M.markSupplierSent(s,'ESMO');M.quickAssign(s,k2,'ESMO');assert.equal(M.supplierDraftTXT(s,'ESMO'),'7MANZANA GOLDEN 24');const t=M.supplierDraftWhatsApp(s,'ESMO');assert.ok(decodeURIComponent(t.url).includes('7MANZANA GOLDEN 24'));assert.ok(!t.text.includes('GOLDEN 28'));});
+t('Reabrir enviado sin bajadas lo vuelve a borrador',()=>{const s=state(),k=key(s,'MANZANA GOLDEN 28');M.quickAssign(s,k,'ESMO');M.markSupplierSent(s,'ESMO');M.reopenSupplierSent(s,'ESMO');assert.equal(M.productStatus(s,k).authorized,0);assert.equal(M.supplierDraftTXT(s,'ESMO'),'11MANZANA GOLDEN 28');});
+t('Reabrir enviado con bajadas se bloquea',()=>{const s=state(),k=key(s,'MANZANA GOLDEN 28');M.quickAssign(s,k,'ESMO');M.markSupplierSent(s,'ESMO');M.deliver(s,k,'SP',1);assert.throws(()=>M.reopenSupplierSent(s,'ESMO'),/bajada/i);});
+t('Compras muestran el desglose real por destino',()=>{const s=state(),r=M.totals(s).find(r=>r.product==='MANZANA GOLDEN 28');assert.equal(r.by.SP,8);assert.equal(r.by.SL,3);M.importBlocks(s,'PEDIDO BRASEROS CENTRO\n2 MANZANA GOLDEN 28');const q=M.totals(s).find(r=>r.product==='MANZANA GOLDEN 28');assert.equal(q.total,13);assert.equal(q.by.BC,2);});
+t('El reparto conserva destinos separados',()=>{const s=state(),k=key(s,'MANZANA GOLDEN 28');M.quickAssign(s,k,'ESMO');M.markSupplierSent(s,'ESMO');M.deliver(s,k,'SP');const rows=M.deliveryPlan(s).eligible.filter(r=>r.key===k);assert.equal(rows.find(r=>r.dest==='SP').remaining,0);assert.equal(rows.find(r=>r.dest==='SL').remaining,3);});
+t('Restaurante puede aparecer en reparto independiente',()=>{const s=state();M.importBlocks(s,'PEDIDO BRASEROS CENTRO\n2 TOMATE RAMA');const k=key(s,'TOMATE RAMA');M.manualBuySafe(s,k,5);const rows=M.deliveryPlan(s).eligible.filter(r=>r.key===k);assert.equal(rows.find(r=>r.dest==='BC').allowed,2);assert.equal(rows.find(r=>r.dest==='SP').allowed,3);});
+t('No se habilita solo al asignar',()=>{const s=state(),k=key(s,'TOMATE RAMA');M.quickAssign(s,k,'MONTENEGRO');assert.ok(!M.deliveryPlan(s).eligible.some(r=>r.key===k));});
+const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+t('Selector en Reparto por destino',()=>{assert.match(html,/id="deliveryDestination"/);assert.match(html,/selectedDeliveryDest/);});
+t('No se mezclan varias tarjetas de Reparto',()=>{const fragment=html.slice(html.indexOf('function reparto(){'),html.indexOf('function mas(){'));assert.ok(!fragment.includes('dests.map(d=>`<div class="card"'));assert.ok(fragment.includes('x.dest===dest'));});
+t('Lista de restaurantes con WhatsApp y TXT',()=>{assert.match(html,/destwa/);assert.match(html,/destdownload/);assert.match(html,/Pedidos de restaurantes/);});
+t('Proveedor con TXT descargable y casilla enviado',()=>{assert.match(html,/provdownload/);assert.match(html,/Marcar enviado/);assert.match(html,/supplierDraftTXT/);});
+t('Compras con desglose expandible por producto',()=>{assert.match(html,/data-action="breakdown"/);assert.match(html,/purchase-breakdown/);});
+console.log(`DESTINOS, PROVEEDORES, COMPRAS Y BAJADAS: ${ok} pruebas correctas`);

@@ -76,3 +76,12 @@ El script de pruebas visuales requiere Python, Playwright y Chromium instalados.
 5. Proteger cambios que reduzcan mercancía por debajo de lo ya bajado o que dupliquen proveedor y compra manual.
 6. Ejecutar regresiones con estas dos listas, restaurantes y un iPhone real, primero en staging.
 7. Publicar nueva versión del sitio privado sin sobrescribir datos de producción.
+
+## Ampliación 20/11/2026 en repositorio LISTAS-
+
+- Se muestran pedidos de cada restaurante con edición, copia TXT, descarga y enlace WhatsApp independientes; los restaurantes vacíos no aportan cantidades al Global.
+- Asignación por toque con selección de proveedor: solo queda en «Sin asignar» lo no asignado/no comprado; el Global completo se consulta por su filtro.
+- Cada proveedor tiene lista individual, botones de TXT/WhatsApp y estado editable (borrador/enviado); la acción de WhatsApp solo prepara el texto, no confirma el envío.
+- En Compras, un toque sobre el nombre abre cantidades por tienda/restaurante.
+- En Reparto, el selector superior limita la lista a **un solo destino** y conserva bajadas por destino. La carga no es obligatoria.
+- La aplicación continua siendo una **demo autónoma local sin sincronización multiusuario** y no sustituye el sistema privado de Sites.

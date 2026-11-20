@@ -6,7 +6,7 @@
   "description": "Demo independiente de pedidos, proveedores, compra manual, carga opcional, reparto y limpiar dia.",
   "scripts": {
     "build": "node build.mjs",
-    "test": "node tests/test.mjs && node tests/test_extended.mjs && node tests/test_reparto_seguro.mjs && node tests/test_boton_inicio.mjs",
+    "test": "node tests/test.mjs && node tests/test_extended.mjs && node tests/test_reparto_seguro.mjs && node tests/test_boton_inicio.mjs && node tests/test_destinos_proveedores.mjs",
     "check": "npm run build && npm test"
   },
   "engines": {"node": ">=20"}

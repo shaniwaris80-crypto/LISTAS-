@@ -116,6 +116,38 @@ export function supplierLines(state,supplier,includeSent=true){return state.allo
 const qtyLabel=n=>String(n).replace('.',',');
 export function supplierTXT(state,supplier){return supplierLines(state,supplier).map(a=>`${qtyLabel(a.q)}${display(a.product)}`).join('\n');}
 export function prepareWhatsApp(state,supplier){return {supplier,text:supplierTXT(state,supplier),url:`https://wa.me/?text=${encodeURIComponent('PEDIDO '+supplier+'\n'+supplierTXT(state,supplier))}`};}
+/** Sólo los productos que aún no han sido enviados: previene reenviar un pedido antiguo. */
+export function supplierDraftTXT(state,supplier){return supplierLines(state,supplier,false).map(a=>`${qtyLabel(a.q)}${display(a.product)}`).join('\n');}
+export function supplierDraftWhatsApp(state,supplier){const text=supplierDraftTXT(state,supplier);return {supplier,text,url:text?`https://wa.me/?text=${encodeURIComponent('PEDIDO '+supplier+'\n'+text)}`:''};}
+/** Un pedido individual es independiente y forma parte del total Global sólo cuando contiene líneas. */
+export function destinationLines(state,dest){
+ if(!state.destinations.some(d=>d.id===dest))throw Error('Destino desconocido');
+ const map=new Map();
+ for(const line of state.orders.filter(l=>l.dest===dest&&l.q>0)){
+  const key=canonical(line.product)+'|'+line.unit;
+  const old=map.get(key);
+  if(old){old.q=fix(old.q+line.q);old.review ||= line.review;}
+  else map.set(key,{key,product:line.product,unit:line.unit,q:fix(line.q),review:line.review});
+ }
+ return [...map.values()].sort((a,b)=>a.product.localeCompare(b.product,'es',{numeric:true}));
+}
+export function destinationTXT(state,dest){return destinationLines(state,dest).map(l=>`${qtyLabel(l.q)}${display(l.product)}`).join('\n');}
+export function destinationWhatsApp(state,dest){const d=state.destinations.find(x=>x.id===dest);if(!d)throw Error('Destino desconocido');const text=destinationTXT(state,dest);return {text,url:text?`https://wa.me/?text=${encodeURIComponent('PEDIDO '+display(d.name)+'\n'+text)}`:''};}
+/** Conservar el Global completo, pero sacar lo asignado de la bandeja rápida de asignación. */
+export function unassignedProducts(state){return totals(state).filter(r=>{
+ const allocations=state.allocations.filter(a=>a.key===r.key&&a.status!=='cancelled');
+ const manual=productStatus(state,r.key).manuallyBought;
+ return !allocations.length && r.total-manual>1e-8;
+});}
+/** Volver a preparar un envío marcado por error, sólo si no se ha empezado a bajarlo. */
+export function reopenSupplierSent(state,supplier){
+ const lines=supplierLines(state,supplier).filter(a=>a.status==='sent');
+ if(!lines.length)throw Error('No hay líneas enviadas para reabrir');
+ for(const a of lines){if(Object.keys(state.delivery).some(k=>k.startsWith(a.key+'@')&&state.delivery[k]>0))throw Error('Hay mercancía bajada: no se puede anular el envío sin corregir el reparto');}
+ for(const a of state.allocations)if(a.supplier===supplier&&a.status==='sent')a.status='draft';
+ return lines.length;
+}
+
 export function markSupplierSent(state,supplier){const lines=supplierLines(state,supplier,false);if(!lines.length)throw Error('No hay líneas nuevas para enviar');const packet={id:id('envio'),supplier,text:lines.map(x=>`${qtyLabel(x.q)}${display(x.product)}`).join('\n'),timestamp:new Date().toISOString(),simulation:true};for(const a of state.allocations)if(a.supplier===supplier&&a.status==='draft')a.status='sent';state.sentMessages.push(packet);return packet;}
 export function manualBuy(state,key,q){const row=totals(state).find(t=>t.key===key);if(!row)throw Error('No existe producto');if(row.unresolved)throw Error('Confirma el producto antes de comprar');if(!(q>0))throw Error('Cantidad positiva requerida');state.manual.push({id:id('manual'),key,q:fix(q),confirmed:true});}
 export function receiveSupplier(state,allocationId,q){const a=state.allocations.find(x=>x.id===allocationId&&x.status==='sent');if(!a)throw Error('El pedido debe estar enviado');if(!(q>0))throw Error('Cantidad inválida');const previous=state.receipts.filter(x=>x.allocationId===allocationId).reduce((s,x)=>s+x.q,0);if(previous+q>a.q+1e-8)throw Error('No se recibe más de lo enviado sin registrar una compra extra');state.receipts.push({id:id('receipt'),allocationId,q:fix(q)});}
