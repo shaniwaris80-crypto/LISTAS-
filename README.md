@@ -83,3 +83,14 @@ Esta versión sincroniza *la misma cuenta* entre móvil y ordenador. Cuentas dif
 - Pantallas Compras, Bajar, Pedidos y Proveedores probadas con navegadores de 320, 375, 390, 430 y 768 px. Pruebas específicas de importación segura y compras sin duplicidad en `tests/`.
 
 **Límite:** esto actualiza el software y la presentación del iPhone; no traslada automáticamente pedidos guardados en otro navegador ni concede a diferentes cuentas de Firebase acceso compartido al mismo espacio de trabajo. La primera copia debe subirse desde el navegador original.
+
+
+## Compras manuales reversibles (noviembre 2026)
+
+- En Compras → **Por comprar**, toca la casilla para confirmar una compra. La parte comprada pasa **abajo** a «Comprados manualmente»; lo que falta sigue arriba.
+- Ajusta cantidades con **+**, **−** o introduciéndolas en el campo. Pulsa «Confirmar compra» o «Guardar cantidad» para registrar el movimiento.
+- Toca la casilla verde o **Deshacer** para devolver un producto a pendientes. **Deshacer TODAS** revierte los movimientos manuales activos con confirmación, de forma atómica.
+- Las correcciones se guardan como movimientos negativos trazables en el historial de compras manuales; no se borran las filas de pedidos, los envíos a proveedores ni las bajadas.
+- Si una reversión dejaría menos mercancía habilitada que la ya bajada, la operación se bloquea explicando cómo corregir el reparto.
+- **Copiar TXT, Descargar TXT y WhatsApp pendientes** incluyen solo cantidades todavía sin comprar manualmente y no cubiertas por proveedores, con el formato cantidad+nombre.
+- «Comprar TODOS» queda oculto en **Acciones masivas** y pide escribir `COMPRAR` para evitar marcas accidentales.

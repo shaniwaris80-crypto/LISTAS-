@@ -243,6 +243,57 @@ export function pendingPurchases(state){
  });
 }
 
+/**
+ * Deshacer una compra manual sin eliminar el historial. Cada reversión
+ * crea una corrección negativa; los movimientos anteriores permanecen.
+ * Nunca deja bajadas físicas sin cantidad habilitada.
+ */
+export function checkManualPurchaseReversal(state,key,quantity){
+ const st=productStatus(state,key);
+ const qty=fix(Number(String(quantity).replace(',','.')));
+ if(!Number.isFinite(qty)||qty<=0||qty>st.manuallyBought+1e-8)
+  throw Error('Cantidad a deshacer inválida o superior a lo comprado manualmente');
+ const after=fix(st.authorized-qty);
+ const delivered=fix(Object.entries(state.delivery||{}).filter(([location,v])=>location.startsWith(key+'@')&&Number(v)>0).reduce((n,[,v])=>n+Number(v),0));
+ if(after+1e-8<delivered){
+  const name=totals(state).find(x=>x.key===key)?.product||key;
+  throw Error(`No puedes desmarcar ${name}: hay ${delivered} ya bajado y quedarían ${after} habilitados. Deshaz primero las bajadas que correspondan.`);
+ }
+ return {key,qty,after,delivered};
+}
+export function reverseManualPurchase(state,key,quantity=null){
+ const bought=productStatus(state,key).manuallyBought;
+ const change=checkManualPurchaseReversal(state,key,quantity===null?bought:quantity);
+ state.manual.push({id:id('correccion-manual'),key,q:fix(-change.qty),confirmed:true,kind:'reversal',timestamp:new Date().toISOString()});
+ return productStatus(state,key);
+}
+/** Deshacer todas de forma atómica: si una afecta a bajadas, no modifica NINGUNA. */
+export function reverseAllManualPurchases(state){
+ const rows=pendingPurchases(state).filter(row=>row.manuallyBought>0);
+ if(!rows.length)throw Error('No hay compras manuales activas para deshacer');
+ for(const row of rows)checkManualPurchaseReversal(state,row.key,row.manuallyBought);
+ for(const row of rows)reverseManualPurchase(state,row.key,row.manuallyBought);
+ return rows.length;
+}
+/** Guardar cantidad total comprada manualmente por producto (no el total del proveedor). */
+export function setManualPurchaseTotal(state,key,total,{allowExtra=false,removeDraft=false}={}){
+ const n=fix(Number(String(total).replace(',','.')));
+ if(!Number.isFinite(n)||n<0)throw Error('Introduce una cantidad válida, igual o mayor que cero');
+ const current=productStatus(state,key).manuallyBought;
+ if(n===current)return productStatus(state,key);
+ if(n<current)return reverseManualPurchase(state,key,fix(current-n));
+ return manualBuySafe(state,key,fix(n-current),{allowExtra,removeDraft});
+}
+/** Sólo cantidades por comprar manualmente, nunca proveedores cubiertos ni duplicados. */
+export function pendingManualPurchaseTXT(state){
+ return pendingPurchases(state).filter(r=>r.remainingToBuy>0&&!r.unresolved)
+  .map(r=>`${qtyLabel(r.remainingToBuy)}${display(r.product)}`).join('\n');
+}
+export function pendingManualPurchaseWhatsApp(state){
+ const text=pendingManualPurchaseTXT(state);
+ return {text,url:text?`https://wa.me/?text=${encodeURIComponent('COMPRAS MANUALES PENDIENTES\n'+text)}`:''};
+}
+
 const dOrder=(a,b)=>{const ai=STORE_ORDER.indexOf(a),bi=STORE_ORDER.indexOf(b);if(ai>=0&&bi>=0)return ai-bi;if(ai>=0)return -1;if(bi>=0)return 1;return a.localeCompare(b);};
 export function planShortage(state,key,by){
  const row=totals(state).find(t=>t.key===key);if(!row)throw Error('Producto no encontrado');
@@ -287,4 +338,4 @@ export function distributeSurplus(extra,{fractional=false}={}){
 }
 export function assignRider(state,dest,name){if(!state.destinations.some(x=>x.id===dest))throw Error('Destino desconocido');const rider=canonical(name);if(!rider)throw Error('Repartidor vacío');if(!state.riders.includes(rider))state.riders.push(rider);state.riderAssignments[dest]=rider;}
 export function newDay(state,newDate){if(!/^\d{4}-\d{2}-\d{2}$/.test(newDate))throw Error('Fecha inválida');const before={day:state.day,orders:state.orders,allocations:state.allocations,manual:state.manual,receipts:state.receipts,delivery:state.delivery,load:state.load,shortageAllocation:state.shortageAllocation||{},riderAssignments:state.riderAssignments||{},sentMessages:state.sentMessages||[]};state.history.push(structuredClone(before));state.day=newDate;state.orders=[];state.allocations=[];state.manual=[];state.receipts=[];state.delivery={};state.load={};state.shortageAllocation={};state.riderAssignments={};state.sentMessages=[];state.importedFingerprints=[];}
-export function summary(state){const t=totals(state),p=deliveryPlan(state);return {day:state.day,destinations:state.destinations.length,originalLines:state.orders.length,products:t.length,quantities:fix(t.reduce((s,x)=>s+x.total,0)),unreviewed:state.orders.filter(x=>x.review).length,assignedDraft:state.allocations.filter(a=>a.status==='draft').length,assignedSent:state.allocations.filter(a=>a.status==='sent').length,manualBought:state.manual.length,deliverable:p.eligible.length,blocked:p.blocked.length,shortages:p.short.length,shortageReview:p.needsReview.length,delivered:Object.keys(state.delivery).length};}
+export function summary(state){const t=totals(state),p=deliveryPlan(state);return {day:state.day,destinations:state.destinations.length,originalLines:state.orders.length,products:t.length,quantities:fix(t.reduce((s,x)=>s+x.total,0)),unreviewed:state.orders.filter(x=>x.review).length,assignedDraft:state.allocations.filter(a=>a.status==='draft').length,assignedSent:state.allocations.filter(a=>a.status==='sent').length,manualBought:pendingPurchases(state).filter(r=>r.manuallyBought>0).length,deliverable:p.eligible.length,blocked:p.blocked.length,shortages:p.short.length,shortageReview:p.needsReview.length,delivered:Object.keys(state.delivery).length};}

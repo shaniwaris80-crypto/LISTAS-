@@ -6,7 +6,7 @@
   "description": "ARSLAN LISTAS con sincronización Firebase Realtime Database igual que Ruta Madrid (pendiente de configuración).",
   "scripts": {
     "build": "node build.mjs",
-    "test": "node tests/test.mjs && node tests/test_extended.mjs && node tests/test_reparto_seguro.mjs && node tests/test_boton_inicio.mjs && node tests/test_destinos_proveedores.mjs && node tests/test_sync.mjs && node tests/test_firebase_adapter.mjs && node tests/test_compras_filtradas.mjs",
+    "test": "node tests/test.mjs && node tests/test_extended.mjs && node tests/test_reparto_seguro.mjs && node tests/test_boton_inicio.mjs && node tests/test_destinos_proveedores.mjs && node tests/test_sync.mjs && node tests/test_firebase_adapter.mjs && node tests/test_compras_filtradas.mjs && node tests/test_compras_reversibles.mjs",
     "check": "npm run build && npm test"
   },
   "engines": {

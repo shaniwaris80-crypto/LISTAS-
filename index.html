@@ -80,6 +80,40 @@ html{width:100%;scroll-padding-bottom:112px}body{min-width:0;overflow-x:clip}but
  .card{padding:12px}
  .stat b{font-size:24px}
 }
+
+/* Compras manuales: selección reversible, completados abajo y controles táctiles iPhone */
+.purchase-bulk{padding:10px 0 14px;border-bottom:1px solid #e8e8e8;margin:0 0 15px}
+.purchase-bulk .tools{display:flex;flex-wrap:wrap;gap:8px}
+.purchase-bulk details{margin-top:10px;border-top:1px solid #ececec;padding-top:9px}
+.purchase-bulk summary{font-size:12px;color:#666;cursor:pointer;font-weight:750}
+.purchase-item{align-items:flex-start;flex-wrap:wrap;gap:10px}
+.purchase-item .grow{flex:1 1 160px;min-width:0}
+.purchase-item.manual-complete{background:#f2fbf4;border-color:#b9dfc6}
+.purchase-tick{width:46px;height:46px;flex:0 0 46px;border-radius:12px;background:#fff;border:2px solid #111;color:#111;display:grid;place-items:center;font-size:23px;font-weight:900;padding:0;cursor:pointer;touch-action:manipulation}
+.purchase-tick.checked{border-color:#15803d;background:#15803d;color:white}
+.purchase-tick:disabled{opacity:.35;cursor:not-allowed}
+.purchase-controls{margin-top:11px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.purchase-controls>label{width:100%;margin:0;font-size:12px;color:#444}
+.purchase-qty-controls{display:flex;align-items:center;gap:5px;width:min(100%,218px)}
+.purchase-qty-controls input{width:76px;min-width:0;text-align:center;font-size:17px;font-weight:850;height:46px;padding:8px;border:2px solid #aaa;border-radius:10px}
+.qty-step{flex:0 0 46px;width:46px;height:46px;border:2px solid #161616;background:#fff;color:#111;border-radius:11px;font-size:24px;font-weight:900;cursor:pointer;touch-action:manipulation}
+.qty-step:active{background:#e9e9e9}
+.purchase-completed{margin-top:18px;border-color:#cde8d4}
+.purchase-completed .sectionline h2{font-weight:900}
+.purchase-item> .btn{min-height:44px}
+@media(max-width:425px){.purchase-item{gap:8px}.purchase-item .grow{flex:1 1 calc(100% - 130px)}.purchase-item>.btn{width:100%;flex:1 1 100%}.purchase-qty-controls{width:100%}.purchase-bulk .tools .btn{flex:1 1 125px;min-height:45px}}
+/* Alineación estable de tarjetas en Safari iPhone, sin columnas estrechas. */
+.purchase-item{display:grid;grid-template-columns:46px 44px minmax(0,1fr);align-items:start;column-gap:8px;row-gap:8px;min-width:0}
+.purchase-item .purchase-tick{grid-column:1;grid-row:1}
+.purchase-item .keynum{grid-column:2;grid-row:1;min-width:40px;max-width:100%;word-break:normal}
+.purchase-item .grow{grid-column:3;grid-row:1;min-width:0;width:100%;flex:none;overflow-wrap:break-word}
+.purchase-item>.btn{grid-column:1/-1;grid-row:auto;width:100%;min-width:0;margin-top:2px}
+.purchase-item[data-purchase-type="readonly"]{grid-template-columns:44px minmax(0,1fr)}
+.purchase-item[data-purchase-type="readonly"] .keynum{grid-column:1}
+.purchase-item[data-purchase-type="readonly"] .grow{grid-column:2}
+.purchase-item .purchase-qty-controls{max-width:100%}
+.purchase-item .purchase-qty-controls input{flex:1 1 48px;width:48px;min-width:0}
+@media(max-width:425px){.purchase-item .grow{flex:none;min-width:0}.purchase-item>.btn{width:100%;flex:none}}
 </style></head><body><div id="app"></div><script>// ARSLAN LISTAS — laboratorio de auditoría aislado. No toca el sistema publicado.
 const STORE_ORDER=['SP','SL','ST'];
 const DESTINATIONS=[
@@ -325,6 +359,57 @@ function pendingPurchases(state){
  });
 }
 
+/**
+ * Deshacer una compra manual sin eliminar el historial. Cada reversión
+ * crea una corrección negativa; los movimientos anteriores permanecen.
+ * Nunca deja bajadas físicas sin cantidad habilitada.
+ */
+function checkManualPurchaseReversal(state,key,quantity){
+ const st=productStatus(state,key);
+ const qty=fix(Number(String(quantity).replace(',','.')));
+ if(!Number.isFinite(qty)||qty<=0||qty>st.manuallyBought+1e-8)
+  throw Error('Cantidad a deshacer inválida o superior a lo comprado manualmente');
+ const after=fix(st.authorized-qty);
+ const delivered=fix(Object.entries(state.delivery||{}).filter(([location,v])=>location.startsWith(key+'@')&&Number(v)>0).reduce((n,[,v])=>n+Number(v),0));
+ if(after+1e-8<delivered){
+  const name=totals(state).find(x=>x.key===key)?.product||key;
+  throw Error(`No puedes desmarcar ${name}: hay ${delivered} ya bajado y quedarían ${after} habilitados. Deshaz primero las bajadas que correspondan.`);
+ }
+ return {key,qty,after,delivered};
+}
+function reverseManualPurchase(state,key,quantity=null){
+ const bought=productStatus(state,key).manuallyBought;
+ const change=checkManualPurchaseReversal(state,key,quantity===null?bought:quantity);
+ state.manual.push({id:id('correccion-manual'),key,q:fix(-change.qty),confirmed:true,kind:'reversal',timestamp:new Date().toISOString()});
+ return productStatus(state,key);
+}
+/** Deshacer todas de forma atómica: si una afecta a bajadas, no modifica NINGUNA. */
+function reverseAllManualPurchases(state){
+ const rows=pendingPurchases(state).filter(row=>row.manuallyBought>0);
+ if(!rows.length)throw Error('No hay compras manuales activas para deshacer');
+ for(const row of rows)checkManualPurchaseReversal(state,row.key,row.manuallyBought);
+ for(const row of rows)reverseManualPurchase(state,row.key,row.manuallyBought);
+ return rows.length;
+}
+/** Guardar cantidad total comprada manualmente por producto (no el total del proveedor). */
+function setManualPurchaseTotal(state,key,total,{allowExtra=false,removeDraft=false}={}){
+ const n=fix(Number(String(total).replace(',','.')));
+ if(!Number.isFinite(n)||n<0)throw Error('Introduce una cantidad válida, igual o mayor que cero');
+ const current=productStatus(state,key).manuallyBought;
+ if(n===current)return productStatus(state,key);
+ if(n<current)return reverseManualPurchase(state,key,fix(current-n));
+ return manualBuySafe(state,key,fix(n-current),{allowExtra,removeDraft});
+}
+/** Sólo cantidades por comprar manualmente, nunca proveedores cubiertos ni duplicados. */
+function pendingManualPurchaseTXT(state){
+ return pendingPurchases(state).filter(r=>r.remainingToBuy>0&&!r.unresolved)
+  .map(r=>`${qtyLabel(r.remainingToBuy)}${display(r.product)}`).join('\n');
+}
+function pendingManualPurchaseWhatsApp(state){
+ const text=pendingManualPurchaseTXT(state);
+ return {text,url:text?`https://wa.me/?text=${encodeURIComponent('COMPRAS MANUALES PENDIENTES\n'+text)}`:''};
+}
+
 const dOrder=(a,b)=>{const ai=STORE_ORDER.indexOf(a),bi=STORE_ORDER.indexOf(b);if(ai>=0&&bi>=0)return ai-bi;if(ai>=0)return -1;if(bi>=0)return 1;return a.localeCompare(b);};
 function planShortage(state,key,by){
  const row=totals(state).find(t=>t.key===key);if(!row)throw Error('Producto no encontrado');
@@ -369,7 +454,7 @@ function distributeSurplus(extra,{fractional=false}={}){
 }
 function assignRider(state,dest,name){if(!state.destinations.some(x=>x.id===dest))throw Error('Destino desconocido');const rider=canonical(name);if(!rider)throw Error('Repartidor vacío');if(!state.riders.includes(rider))state.riders.push(rider);state.riderAssignments[dest]=rider;}
 function newDay(state,newDate){if(!/^\d{4}-\d{2}-\d{2}$/.test(newDate))throw Error('Fecha inválida');const before={day:state.day,orders:state.orders,allocations:state.allocations,manual:state.manual,receipts:state.receipts,delivery:state.delivery,load:state.load,shortageAllocation:state.shortageAllocation||{},riderAssignments:state.riderAssignments||{},sentMessages:state.sentMessages||[]};state.history.push(structuredClone(before));state.day=newDate;state.orders=[];state.allocations=[];state.manual=[];state.receipts=[];state.delivery={};state.load={};state.shortageAllocation={};state.riderAssignments={};state.sentMessages=[];state.importedFingerprints=[];}
-function summary(state){const t=totals(state),p=deliveryPlan(state);return {day:state.day,destinations:state.destinations.length,originalLines:state.orders.length,products:t.length,quantities:fix(t.reduce((s,x)=>s+x.total,0)),unreviewed:state.orders.filter(x=>x.review).length,assignedDraft:state.allocations.filter(a=>a.status==='draft').length,assignedSent:state.allocations.filter(a=>a.status==='sent').length,manualBought:state.manual.length,deliverable:p.eligible.length,blocked:p.blocked.length,shortages:p.short.length,shortageReview:p.needsReview.length,delivered:Object.keys(state.delivery).length};}
+function summary(state){const t=totals(state),p=deliveryPlan(state);return {day:state.day,destinations:state.destinations.length,originalLines:state.orders.length,products:t.length,quantities:fix(t.reduce((s,x)=>s+x.total,0)),unreviewed:state.orders.filter(x=>x.review).length,assignedDraft:state.allocations.filter(a=>a.status==='draft').length,assignedSent:state.allocations.filter(a=>a.status==='sent').length,manualBought:pendingPurchases(state).filter(r=>r.manuallyBought>0).length,deliverable:p.eligible.length,blocked:p.blocked.length,shortages:p.short.length,shortageReview:p.needsReview.length,delivered:Object.keys(state.delivery).length};}
 
 // ARSLAN LISTAS — motor de sincronización (independiente de la UI y del proveedor).
 // Una instantánea con revisión CAS y fusión conservadora de cambios simultáneos.
@@ -670,6 +755,7 @@ if(!CLOUD_ENABLED){
 state=normalizeRuntimeState(state);
 let tab='inicio',supplier='ESMO',filter='pending',purchaseView='pending',toastMessage='';
 let selectedDeliveryDest='SP',expandedPurchaseKey='',editingDestination='';
+const purchaseDrafts=Object.create(null); // Sólo controles temporales. Ninguna compra se guarda sin confirmar.
 let cloudAdapter=null,cloudEngine=null,cloudUser=null;
 let cloudStatus=CLOUD_ENABLED?'conectando':'sin_configurar';
 let cloudMessage=CLOUD_ENABLED?'Iniciando conexión…':'Guardado solo en este dispositivo';
@@ -816,27 +902,50 @@ function globalView(){
  `<div class="card"><div class="sectionline"><h2>${filter==='pending'?'Sin asignar':filter==='all'?'Global · todas las cantidades':filter==='draft'?'Asignados sin enviar':'Ya enviados'} · ${visible.length}</h2><span class="subtle">Global conserva los totales de todos los destinos</span></div><label for="searchRows">Buscar producto</label><input id="searchRows" placeholder="Ej.: TOMATE RAMA, GOLDEN 28" autocomplete="off"/><div class="items">${visible.map(r=>{const active=state.allocations.filter(a=>a.key===r.key&&a.status!=='cancelled');const status=authorizedQty(state,r.key)>0?pill('Habilitado','ok'):active.length?pill('Asignado / sin enviar','warn'):pill('Sin asignar','err');return `<div class="item searchable ${r.unresolved?'err':''}" data-search="${esc(r.product)}" ${!active.length&&!r.unresolved?`data-action="assign" data-key="${enc(r.key)}" role="button" tabindex="0" aria-label="Asignar ${esc(r.product)} a ${esc(supplier)}"`:''}><div class="keynum">${esc(r.total)}</div><div class="grow"><div class="product">${esc(r.product)}</div><div class="details">${esc(r.unit)} · ${Object.entries(r.by).map(([d,n])=>esc(destName(d))+': '+n).join(' · ')}</div><div class="tools" style="margin-top:7px">${status} ${active.map(a=>pill(a.supplier+' '+a.q,a.status==='sent'?'ok':'warn')).join('')}</div></div><div class="mini-actions">${r.unresolved?pill('Revisar nombre','err'):!active.length?btn('assign','+ '+esc(supplier),r.key,'small dark'):active.some(a=>a.status==='draft')?btn('unassign','↩ Quitar borrador',r.key,'small'):''}</div></div>`;}).join('')||'<p class="subtle">Sin productos en esta lista. Cambia el filtro para ver el Global consolidado.</p>'}</div></div>`+
  `<div class="sectionline"><h2>Listas por proveedor</h2>${pill('TXT y WhatsApp independientes')}</div>`+selected.map(providerCard).join('');
 }
+function getPurchaseDraft(row,mode){
+ const key=mode+':'+row.key;
+ if(Object.prototype.hasOwnProperty.call(purchaseDrafts,key))return purchaseDrafts[key];
+ return String(mode==='manual'?row.manuallyBought:row.remainingToBuy).replace('.',',');
+}
+function purchaseQtyFromInput(key,mode){
+ const input=[...document.querySelectorAll('[data-purchase-qty]')].find(el=>el.dataset.purchaseKey===key&&el.dataset.purchaseMode===mode);
+ const raw=input?.value??purchaseDrafts[mode+':'+key];
+ const q=Number(String(raw??'').trim().replace(',','.'));
+ if(!String(raw??'').trim()||!Number.isFinite(q)||q<0)throw Error('Introduce una cantidad válida mayor o igual que cero');
+ return fix(q);
+}
+function purchaseQuantityEditor(row,mode){
+ const title=mode==='manual'?'Cantidad comprada':'Cantidad que vas a comprar';
+ return `<div class="purchase-controls"><label>${title}</label><div class="purchase-qty-controls"><button type="button" class="qty-step" data-action="purchase-step" data-key="${enc(row.key)}" data-target="${mode}:-1" aria-label="Restar una unidad de ${esc(row.product)}">−</button><input type="text" inputmode="decimal" autocomplete="off" data-purchase-qty data-purchase-key="${esc(row.key)}" data-purchase-mode="${mode}" value="${esc(getPurchaseDraft(row,mode))}" aria-label="Cantidad de ${esc(row.product)}"><button type="button" class="qty-step" data-action="purchase-step" data-key="${enc(row.key)}" data-target="${mode}:1" aria-label="Sumar una unidad de ${esc(row.product)}">+</button></div>${mode==='manual'?btn('purchase-save','Guardar cantidad',row.key,'small dark'):''}</div>`;
+}
+function purchaseItem(row,mode){
+ const open=expandedPurchaseKey===row.key,checked=mode==='manual';
+ const qty=checked?row.manuallyBought:mode==='pending'?row.remainingToBuy:row.total;
+ const status=row.assignedSent>0?pill(row.assignedSent+' enviado proveedor','ok'):'';
+ const drafted=row.assignedDraft>0?pill(row.assignedDraft+' asignado sin enviar','warn'):'';
+ const bought=row.manuallyBought>0?pill(row.manuallyBought+' comprado manual','ok'):'';
+ const checkbox=mode==='pending'||mode==='manual';
+ const tick=checkbox?`<button type="button" class="purchase-tick ${checked?'checked':''}" role="checkbox" aria-checked="${checked}" ${row.unresolved?'disabled':''} data-action="purchase-toggle" data-key="${enc(row.key)}" data-target="${mode}" aria-label="${checked?'Desmarcar compra manual de':'Marcar como comprado'} ${esc(row.product)}">${checked?'✓':''}</button>`:'';
+ return `<div class="item searchable purchase-item ${checked?'manual-complete':''} ${row.unresolved?'err':''}" data-search="${esc(row.product)}" data-purchase-type="${mode}" data-product-key="${esc(row.key)}">${tick}<div class="keynum">${qty}</div><div class="grow"><button type="button" class="product-disclosure" data-action="breakdown" data-key="${enc(row.key)}" aria-expanded="${open}"><span>${esc(row.product)}</span><span class="subtle">${open?'▲ Ocultar destinos':'▼ Quién lleva cuánto'}</span></button><div class="details">${esc(row.unit)} · Pedido total: ${row.total} · Falta: <b>${row.remainingToBuy}</b></div><div class="purchase-statuses">${status}${drafted}${bought}${row.unresolved?pill('Revisar nombre en Pedidos','err'):''}</div>${open?`<div class="purchase-breakdown"><h3>Quién lleva cuánto</h3>${Object.entries(row.by).sort((a,b)=>destName(a[0]).localeCompare(destName(b[0]),'es')).map(([d,q])=>`<div class="breakdown-line"><span>${esc(destName(d))}</span><strong>${q} ${esc(row.unit)}</strong></div>`).join('')}<div class="breakdown-line total"><span>TOTAL PEDIDO</span><strong>${row.total} ${esc(row.unit)}</strong></div><div class="breakdown-line"><span>A proveedores</span><strong>${row.supplierCovered}</strong></div><div class="breakdown-line"><span>Comprado manual</span><strong>${row.manuallyBought}</strong></div><div class="breakdown-line total"><span>FALTA COMPRAR</span><strong>${row.remainingToBuy}</strong></div></div>`:''}${checkbox&&!row.unresolved?purchaseQuantityEditor(row,mode):''}</div>${mode==='pending'&&!row.unresolved?btn('purchase-confirm','Confirmar compra',row.key,'small dark'):''}${checked?btn('purchase-undo','Deshacer',row.key,'small'):''}</div>`;
+}
 function compras(){
  const all=pendingPurchases(state);
- const counts={pending:all.filter(r=>r.remainingToBuy>0||r.unresolved).length,supplier:all.filter(r=>r.supplierCovered>0).length,manual:all.filter(r=>r.manuallyBought>0).length,all:all.length};
- const shown=all.filter(r=>purchaseView==='pending'?(r.remainingToBuy>0||r.unresolved):purchaseView==='supplier'?r.supplierCovered>0:purchaseView==='manual'?r.manuallyBought>0:true);
+ const pending=all.filter(r=>r.remainingToBuy>0||r.unresolved);
+ const bought=all.filter(r=>r.manuallyBought>0);
+ const counts={pending:pending.length,supplier:all.filter(r=>r.supplierCovered>0).length,manual:bought.length,all:all.length};
  const filters=[['pending','Por comprar'],['supplier','A proveedores'],['manual','Comprado manual'],['all','Ver todos']];
- const info=purchaseView==='pending'?'<b>Solo lo que falta por comprar.</b> Si está cubierto por un proveedor o ya comprado manualmente, no aparece en esta lista. Los envíos y borradores se consultan en «A proveedores».':purchaseView==='supplier'?'<b>Ya gestionado con proveedores.</b> Aquí se consultan los pedidos enviados o preparados, pero no se compran de nuevo.':purchaseView==='manual'?'<b>Compras manuales registradas.</b> Estas cantidades no vuelven a la lista de pendientes.':'<b>Vista de control.</b> Aquí aparecen todos los productos, incluidos los enviados y comprados; no significa que deban comprarse otra vez.';
- return sectionTitle('Compras','Toca un producto para ver qué tienda o restaurante lo necesita, como en Ruta Madrid.')+
- `<div class="notice green purchase-guidance">${info}</div>`+
- `<div class="card"><div class="purchase-tabs" role="group" aria-label="Filtro de compras">${filters.map(([name,label])=>`<button type="button" class="purchase-filter ${purchaseView===name?'active':''}" data-action="purchasefilter" data-key="${name}" aria-pressed="${purchaseView===name}">${esc(label)} <span class="filter-count">${counts[name]}</span></button>`).join('')}</div>`+
- `<div class="sectionline"><h2>${purchaseView==='pending'?'Pendiente de comprar':purchaseView==='supplier'?'Pedidos a proveedores':purchaseView==='manual'?'Comprado manualmente':'Todos los productos'}</h2>${pill(shown.length+' productos')}</div>`+
- (purchaseView==='pending'?`<div class="tools" style="margin-bottom:12px">${btn('buyall','Comprar pendientes disponibles','','dark small')}</div>`:'')+
- `<label for="searchRows">Buscar producto</label><input id="searchRows" type="search" placeholder="Ej.: TOMATE RAMA" autocomplete="off"/>`+
- `<div class="items">${shown.map(r=>{
-  const open=expandedPurchaseKey===r.key, q=purchaseView==='pending'?r.remainingToBuy:r.total;
-  const providerStatus=r.assignedSent>0?pill(r.assignedSent+' enviado a proveedor','ok'):'';
-  const draftStatus=r.assignedDraft>0?pill(r.assignedDraft+' pedido sin enviar','warn'):'';
-  const manualStatus=r.manuallyBought>0?pill(r.manuallyBought+' compra manual','ok'):'';
-  const actions=purchaseView==='pending'&&!r.unresolved&&r.remainingToBuy>0?`<div class="mini-actions">${btn('buy','Comprar '+r.remainingToBuy,r.key,'small dark')}${btn('buyedit','Otra cantidad',r.key,'small')}</div>`:'';
-  return `<div class="item searchable purchase-item ${r.unresolved?'err':''}" data-search="${esc(r.product)}"><div class="keynum" aria-label="${q} ${esc(r.unit)}">${q}</div><div class="grow"><button type="button" class="product-disclosure" data-action="breakdown" data-key="${enc(r.key)}" aria-expanded="${open}"><span>${esc(r.product)}</span><span class="subtle">${open?'▲ Ocultar destinos':'▼ Quién lleva cuánto'}</span></button><div class="details">${esc(r.unit)} · Pedido total: ${r.total} · Falta: <b>${r.remainingToBuy}</b></div><div class="purchase-statuses">${providerStatus}${draftStatus}${manualStatus}${r.unresolved?pill('Revisar nombre en Pedidos','err'):''}</div>${open?`<div class="purchase-breakdown"><h3>Quién lleva cuánto · ${esc(r.product)}</h3>${Object.entries(r.by).sort((a,b)=>destName(a[0]).localeCompare(destName(b[0]),'es')).map(([d,v])=>`<div class="breakdown-line"><span>${esc(destName(d))}</span><strong>${v} ${esc(r.unit)}</strong></div>`).join('')}<div class="breakdown-line total"><span>TOTAL PEDIDO</span><strong>${r.total} ${esc(r.unit)}</strong></div><div class="breakdown-line"><span>A proveedores (incluye no enviado)</span><strong>${r.supplierCovered}</strong></div><div class="breakdown-line"><span>Comprado manualmente</span><strong>${r.manuallyBought}</strong></div><div class="breakdown-line total"><span>FALTA COMPRAR</span><strong>${r.remainingToBuy}</strong></div></div>`:''}</div>${actions}</div>`;
- }).join('')||`<div class="notice green"><b>${purchaseView==='pending'?'Todo cubierto o sin pedidos pendientes':'No hay productos en esta sección.'}</b>${purchaseView==='pending'?' Puedes revisar los pedidos enviados en «A proveedores». No se ha borrado ningún producto.':''}</div>`}</div></div>`+
- `<div class="card"><div class="sectionline"><h2>Extras confirmados</h2>${pill('No duplicar compra')}</div>${surplus(state).length?surplus(state).map(r=>`<div class="item"><div class="keynum">+${r.extra}</div><div class="grow"><b>${esc(r.product)}</b><div class="subtle">Extra comprado de verdad. Distribución manual opcional.</div></div>${btn('extra','Ver reparto',r.key,'small')}</div>`).join(''):'<p class="subtle">No hay compra extra confirmada. Un pedido a proveedor no se contabiliza dos veces.</p>'}</div>`;
+ const other=purchaseView==='supplier'?all.filter(r=>r.supplierCovered>0):all;
+ const exportable=pendingManualPurchaseTXT(state);
+ const title=purchaseView==='pending'?'Pendiente de comprar':purchaseView==='supplier'?'Pedidos a proveedores':purchaseView==='manual'?'Compras manuales':'Todos los productos';
+ return sectionTitle('Compras','Marca los productos con un toque, ajusta cantidades con + / − o escríbelas, como en Ruta Madrid.')+
+ `<div class="notice green purchase-guidance"><b>Sin compras duplicadas.</b> Lo enviado o reservado a proveedor no entra en pendientes manuales. Lo marcado aparece ABAJO y se puede desmarcar. No se eliminan pedidos ni proveedores.</div>`+
+ `<div class="card"><div class="purchase-tabs" role="group" aria-label="Filtro de compras">${filters.map(([name,label])=>`<button type="button" class="purchase-filter ${purchaseView===name?'active':''}" data-action="purchasefilter" data-key="${name}" aria-pressed="${purchaseView===name}">${esc(label)} <span class="filter-count">${counts[name]}</span></button>`).join('')}</div><label for="searchRows">Buscar producto</label><input id="searchRows" type="search" placeholder="Ej.: TOMATE RAMA" autocomplete="off"/>
+ <div class="sectionline"><h2>${title}</h2>${pill((purchaseView==='manual'?bought.length:purchaseView==='pending'?pending.length:other.length)+' productos')}</div>`+
+ (purchaseView==='pending'?`<div class="purchase-bulk"><div class="tools">${btn('manual-copy-pending','Copiar TXT pendiente','','small')}${btn('manual-download-pending','Descargar TXT','','small')}${btn('manual-wa-pending','WhatsApp pendientes','','small green')}</div><p class="subtle">${exportable?'Solo lo que queda por comprar manualmente; WhatsApp no lo marca como comprado.':'No hay productos pendientes confirmados para exportar.'}</p><details><summary>Acciones masivas (confirmación obligatoria)</summary><div class="tools">${btn('buyall','Marcar TODOS como comprados','','small dark')}</div></details></div>`:'')+
+ `<div class="items">${purchaseView==='pending'?pending.map(r=>purchaseItem(r,'pending')).join('')||'<div class="notice green"><b>Todo cubierto.</b> No quedan compras pendientes.</div>':purchaseView==='manual'?bought.map(r=>purchaseItem(r,'manual')).join('')||'<p class="subtle">No hay compras manuales activas.</p>':other.map(r=>purchaseItem(r,'readonly')).join('')||'<p class="subtle">No hay productos para esta vista.</p>'}</div></div>`+
+ (purchaseView==='pending'&&bought.length?`<div class="card purchase-completed"><div class="sectionline"><h2>✓ Comprados manualmente</h2>${pill(bought.length+' seleccionados','ok')}</div><p class="subtle">Están abajo para no mezclarlos con lo pendiente. Toca ✓ para desmarcar o ajusta la cantidad.</p><div class="items">${bought.map(r=>purchaseItem(r,'manual')).join('')}</div>${btn('manual-undo-all','Deshacer TODAS las compras manuales','','small red')}</div>`:'')+
+ (purchaseView==='manual'&&bought.length?`<div class="card"><div class="tools">${btn('manual-undo-all','Deshacer TODAS las compras manuales','','small red')}</div><p class="subtle">Se conservan los movimientos anteriores en el historial. No se modifican bajadas ya realizadas.</p></div>`:'')+
+ `<div class="card"><div class="sectionline"><h2>Extras confirmados</h2>${pill('No duplicar compra')}</div>${surplus(state).length?surplus(state).map(r=>`<div class="item"><div class="keynum">+${r.extra}</div><div class="grow"><b>${esc(r.product)}</b><div class="subtle">Compra EXTRA real. Distribución manual opcional.</div></div>${btn('extra','Ver reparto',r.key,'small')}</div>`).join(''):'<p class="subtle">No hay compra extra confirmada.</p>'}</div>`;
 }
 function carga(){const x=deliveryPlan(state);return sectionTitle('Carga · opcional','Si quieres, marca lo que has cargado. Si prefieres ir directamente a Reparto, puedes saltarte este paso.')+`<div class="notice green"><b>La carga no bloquea reparto.</b> Los productos habilitados aparecen en Reparto aunque no marques nada aquí.</div><div class="tools" style="margin-bottom:15px">${btn('goto','Ir directo a Reparto','reparto','dark')}</div>`+
  `<div class="card"><h2>Por cargar</h2><div class="items">${x.eligible.map(r=>{const q=state.load[r.key+'@'+r.dest]||0;return `<div class="item ${q>=r.allowed?'done':''}"><button class="clickable" data-action="load" data-key="${enc(r.key)}" data-dest="${enc(r.dest)}"><span class="check">${q>=r.allowed?'✓':''}</span><div class="grow"><div class="product">${esc(r.allowed)} ${esc(r.product)}</div><div class="details">${esc(destName(r.dest))} · ${esc(r.unit)}${q?' · cargado '+q:''}</div></div></button></div>`}).join('')||'<div class="subtle">Primero registra envío a proveedor o compra manual.</div>'}</div></div>`;}
@@ -857,12 +966,12 @@ function reparto(){
 function mas(){return sectionTitle('Más opciones','La carga es opcional; la auditoría y los datos de prueba están separados de tus pedidos reales.')+`<div class="card"><h2>Acciones</h2><div class="tools">${btn('goto','Carga opcional','carga','dark')}${btn('goto','Ver auditoría','auditoria')}${btn('goto','Pegar listas','pedidos')}</div></div>`;}
 function auditoria(){const x=summary(state),p=deliveryPlan(state);return sectionTitle('Auditoría','Comprobaciones y seguridad del flujo en esta copia local, sin mensajes ni movimientos en tu aplicación real.')+stats()+`<div class="spacer"></div><div class="card"><h2>Condiciones de aceptación</h2><div class="items">${[
 ['91 líneas originales de 2 tiendas',x.originalLines===91],['Calibre GOLDEN 28 separado de GOLDEN 24',!!trow('MANZANA GOLDEN 28|BULTO')&&!!trow('MANZANA GOLDEN 24|BULTO')],['Los no enviados y no comprados están bloqueados',p.blocked.every(r=>authorizedQty(state,r.key)===0)],['Carga no condiciona reparto',true],['Los restaurantes suman sin fusionar sus destinos',true],['Los nombres sin confirmar no se envían automáticamente',true],['Las bajadas sólo permiten cantidades habilitadas',true],['WhatsApp requiere envío manual',true]].map(([name,ok])=>`<div class="item"><span class="pill ${ok?'ok':'err'}">${ok?'OK':'REVISAR'}</span><div class="grow"><b>${esc(name)}</b></div></div>`).join('')}</div></div><div class="card"><h2>Empezar otra jornada</h2><p class="subtle">Conserva catálogo, nombres nuevos, restaurantes, proveedores e histórico, y limpia pedidos y marcas de compra, carga y reparto de esta demo.</p>${btn('newday','Limpiar todo y nueva jornada','', 'red small')}</div><div class="card"><h2>Esta prueba es independiente</h2><p class="subtle">La aplicación real es privada y no ha sido modificada. Aquí todos los movimientos son locales, y los «Envíos» se marcan como simulación. Ningún proveedor ha recibido WhatsApp.</p><div class="tools">${btn('export','Exportar estado JSON','','small')}${btn('resetdemo','Restaurar listas de ejemplo','','small dark')}</div></div>`;}
-function render(){const drafts={};document.querySelectorAll('textarea').forEach(t=>{if(t.id&&t.value)drafts[t.id]=t.value;});const app=document.getElementById('app');if(!app)return;let screenHTML='';try{const view=({inicio:home,pedidos,global:globalView,compras,carga,reparto,mas,auditoria})[tab];if(!view)throw Error('Pantalla no disponible');screenHTML=view();}catch(error){console.error('Error al abrir sección de LISTAS:',tab,error);screenHTML=`<div class="card"><h2>No se pudo abrir ${esc(tab)}</h2><div class="notice red">${esc(error?.message||'Error de datos. No se ha borrado nada.')}</div><div class="tools">${btn('goto','Volver a Inicio','inicio','dark')}${btn('export','Descargar copia JSON','','small')}</div></div>`;}app.innerHTML=`<div class="top"><div class="top-inner"><div class="brand"><span class="logo">A</span><span>ARSLAN LISTAS <span style="font-weight:550">· REPARTO SEGURO</span><div class="subtitle">Compras · proveedores · reparto</div></span></div>${syncBadge()}<button type="button" class="top-more" data-action="goto" data-key="mas" aria-label="Más opciones" title="Más opciones">···</button></div></div><div class="shell">${nav()}<main>${toastMessage?`<div class="notice green">${esc(toastMessage)}</div>`:''}${screenHTML}</main></div>`;Object.entries(drafts).forEach(([key,value])=>{const el=document.getElementById(key);if(el)el.value=value;});}
+function render(){const drafts={};document.querySelectorAll('textarea').forEach(t=>{if(t.id&&t.value)drafts[t.id]=t.value;});const app=document.getElementById('app');if(!app)return;let screenHTML='';try{const view=({inicio:home,pedidos,global:globalView,compras,carga,reparto,mas,auditoria})[tab];if(!view)throw Error('Pantalla no disponible');screenHTML=view();}catch(error){console.error('Error al abrir sección de LISTAS:',tab,error);screenHTML=`<div class="card"><h2>No se pudo abrir ${esc(tab)}</h2><div class="notice red">${esc(error?.message||'Error de datos. No se ha borrado nada.')}</div><div class="tools">${btn('goto','Volver a Inicio','inicio','dark')}${btn('export','Descargar copia JSON','','small')}</div></div>`;}app.innerHTML=`<div class="top"><div class="top-inner"><div class="brand"><span class="logo">A</span><span>ARSLAN LISTAS <span style="font-weight:550">· REPARTO SEGURO</span><div class="subtitle">Compras · proveedores · reparto</div></span></div>${syncBadge()}<button type="button" class="top-more" data-action="goto" data-key="mas" aria-label="Más opciones" title="Más opciones">···</button></div></div><div class="shell">${nav()}<main>${toastMessage?`<div class="notice ${toastMessage.startsWith('ERROR')?'red':'green'}">${esc(toastMessage)}</div>`:''}${screenHTML}</main></div>`;Object.entries(drafts).forEach(([key,value])=>{const el=document.getElementById(key);if(el)el.value=value;});}
 function download(name,text,type='text/plain'){const a=document.createElement('a');const url=URL.createObjectURL(new Blob([text],{type}));a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 async function copyText(text){try{await navigator.clipboard.writeText(text);return true;}catch{return false;}}
 async function handleAction(action,key,target,dest){
  try{
- const readonly=['goto','export','copy','copyall','provdownload','provdownloadall','whatsapp','destcopy','destdownload','destwa'];
+ const readonly=['goto','export','copy','copyall','provdownload','provdownloadall','whatsapp','destcopy','destdownload','destwa','purchasefilter','breakdown','filter','selprov','purchase-step','manual-copy-pending','manual-download-pending','manual-wa-pending'];
  if(CLOUD_ENABLED&&!action.startsWith('cloud-')&&!readonly.includes(action)&&!cloudCanEdit())throw Error('Para guardar cambios debes entrar y tener sincronización lista. Revisa el estado de la nube en Inicio.');
  switch(action){
  case 'cloud-login':case 'cloud-signup':case 'cloud-reset': {const email=document.getElementById('cloud-email')?.value?.trim(),password=document.getElementById('cloud-password')?.value||'';if(!email||!email.includes('@'))throw Error('Introduce un correo válido');if(action==='cloud-reset'){await cloudAdapter.resetPassword(email);toastMessage='Correo de recuperación solicitado; revisa tu buzón';}else if(action==='cloud-signup'){await cloudAdapter.signUp(email,password);toastMessage='Cuenta creada: confirma los permisos de Firebase';}else{await cloudAdapter.sendLogin(email,password);toastMessage='Sesión iniciada';}render();return;}
@@ -878,6 +987,59 @@ async function handleAction(action,key,target,dest){
 
  case 'goto':tab=key;toastMessage='';render();try{window.scrollTo({top:0,behavior:'instant'});}catch{}return;
  case 'purchasefilter':purchaseView=['pending','supplier','manual','all'].includes(key)?key:'pending';render();return;
+ case 'purchase-step': {
+  const [mode,stepString]=target.split(':'),step=Number(stepString);
+  if(!['pending','manual'].includes(mode)||![-1,1].includes(step))throw Error('Control de cantidad inválido');
+  const input=[...document.querySelectorAll('[data-purchase-qty]')].find(el=>el.dataset.purchaseKey===key&&el.dataset.purchaseMode===mode);
+  if(!input)throw Error('No se encontró el campo de cantidad');
+  const n=Number(String(input.value).replace(',','.'));
+  const next=fix(Math.max(0,(Number.isFinite(n)?n:0)+step));
+  input.value=String(next).replace('.',',');purchaseDrafts[mode+':'+key]=input.value;return;
+ }
+ case 'purchase-toggle':case 'purchase-confirm':case 'purchase-undo':case 'purchase-save': {
+  const row=pendingPurchases(state).find(r=>r.key===key);
+  if(!row)throw Error('Producto no encontrado');
+  const undo=action==='purchase-undo'||(action==='purchase-toggle'&&target==='manual');
+  if(undo){reverseManualPurchase(state,key);delete purchaseDrafts['manual:'+key];purchaseView='pending';commit('Compra manual DESMARCADA. Ahora vuelve a pendientes; no se borraron los movimientos.');return;}
+  const mode=action==='purchase-save'?'manual':'pending';
+  const wanted=purchaseQtyFromInput(key,mode);
+  if(mode==='pending'){
+   if(!(wanted>0))throw Error('Marca una cantidad positiva antes de confirmar la compra');
+   const removeDraft=row.assignedDraft>0&&wanted>row.remainingToBuy&&confirm('Parte del producto está en un borrador de proveedor. ¿Reducir ese borrador para no duplicar compra?');
+   const allowExtra=row.authorized+wanted>row.total+1e-8;
+   if(allowExtra&&!confirm('La cantidad supera el pedido. ¿Confirmas una compra EXTRA real?'))return;
+   manualBuySafe(state,key,wanted,{removeDraft,allowExtra});
+   delete purchaseDrafts['pending:'+key];delete purchaseDrafts['manual:'+key];
+   purchaseView='pending';commit(`✓ Comprado manualmente ${wanted} ${row.product}. Se mueve abajo.`);return;
+  }
+  if(wanted>row.manuallyBought){
+   const delta=fix(wanted-row.manuallyBought);
+   const extra=row.authorized+delta>row.total+1e-8;
+   if(extra&&!confirm('La cantidad comprada supera el pedido. ¿Confirmas el EXTRA?'))return;
+   setManualPurchaseTotal(state,key,wanted,{allowExtra:extra});
+  }else setManualPurchaseTotal(state,key,wanted);
+  delete purchaseDrafts['manual:'+key];
+  commit(wanted===0?'Compra manual desmarcada; vuelve a pendientes':'Cantidad manual actualizada: '+wanted+' '+row.product);return;
+ }
+ case 'manual-undo-all': {
+  const products=pendingPurchases(state).filter(r=>r.manuallyBought>0);
+  if(!products.length)throw Error('No hay compras manuales para deshacer');
+  if(!confirm('¿DESHACER las compras manuales de '+products.length+' productos? Se conservarán los pedidos, proveedores e historial. Las bajadas realizadas no se alterarán.'))return;
+  const undone=reverseAllManualPurchases(state);
+  for(const k of Object.keys(purchaseDrafts))delete purchaseDrafts[k];
+  purchaseView='pending';commit('Se han desmarcado '+undone+' productos de compra manual. Vuelven a pendientes.');return;
+ }
+ case 'manual-copy-pending':case 'manual-download-pending':case 'manual-wa-pending': {
+  const pendingText=pendingManualPurchaseTXT(state);
+  if(!pendingText)throw Error('No hay compras manuales pendientes para exportar. Comprueba los productos en rojo.');
+  if(action==='manual-copy-pending'){
+   const ok=await copyText(pendingText);toastMessage=ok?'TXT de compras pendientes copiado':'No se pudo copiar: descarga el TXT';render();return;
+  }
+  if(action==='manual-download-pending'){download('COMPRAS_MANUALES_PENDIENTES_'+state.day+'.txt',pendingText);return;}
+  window.open(pendingManualPurchaseWhatsApp(state).url,'_blank','noopener');
+  toastMessage='WhatsApp preparado solo con lo pendiente. El envío es manual y NO marca nada como comprado.';render();return;
+ }
+ 
   case 'filter':filter=key;render();return;
  case 'selprov':supplier=key;render();return;
  case 'breakdown':expandedPurchaseKey=expandedPurchaseKey===key?'':key;render();return;
@@ -904,7 +1066,7 @@ async function handleAction(action,key,target,dest){
  case 'whatsapp':{const t=supplierDraftWhatsApp(state,key);if(!t.text)throw Error('No hay líneas pendientes de envío');window.open(t.url,'_blank','noopener');toastMessage='WhatsApp preparado solo con lo no enviado. Confirma el envío al regresar.';render();return;}
  case 'sent':{const packet=markSupplierSent(state,key);commit(`Pedido a ${key} (${packet.text.split('\n').length} líneas) MARCADO enviado (simulación, no se envió WhatsApp)`);return;}
  case 'reopensent':{if(!confirm('¿Reabrir como SIN ENVIAR las líneas marcadas enviadas a '+key+'? Si ya se bajó mercancía se bloqueará.'))return;reopenSupplierSent(state,key);commit('Marcado SIN ENVIAR de nuevo para '+key);return;}
- case 'buyall':{const rows=pendingPurchases(state).filter(r=>!r.unresolved&&r.remainingToBuy>0);if(!rows.length)throw Error('No quedan productos sin gestionar. Los enviados a proveedor no se compran otra vez.');if(!confirm(`¿Confirmas la compra manual de lo que FALTA en ${rows.length} productos? Los pedidos ya cubiertos por proveedores quedan fuera.`))return;for(const r of rows)manualBuySafe(state,r.key,r.remainingToBuy);commit(`${rows.length} productos pendientes comprados manualmente`);return;}
+ case 'buyall':{const rows=pendingPurchases(state).filter(r=>!r.unresolved&&r.remainingToBuy>0);if(!rows.length)throw Error('No quedan productos pendientes de compra manual');const keyword=prompt(`ATENCIÓN: vas a marcar ${rows.length} productos como COMPRADOS. Esto no envía mensajes. Escribe COMPRAR para confirmar:`);if(keyword!=='COMPRAR')return;const copy=structuredClone(state);for(const r of rows)manualBuySafe(copy,r.key,r.remainingToBuy);state.manual=copy.manual;state.allocations=copy.allocations;for(const k of Object.keys(purchaseDrafts))delete purchaseDrafts[k];commit(`${rows.length} productos comprados manualmente. Puedes deshacerlos abajo.`);return;}
  case 'buy':{const r=pendingPurchases(state).find(x=>x.key===key);if(!r)throw Error('Producto inexistente');const q=r.remainingToBuy;if(q<=0)throw Error('Ya cubierto por proveedor o compra manual; evita comprarlo otra vez');manualBuySafe(state,key,q);commit(`Comprado manualmente: solo ${q} ${r.product} que faltaban`);return;}
  case 'buyedit':{const r=pendingPurchases(state).find(x=>x.key===key);if(!r)throw Error('Producto inexistente');const val=prompt('Cantidad REAL de compra manual, evitando lo cubierto por proveedor:',String(r.remainingToBuy));if(val===null)return;const q=Number(val.replace(',','.'));if(!(q>0))throw Error('Introduce una cantidad positiva');const removeDraft=r.assignedDraft>0&&q>r.remainingToBuy&&confirm('¿Quieres reducir expresamente el borrador de proveedor en la cantidad adicional que compras?');if(r.assignedDraft>0&&q>r.remainingToBuy&&!removeDraft)return;const allowExtra=r.authorized+q>r.total+1e-8;if(allowExtra&&!confirm('Atención: esta compra excede lo pedido. ¿Confirmas una compra EXTRA real?'))return;manualBuySafe(state,key,q,{removeDraft,allowExtra});commit('Compra manual confirmada; sin duplicar proveedor');return;}
  case 'load':{const r=deliveryPlan(state).eligible.find(x=>x.key===key&&x.dest===dest);if(!r)throw Error('Producto no habilitado');loadItem(state,key,dest,r.allowed);commit('Marcado como cargado; el reparto sigue siendo independiente');return;}
@@ -945,7 +1107,7 @@ document.addEventListener('change',async e=>{
   }catch(err){toastMessage='ERROR AL IMPORTAR: '+(err?.message||err);render();}
  }
 });
-document.addEventListener('input',e=>{if(e.target.id==='searchRows'){const word=canonical(e.target.value);document.querySelectorAll('.searchable').forEach(el=>{el.hidden=!canonical(el.dataset.search).includes(word);});}});
+document.addEventListener('input',e=>{if(e.target.matches('[data-purchase-qty]'))purchaseDrafts[e.target.dataset.purchaseMode+':'+e.target.dataset.purchaseKey]=e.target.value;if(e.target.id==='searchRows'){const word=canonical(e.target.value);document.querySelectorAll('.searchable').forEach(el=>{el.hidden=!canonical(el.dataset.search).includes(word);});}});
 document.addEventListener('click',e=>{const b=e.target.closest('[data-action]');if(b){e.preventDefault();handleAction(b.dataset.action,dec(b.dataset.key||''),b.dataset.target?dec(b.dataset.target):'',b.dataset.dest?dec(b.dataset.dest):'');}});
 void bootCloud();
 </script></body></html>
