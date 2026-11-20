@@ -80,16 +80,17 @@ check('same-date limpiar dia versus other change never merges',()=>{
  newDay(a,b.day);r.orders.push({id:'2',dest:'SL',product:'KIWI ZESPRI',q:1});
  assert.equal(mergeStates(b,a,r).ok,false);
 });
-check('schema secures anon users with RLS',()=>{
- const sql=readFileSync(new URL('../sql/001_sync.sql',import.meta.url),'utf8');
- assert.ok(sql.includes('ENABLE ROW LEVEL SECURITY'));
- assert.ok(sql.includes('REVOKE ALL ON public.arslan_documents FROM anon'));
- assert.ok(sql.includes('auth.uid()'));
- assert.ok(sql.includes('ALTER PUBLICATION supabase_realtime'));
+check('firebase realtime database rules isolate users by uid',()=>{
+ const rules=JSON.parse(readFileSync(new URL('../database.rules.json',import.meta.url),'utf8'));
+ const scope=rules.rules.arslanListas['arslan-listas-next-v1'].$uid;
+ assert.match(scope['.read'],/auth\.uid === \$uid/);
+ assert.match(scope['.write'],/auth\.uid === \$uid/);
 });
-check('client config never includes privileged secret',()=>{
- const conf=readFileSync(new URL('../cloud-config.js',import.meta.url),'utf8');
- assert.ok(conf.includes("url: ''"));assert.ok(conf.includes("publishableKey: ''"));
+check('firebase configuration starts empty and uses independent workspace',()=>{
+ const conf=readFileSync(new URL('../firebase-config.js',import.meta.url),'utf8');
+ assert.ok(conf.includes("apiKey: ''"));assert.ok(conf.includes("databaseURL: ''"));
+ assert.ok(conf.includes("arslan-listas-next-v1"));
+ assert.ok(!conf.includes('v9madrid-default-rtdb'));
 });
 check('unique IDs do not repeat across calls',()=>{
  let a=fresh();importBlocks(a,'PEDIDO SP\n2 TOMATE RAMA\n1 TOMATE RAMA');assert.notEqual(a.orders[0].id,a.orders[1].id);

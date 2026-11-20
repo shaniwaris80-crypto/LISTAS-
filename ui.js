@@ -26,15 +26,16 @@ function syncBadge(withId=true){
  const tone=cloudStatus==='sincronizado'?'ok':cloudStatus==='conflicto'||cloudStatus==='error'?'err':'warn';
  return `<span class="sync-pill ${tone}" ${withId?'id="sync-badge"':''} title="${esc(cloudMessage)}">${esc(titles[cloudStatus]||cloudStatus)}</span>`;
 }
+function legacyBackupButtons(){let saved=null;try{saved=JSON.parse(localStorage.getItem(KEY)||'null');}catch{}return saved&&Array.isArray(saved.orders)?`<div class="notice"><b>Datos anteriores en este navegador:</b> ${saved.orders.length} líneas. Descarga una copia antes de conectar la nube. ${btn('cloud-legacy-export','Descargar copia JSON','','small')}</div>`:'';}
 function cloudPanel(){
- if(!CLOUD_ENABLED)return `<div class="card sync-panel"><h2>Sincronización entre dispositivos</h2><div class="notice red"><b>No activada.</b> Estos pedidos se guardan solamente en este navegador. Abrir la página en otro móvil no los copia.</div><p class="subtle">La conexión segura requiere una base de datos independiente de LISTAS. Consulta docs/SINCRONIZACION.md para completar la configuración.</p></div>`;
- if(!cloudUser)return `<div class="card sync-panel"><h2>Conectar mis dispositivos</h2><p class="subtle">Entra con el mismo correo en tu móvil y ordenador. La nube es privada: cada cuenta tiene sus datos separados.</p><label for="cloud-email">Correo electrónico</label><input id="cloud-email" type="email" autocomplete="email" placeholder="tu-correo@ejemplo.es"><div class="tools">${btn('cloud-login','Enviar enlace de acceso','','dark')}</div><p class="subtle">${esc(cloudMessage)}</p></div>`;
+ if(!CLOUD_ENABLED)return `<div class="card sync-panel"><h2>Sincronización entre dispositivos</h2><div class="notice red"><b>No activada.</b> Estos pedidos se guardan solamente en este navegador. Abrir la página en otro móvil no los copia.</div>${legacyBackupButtons()}<p class="subtle">La conexión requiere un proyecto Firebase independiente de Ruta Madrid. Consulta docs/FIREBASE_CONFIGURACION.md.</p></div>`;
+ if(!cloudUser)return `<div class="card sync-panel"><h2>Conectar mis dispositivos</h2><p class="subtle">Usa el mismo correo y contraseña en móvil y ordenador. Se requiere una base propia de Firebase, nunca la de Ruta Madrid.</p><label for="cloud-email">Correo electrónico</label><input id="cloud-email" type="email" autocomplete="username" placeholder="tu-correo@ejemplo.es"><label for="cloud-password">Contraseña</label><input id="cloud-password" type="password" autocomplete="current-password" placeholder="Contraseña de Firebase"><div class="tools">${btn('cloud-login','Entrar','','dark')}${btn('cloud-signup','Crear cuenta','','small')}${btn('cloud-reset','Recuperar contraseña','','small')}</div><p class="subtle">${esc(cloudMessage)}</p>${legacyBackupButtons()}</div>`;
  const user=esc(cloudUser.email||'Cuenta conectada');
  let actions='';
  if(cloudStatus==='importar')actions=`<div class="notice"><b>Hay datos locales y la nube está vacía.</b> Para evitar pérdidas no subimos nada automáticamente.</div><div class="tools">${btn('cloud-init','Subir los datos de este dispositivo','','dark')}</div>`;
  else if(cloudStatus==='conflicto')actions=`<div class="notice red"><b>Dos dispositivos modificaron los datos.</b> Nada se sobrescribirá automáticamente. Al elegir una opción se descargará una copia de seguridad.</div><div class="tools">${btn('cloud-use-remote','Usar datos de la nube','','dark')}${btn('cloud-publish-local','Publicar mis datos locales','','red')}</div>`;
  else actions=`<div class="tools">${btn('cloud-refresh','Sincronizar ahora','','dark')}${localStorage.getItem(KEY)?btn('cloud-import-demo','Importar datos anteriores de este navegador','','small'):''}</div>`;
- return `<div class="card sync-panel"><div class="sectionline"><h2>Sincronización de LISTAS</h2>${syncBadge(false)}</div><p class="subtle">${user} · ${esc(cloudMessage)}</p>${actions}<div class="tools">${btn('cloud-logout','Cerrar sesión','','small')}</div><p class="subtle">El trabajo sin conexión queda pendiente de subir; nunca se sustituyen cambios conflictivos sin revisión.</p></div>`;
+ return `<div class="card sync-panel"><div class="sectionline"><h2>Sincronización de LISTAS</h2>${syncBadge(false)}</div><p class="subtle">${user} · ${esc(cloudMessage)}</p>${actions}<div class="tools">${btn('cloud-backup','Descargar copia de esta jornada','','small')}${btn('cloud-choose-import','Importar copia JSON de otro dispositivo','','small')}${btn('cloud-logout','Cerrar sesión','','small')}</div><input id="cloud-import-file" type="file" accept="application/json,.json" hidden><p class="subtle">El trabajo sin conexión queda pendiente de subir; nunca se sustituyen cambios conflictivos sin revisión. Para mover tus pedidos desde otra URL, primero exporta allí el JSON.</p></div>`;
 }
 function updateSyncDisplay(){
  const b=document.getElementById('sync-badge');if(b){const temp=document.createElement('div');temp.innerHTML=syncBadge();b.replaceWith(temp.firstElementChild);}
@@ -48,29 +49,34 @@ function commit(message='Cambios guardados'){
  }catch(err){toastMessage='ERROR: '+(err?.message||err);render();}
 }
 async function beginCloudUser(user){
- if(cloudUser?.id===user.id&&cloudEngine)return;
+ const userId=user?.uid||user?.id;
+ if(!userId)throw Error('Firebase no ha devuelto una identidad de usuario válida');
+ if(cloudUser?.id===userId&&cloudEngine)return;
  if(cloudEngine)cloudEngine.stop();
- cloudUser=user;cloudAdapter.setUser(user.id);
+ cloudUser={id:userId,email:user.email||''};cloudAdapter.setUser(userId);
  let record=null;
- try{record=JSON.parse(localStorage.getItem(KEY+':user:'+user.id)||'null');}catch{record=null;}
- state=record?.state&&Array.isArray(record.state.orders)?record.state:freshCloudState();
+ try{record=JSON.parse(localStorage.getItem(KEY+':user:'+userId)||'null');}catch{record=null;}
+ let legacy=null;try{legacy=JSON.parse(localStorage.getItem(KEY)||'null');}catch{}
+ const hasRecord=!!(record?.state&&Array.isArray(record.state.orders));
+ const hasLegacy=!!(!hasRecord&&legacy&&Array.isArray(legacy.orders));
+ state=hasRecord?record.state:hasLegacy?legacy:freshCloudState();
  cloudStatus='conectando';cloudMessage='Leyendo los pedidos de la nube…';render();
  cloudEngine=new SyncEngine({adapter:cloudAdapter,initialState:state,meta:record?.meta??null,
-  hasLocal:!!record?.state,onApply(next){state=next;render();},
+  hasLocal:hasRecord||hasLegacy,onApply(next){state=next;render();},
   onStatus(status,message){cloudStatus=status;cloudMessage=message;updateSyncDisplay();},
   persist: persistCloudUser,setDelay:650});
  await cloudEngine.start();render();
 }
 async function bootCloud(){
  if(!CLOUD_ENABLED){render();return;}
- cloudStatus='conectando';cloudMessage='Conectando con Supabase…';render();
+ cloudStatus='conectando';cloudMessage='Conectando con Firebase…';render();
  try{
   cloudAdapter=await createArslanCloudAdapter();
   const session=await cloudAdapter.session();
   if(session?.user)await beginCloudUser(session.user);
   else{cloudStatus='sin_sesion';cloudMessage='Entra con tu correo para compartir los pedidos entre tus dispositivos';render();}
   cloudAdapter.onAuthChange((event,session)=>{
-   if(session?.user&&cloudUser?.id!==session.user.id)void beginCloudUser(session.user);
+   if(session?.user&&cloudUser?.id!==(session.user.uid||session.user.id))void beginCloudUser(session.user);
    if(event==='SIGNED_OUT'){
      if(cloudEngine)cloudEngine.stop();cloudEngine=null;cloudUser=null;state=createState();
      cloudStatus='sin_sesion';cloudMessage='Sesión cerrada; tus pedidos siguen en la nube';render();
@@ -84,10 +90,10 @@ if(typeof document.addEventListener==='function')document.addEventListener('visi
 function issueText(x){return x.issues.includes('PRODUCTO_NO_EN_CATALOGO')?'PRODUCTO NO EN CATÁLOGO':'REVISAR CANTIDAD'}
 const btn=(action,text,key='',cls='')=>`<button class="btn ${cls}" data-action="${action}" data-key="${enc(key)}">${text}</button>`;
 const pill=(t,cls='')=>`<span class="pill ${cls}">${esc(t)}</span>`;
-const sectionTitle=(s,d)=>`<div class="head"><div><h1>${s}</h1><p>${d}</p></div><div class="mini">Jornada ${esc(state.day)} · Datos de prueba</div></div>`;
+const sectionTitle=(s,d)=>`<div class="head"><div><h1>${s}</h1><p>${d}</p></div><div class="mini">Jornada ${esc(state.day)} · Pedidos del dispositivo</div></div>`;
 function stats(){let x=summary(state);return `<div class="grid"><div class="stat"><b>${x.originalLines}</b><span>Líneas de pedido</span></div><div class="stat"><b>${x.products}</b><span>Productos globales</span></div><div class="stat"><b>${x.unreviewed}</b><span>Por revisar</span></div></div>`;}
 function nav(){const links=[['inicio','Hoy'],['pedidos','Pedidos'],['global','Proveedores'],['compras','Compras'],['carga','Carga'],['reparto','Reparto'],['auditoria','Auditoría']];return `<aside class="side"><div class="caption">Operativa diaria</div>${links.map(([k,label],i)=>`<button class="${tab===k?'active':''}" data-action="goto" data-key="${k}"><span class="step">${i+1}</span>${label}</button>`).join('')}<div class="caption">Almacenamiento</div><div class="subtle" style="padding:6px 14px">${esc(CLOUD_ENABLED?cloudMessage:'Solo en este dispositivo. Sin nube conectada.')}</div></aside><nav class="bottomnav">${[['inicio','Hoy'],['pedidos','Pedidos'],['global','Proveedores'],['compras','Compras'],['reparto','Reparto'],['mas','Más']].map(([k,label])=>`<button class="${tab===k?'active':''}" data-action="goto" data-key="${k}">${label}</button>`).join('')}</nav>`;}
-function home(){let x=summary(state),plan=deliveryPlan(state);return sectionTitle('Todo en orden.','Tus pedidos de prueba de San Lesmes y San Pablo, listos para revisar, enviar a proveedores y bajar de la furgoneta.')+`<div class="clear-day-home"><div class="clear-day-description"><strong>¿Empezar pedidos nuevos?</strong><span>Archiva la jornada actual y conserva catálogo, restaurantes, proveedores y precios.</span></div>${btn('clearday','Limpiar día','','red clear-day-button')}</div>`+`<div id="sync-panel">${cloudPanel()}</div>`+stats()+`<div class="spacer"></div><div class="card"><h2>Regla de reparto que estamos comprobando</h2><div class="notice"><b>No se reparte lo que no se ha gestionado.</b> Un producto sólo aparece en «Por bajar» si hay un pedido marcado como enviado a proveedor o una compra manual confirmada. Asignarlo a un proveedor, sin enviarlo, no basta.</div><div class="tools">${btn('goto','Revisar pedidos','pedidos','dark')}${btn('goto','Asignar proveedores','global')}${btn('goto','Bajar mercancía','reparto')}</div></div><div class="twocol"><div class="card"><h2>Compras</h2><div class="subtle">${x.assignedDraft} asignaciones pendientes de enviar · ${x.assignedSent} enviadas · ${x.manualBought} compras manuales registradas.</div><div class="spacer"></div>${btn('goto','Abrir compras','compras','dark')}</div><div class="card"><h2>Reparto</h2><div class="subtle">${plan.eligible.filter(r=>r.remaining>0).length} líneas por bajar · ${plan.blocked.length} productos sin compra ni envío · ${plan.needsReview.length} compras parciales por distribuir.</div><div class="spacer"></div>${btn('goto','Abrir reparto','reparto','dark')}</div></div><div class="card"><h2>Destinos incluidos</h2><div class="summary-list">${state.destinations.map(d=>pill(d.name)).join('')}</div><p class="subtle">Los restaurantes están listos, pero sólo suman al Global cuando introduces sus pedidos. No se inventan cantidades.</p></div>`;}
+function home(){let x=summary(state),plan=deliveryPlan(state);return sectionTitle('Todo en orden.','Tus pedidos de San Lesmes y San Pablo, listos para revisar, enviar a proveedores y bajar de la furgoneta.')+`<div class="clear-day-home"><div class="clear-day-description"><strong>¿Empezar pedidos nuevos?</strong><span>Archiva la jornada actual y conserva catálogo, restaurantes, proveedores y precios.</span></div>${btn('clearday','Limpiar día','','red clear-day-button')}</div>`+`<div id="sync-panel">${cloudPanel()}</div>`+stats()+`<div class="spacer"></div><div class="card"><h2>Regla de reparto que estamos comprobando</h2><div class="notice"><b>No se reparte lo que no se ha gestionado.</b> Un producto sólo aparece en «Por bajar» si hay un pedido marcado como enviado a proveedor o una compra manual confirmada. Asignarlo a un proveedor, sin enviarlo, no basta.</div><div class="tools">${btn('goto','Revisar pedidos','pedidos','dark')}${btn('goto','Asignar proveedores','global')}${btn('goto','Bajar mercancía','reparto')}</div></div><div class="twocol"><div class="card"><h2>Compras</h2><div class="subtle">${x.assignedDraft} asignaciones pendientes de enviar · ${x.assignedSent} enviadas · ${x.manualBought} compras manuales registradas.</div><div class="spacer"></div>${btn('goto','Abrir compras','compras','dark')}</div><div class="card"><h2>Reparto</h2><div class="subtle">${plan.eligible.filter(r=>r.remaining>0).length} líneas por bajar · ${plan.blocked.length} productos sin compra ni envío · ${plan.needsReview.length} compras parciales por distribuir.</div><div class="spacer"></div>${btn('goto','Abrir reparto','reparto','dark')}</div></div><div class="card"><h2>Destinos incluidos</h2><div class="summary-list">${state.destinations.map(d=>pill(d.name)).join('')}</div><p class="subtle">Los restaurantes están listos, pero sólo suman al Global cuando introduces sus pedidos. No se inventan cantidades.</p></div>`;}
 function orderCard(d){
  const lines=state.orders.filter(l=>l.dest===d.id).sort((a,b)=>a.product.localeCompare(b.product,'es',{numeric:true}));
  const isEditing=editingDestination===d.id;
@@ -164,12 +170,15 @@ async function handleAction(action,key,target,dest){
  const readonly=['goto','export','copy','copyall','provdownload','provdownloadall','whatsapp','destcopy','destdownload','destwa'];
  if(CLOUD_ENABLED&&!action.startsWith('cloud-')&&!readonly.includes(action)&&!cloudCanEdit())throw Error('Para guardar cambios debes entrar y tener sincronización lista. Revisa el estado de la nube en Inicio.');
  switch(action){
- case 'cloud-login': {const email=document.getElementById('cloud-email')?.value?.trim();if(!email||!email.includes('@'))throw Error('Introduce un correo válido');await cloudAdapter.sendLogin(email);toastMessage='Enlace enviado. Abre tu correo y entra desde el mismo dispositivo.';render();return;}
+ case 'cloud-login':case 'cloud-signup':case 'cloud-reset': {const email=document.getElementById('cloud-email')?.value?.trim(),password=document.getElementById('cloud-password')?.value||'';if(!email||!email.includes('@'))throw Error('Introduce un correo válido');if(action==='cloud-reset'){await cloudAdapter.resetPassword(email);toastMessage='Correo de recuperación solicitado; revisa tu buzón';}else if(action==='cloud-signup'){await cloudAdapter.signUp(email,password);toastMessage='Cuenta creada: confirma los permisos de Firebase';}else{await cloudAdapter.sendLogin(email,password);toastMessage='Sesión iniciada';}render();return;}
  case 'cloud-refresh': {if(!cloudEngine)throw Error('Sin sesión');await cloudEngine.refresh();toastMessage='Sincronización comprobada: '+cloudMessage;render();return;}
- case 'cloud-init': {if(!confirm('¿Subir los datos de este dispositivo a la nube nueva? Se conservará copia local.'))return;await cloudEngine.initializeFromLocal();render();return;}
+ case 'cloud-init': {if(!confirm('¿Subir los datos de este dispositivo a la nube nueva? Antes se descargará una copia JSON. Comprueba que estás en el ordenador que tiene los pedidos buenos.'))return;download('ARSLAN_LISTAS_COPIA_ANTES_DE_SUBIR.json',JSON.stringify(state,null,2),'application/json');await cloudEngine.initializeFromLocal();render();return;}
  case 'cloud-use-remote': {if(!cloudEngine?.conflict)throw Error('No hay conflicto');if(!confirm('¿Usar la versión de la nube? Antes se descargará la versión LOCAL para recuperarla si lo necesitas.'))return;download('ARSLAN_COPIA_LOCAL_ANTES_DE_CAMBIAR.json',JSON.stringify(state,null,2),'application/json');await cloudEngine.useRemote();render();return;}
  case 'cloud-publish-local': {if(!cloudEngine?.conflict)throw Error('No hay conflicto');if(!confirm('ATENCIÓN: sustituirás la versión REMOTA por esta versión local. Se descargará primero una copia de la nube. ¿Confirmas?'))return;download('ARSLAN_COPIA_NUBE_ANTES_DE_CAMBIAR.json',JSON.stringify(cloudEngine.conflict.remote.data,null,2),'application/json');await cloudEngine.publishLocal();render();return;}
  case 'cloud-logout': {if(!cloudAdapter)return;await cloudAdapter.signOut();return;}
+ case 'cloud-legacy-export': {const old=localStorage.getItem(KEY);if(!old)throw Error('No hay copia local antigua');download('ARSLAN_LISTAS_COPIA_NAVEGADOR.json',old,'application/json');return;}
+ case 'cloud-backup': {download('ARSLAN_LISTAS_COPIA_'+state.day+'.json',JSON.stringify(state,null,2),'application/json');return;}
+ case 'cloud-choose-import': {if(!cloudEngine||cloudStatus==='conectando'||cloudStatus==='error')throw Error('Primero conecta la cuenta Firebase');document.getElementById('cloud-import-file')?.click();return;}
  case 'cloud-import-demo': {if(!cloudEngine||!cloudCanEdit())throw Error('Primero conecta a la nube');const legacy=JSON.parse(localStorage.getItem(KEY)||'null');if(!legacy||!Array.isArray(legacy.orders))throw Error('No hay datos locales anteriores');if(state.orders.length||state.allocations.length||state.manual.length||Object.keys(state.delivery||{}).length)throw Error('Esta cuenta ya tiene una jornada con datos; exporta antes y no sobreescribas sin revisarlos');if(!confirm('¿Subir la copia LOCAL anterior a la nube? Puede contener productos de demostración.'))return;download('ARSLAN_COPIA_LOCAL_PREVIA.json',JSON.stringify(legacy,null,2),'application/json');state=legacy;commit('Datos anteriores importados; sincronizando con la nube');return;}
 
  case 'goto':tab=key;toastMessage='';render();window.scrollTo({top:0});return;
@@ -221,7 +230,25 @@ async function handleAction(action,key,target,dest){
  }catch(e){toastMessage='ERROR: '+(e?.message||String(e));render();}
 }
 document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches('.item[role=button][data-action=assign]')){e.preventDefault();handleAction('assign',dec(e.target.dataset.key),'','');}});
-document.addEventListener('change',e=>{if(e.target.id==='deliveryDestination'){selectedDeliveryDest=e.target.value;render();}});
+document.addEventListener('change',async e=>{
+ if(e.target.id==='deliveryDestination'){selectedDeliveryDest=e.target.value;render();return;}
+ if(e.target.id==='cloud-import-file'){
+  try{
+   if(!cloudEngine)throw Error('Debes iniciar sesión en Firebase primero');
+   if(!['sincronizado','importar'].includes(cloudStatus))throw Error('Resuelve primero las sincronizaciones pendientes o conflictos');
+   const file=e.target.files?.[0];if(!file)return;
+   if(file.size>8_000_000)throw Error('Archivo demasiado grande; revisa la copia');
+   const data=JSON.parse(await file.text());
+   if(!data||typeof data!=='object'||!Array.isArray(data.orders)||!Array.isArray(data.destinations)||!Array.isArray(data.catalog)||typeof data.day!=='string')throw Error('No es una copia de jornada válida');
+   if(state.orders.length||state.allocations?.length||state.manual?.length||Object.keys(state.delivery||{}).length)throw Error('Ya hay pedidos en la nube. No importamos encima: primero guarda copia y revisa la jornada');
+   if(!confirm('¿Importar '+data.orders.length+' líneas desde el JSON? Se descargará primero una copia del estado actual.'))return;
+   download('ARSLAN_LISTAS_ANTES_DE_IMPORTAR.json',JSON.stringify(state,null,2),'application/json');
+   state=data;
+   if(cloudStatus==='importar'){cloudEngine.apply(state);cloudEngine.hasLocal=true;cloudMessage='Copia cargada en este dispositivo. Pulsa SUBIR LOS DATOS para guardarla en Firebase.';render();}
+   else commit('Copia importada; guardando en Firebase');
+  }catch(err){toastMessage='ERROR AL IMPORTAR: '+(err?.message||err);render();}
+ }
+});
 document.addEventListener('input',e=>{if(e.target.id==='searchRows'){const word=canonical(e.target.value);document.querySelectorAll('.searchable').forEach(el=>{el.hidden=!canonical(el.dataset.search).includes(word);});}});
 document.addEventListener('click',e=>{const b=e.target.closest('[data-action]');if(b){e.preventDefault();handleAction(b.dataset.action,dec(b.dataset.key||''),b.dataset.target?dec(b.dataset.target):'',b.dataset.dest?dec(b.dataset.dest):'');}});
 void bootCloud();

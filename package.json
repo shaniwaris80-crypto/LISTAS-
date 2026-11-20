@@ -1,12 +1,12 @@
 {
   "name": "arslan-listas-next-demo",
   "private": true,
-  "version": "0.6.0",
+  "version": "0.8.0",
   "type": "module",
-  "description": "Demo de ARSLAN LISTAS con motor de sincronización privada preparado para Supabase.",
+  "description": "ARSLAN LISTAS con sincronización Firebase Realtime Database igual que Ruta Madrid (pendiente de configuración).",
   "scripts": {
     "build": "node build.mjs",
-    "test": "node tests/test.mjs && node tests/test_extended.mjs && node tests/test_reparto_seguro.mjs && node tests/test_boton_inicio.mjs && node tests/test_destinos_proveedores.mjs && node tests/test_sync.mjs",
+    "test": "node tests/test.mjs && node tests/test_extended.mjs && node tests/test_reparto_seguro.mjs && node tests/test_boton_inicio.mjs && node tests/test_destinos_proveedores.mjs && node tests/test_sync.mjs && node tests/test_firebase_adapter.mjs",
     "check": "npm run build && npm test"
   },
   "engines": {

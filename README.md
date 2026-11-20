@@ -2,7 +2,7 @@
 
 > **Versión de laboratorio con sincronización preparada:** no es el código fuente completo de la aplicación privada ARSLAN LISTAS Next. No altera los repositorios antiguos ni los datos de la web publicada.
 
-> Los productos y cantidades que se cargan de forma inicial son **ficticios**. La demo no incorpora datos privados del negocio.
+> Los productos y cantidades que se cargan de forma inicial en un navegador nuevo son **ficticios**. La demo no incorpora datos privados del negocio.
 
 ## Qué incluye
 
@@ -18,7 +18,7 @@
 - Botón rojo **Limpiar día** en la portada: archiva los pedidos de la jornada y conserva catálogo, restaurantes y proveedores.
 - Interfaz móvil en blanco y negro, estados verde/rojo.
 
-**Importante:** no se envían mensajes de WhatsApp automáticamente. El código de sincronización por Supabase ya está implementado, pero **NO hay base de datos conectada todavía**: hasta configurar `cloud-config.js` y ejecutar `sql/001_sync.sql`, los datos siguen locales. Ver [Guía de sincronización](docs/SINCRONIZACION.md). Para integrar la regla en la web privada hacen falta los archivos fuente de esa aplicación.
+**Importante:** no se envían mensajes de WhatsApp automáticamente. La sincronización utiliza ahora **Firebase Authentication + Realtime Database**, igual que Ruta Madrid, pero con base **independiente**. **Todavía no hay proyecto Firebase conectado**: `firebase-config.js` tiene sus campos vacíos. Hasta configurarlo, los datos siguen siendo locales. Consulta [Configurar Firebase](docs/FIREBASE_CONFIGURACION.md). Instalar el complemento de Firebase de ChatGPT no es obligatorio para el código.
 
 ## Uso local
 
@@ -45,7 +45,7 @@ El comando utiliza Node.js 20 o posterior y **no requiere instalar dependencias*
 
 Código de demostración subido a **`shaniwaris80-crypto/LISTAS-`**. Este repositorio es **público**. La fixture contiene datos **inventados y sintéticos**, no los pedidos reales ni nombres de dependientes.
 
-**No es la versión completa publicada en Sites**, ni incluye contraseñas, clientes reales, importaciones privadas o una sincronización en nube ya activada. El estado de la demo se almacena solo en el navegador.
+**No es la versión completa publicada en Sites**, ni incluye contraseñas, clientes reales, importaciones privadas o una sincronización en nube ya activada. Hasta activar Firebase el estado se almacena solo en el navegador. No publiques JSON exportados con pedidos reales.
 
 Los repositorios `PEDIDOPRUEBAS`, `ponerprecios` y `reparto` no se modifican.
 
@@ -62,10 +62,12 @@ En **Pedidos**, puedes pegar varios pedidos juntos (`PEDIDO SP`, `PEDIDO SL`, `P
 **Sin asignar → Asignado sin enviar → Enviado**. Elegir un proveedor y tocar un producto lo mueve a su lista de proveedor. Cada proveedor puede copiar o descargar únicamente sus líneas pendientes de envío, preparar WhatsApp y confirmar **Marcar enviado**. Si se asignan más líneas después de un envío, las nuevas aparecen en pendientes; las antiguas no se incluyen automáticamente en otro WhatsApp. Deshacer una marca de envío queda bloqueado si se han registrado bajadas de ese producto.
 
 
-## Sincronización entre dispositivos (nueva)
+## Sincronización entre dispositivos (Firebase)
 
-**La causa de que antes no se sincronizara:** `localStorage` solo se comparte dentro del mismo navegador, no entre móvil y ordenador. Ya se ha incorporado el código del servidor cliente, guardado local con cola offline, sincronización con control de versión, autorización por correo y conflictos seguros. **No funciona entre dispositivos hasta crear y conectar una base de datos propia**. La pantalla muestra ahora una etiqueta que dice «SOLO EN ESTE DISPOSITIVO» en lugar de fingir que está sincronizado.
+El proyecto incorpora `firebase-adapter.js` (Firebase Authentication, escucha `onValue`, transacciones de Realtime Database), `sync-core.mjs` (sincronización por revisión con fusión conservadora y conflictos), `firebase-config.js` (vacío hasta configurar una base **nueva**) y `database.rules.json` (cada UID solamente accede a sus propios datos). El código **no** utiliza Supabase, ni la base de Ruta Madrid, ni las cuentas de Estambul.
 
-Consulta [docs/SINCRONIZACION.md](docs/SINCRONIZACION.md) para la configuración y las pruebas, y [sql/001_sync.sql](sql/001_sync.sql) para crear la tabla protegida exclusivamente en el nuevo proyecto Supabase. Para ejecutarlas usa `npm run check`.
+**No activa la nube automáticamente.** Primero debes exportar los pedidos que ya tienes en el ordenador original. La aplicación permite descargar copias JSON y volver a importarlas incluso si cambia de URL de GitHub Pages a Vercel. Ningún fichero del usuario se sube a GitHub. El primer envío a Firebase requiere confirmación y descarga otra copia; los cambios simultáneos conflictivos se bloquean para revisión.
 
-La primera fase es para una misma cuenta entre varios dispositivos; las cuentas independientes de dependientes y sus permisos requieren la siguiente fase de equipo.
+Consulta **[docs/FIREBASE_CONFIGURACION.md](docs/FIREBASE_CONFIGURACION.md)** para todos los pasos sin instalar ningún complemento en ChatGPT. La conexión real queda pendiente de crear y configurar el proyecto Firebase.
+
+Esta versión sincroniza *la misma cuenta* entre móvil y ordenador. Cuentas diferentes para empleados y permisos por tienda aún necesitan una ampliación específica.

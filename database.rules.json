@@ -1,0 +1,15 @@
+{
+  "rules": {
+    "arslanListas": {
+      "arslan-listas-next-v1": {
+        "$uid": {
+          ".read": "auth != null && auth.uid === $uid",
+          ".write": "auth != null && auth.uid === $uid",
+          "document": {
+            ".validate": "newData.hasChildren(['revision', 'data']) && newData.child('revision').isNumber() && newData.child('revision').val() >= 1 && newData.child('data').hasChildren(['day','orders','destinations','catalog'])"
+          }
+        }
+      }
+    }
+  }
+}

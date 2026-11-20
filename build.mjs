@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 const motor=fs.readFileSync(new URL('./motor.mjs',import.meta.url),'utf8').replace(/\bexport\s+(?=(?:const|function|class|let)\b)/g,'');
 const core=fs.readFileSync(new URL('./sync-core.mjs',import.meta.url),'utf8').replace(/\bexport\s+(?=(?:const|function|class|let)\b)/g,'');
-const cloudConf=fs.readFileSync(new URL('./cloud-config.js',import.meta.url),'utf8');
-const cloudAdapter=fs.readFileSync(new URL('./cloud-adapter.js',import.meta.url),'utf8');
+const cloudConf=fs.readFileSync(new URL('./firebase-config.js',import.meta.url),'utf8');
+const cloudAdapter=fs.readFileSync(new URL('./firebase-adapter.js',import.meta.url),'utf8');
 const ui=fs.readFileSync(new URL('./ui.js',import.meta.url),'utf8');
 const css=fs.readFileSync(new URL('./estilos.css',import.meta.url),'utf8');
 const fixture=fs.readFileSync(new URL('./tests/pedidos_ejemplo_sinteticos.txt',import.meta.url),'utf8');
