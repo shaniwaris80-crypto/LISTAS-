@@ -122,7 +122,7 @@ export class SyncEngine {
       const remote=await this.adapter.read();
       if(remote){await this.acceptRemote(remote);}
       else if(this.hasLocal){this.revision=null;this.base=null;this.setStatus('importar','La nube está vacía. Elige si quieres subir los datos de este dispositivo.');}
-      else {const created=await this.adapter.create(clone(this.local));this.revision=created.revision;this.base=clone(created.data);this.dirty=false;this.persist(this.local,this.getMeta());this.setStatus('sincronizado','Guardado en la nube');}
+      else {this.revision=null;this.base=null;this.setStatus('esperando_origen','La nube está vacía. Para proteger tus pedidos, entra primero desde el ordenador que tiene las listas y pulsa «Subir los datos de este dispositivo».');}
       if(this.adapter.watch){this.unsubscribe=this.adapter.watch(()=>{if(!this.stopped)void this.refresh();});}
     }catch(err){
       if(this.revision!==null&&this.base){this.dirty=!same(this.local,this.base);this.setStatus('sin_conexion','Sin conexión; los cambios se guardan aquí y quedan pendientes');}
