@@ -5,7 +5,7 @@ const code=read('firebase-adapter.js'),config=read('firebase-config.js'),ui=read
 let n=0;const check=(name,okay)=>{assert.ok(okay,name);n++};
 check('Firebase project separate from Madrid',!config.includes('v9madrid')&&!config.includes('449478080600'));
 check('Firebase config has no administrative secrets',!config.includes('serviceAccount')&&!config.includes('private_key')&&!config.includes('service_role'));
-check('Firebase project blank until safely configured',config.includes("databaseURL: ''")&&config.includes("apiKey: ''"));
+check('Firebase project configured to independent LISTAS',config.includes("projectId: 'arslan-listas-next'")&&config.includes('arslan-listas-next-default-rtdb.europe-west1.firebasedatabase.app'));
 check('Uses Realtime Database',code.includes('firebase-database.js')&&code.includes('getDatabase('));
 check('Uses Firebase Authentication',code.includes('firebase-auth.js')&&code.includes('signInWithEmailAndPassword'));
 check('Uses Firebase password recovery',code.includes('sendPasswordResetEmail'));

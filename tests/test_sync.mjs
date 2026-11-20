@@ -86,9 +86,9 @@ check('firebase realtime database rules isolate users by uid',()=>{
  assert.match(scope['.read'],/auth\.uid === \$uid/);
  assert.match(scope['.write'],/auth\.uid === \$uid/);
 });
-check('firebase configuration starts empty and uses independent workspace',()=>{
+check('firebase configuration is connected only to the independent LISTAS project',()=>{
  const conf=readFileSync(new URL('../firebase-config.js',import.meta.url),'utf8');
- assert.ok(conf.includes("apiKey: ''"));assert.ok(conf.includes("databaseURL: ''"));
+ assert.ok(conf.includes("projectId: 'arslan-listas-next'"));assert.ok(conf.includes('arslan-listas-next-default-rtdb.europe-west1.firebasedatabase.app'));
  assert.ok(conf.includes("arslan-listas-next-v1"));
  assert.ok(!conf.includes('v9madrid-default-rtdb'));
 });
@@ -98,23 +98,30 @@ check('unique IDs do not repeat across calls',()=>{
 
 // Scenario 1: A writes, B fetches remotely; no force overwrite.
 const db=database(),A=createEngine(db,fresh());await A.engine.start();
-assert.equal(A.status,'sincronizado');
-check('first authenticated device initializes empty cloud',()=>assert.equal(db.document.revision,1));
+check('mobile without local orders does not initialize empty cloud',()=>assert.equal(A.status,'esperando_origen'));
+check('empty cloud remains empty until origin imports',()=>assert.equal(db.document,null));
+const origin=fresh();importBlocks(origin,'PEDIDO SP\n1 TOMATE RAMA');
+const Origin=createEngine(db,origin,null,true);await Origin.engine.start();
+check('origin sees explicit upload option',()=>assert.equal(Origin.status,'importar'));
+await Origin.engine.initializeFromLocal();
+check('first cloud revision contains origin orders',()=>assert.equal(db.document.data.orders.length,1));
+await A.engine.refresh();
+check('waiting mobile receives origin orders after refresh',()=>assert.equal(A.engine.local.orders.length,1));
 const B=createEngine(db,fresh());await B.engine.start();
 check('second device fetches same initial state',()=>assert.ok(same(A.engine.local,B.engine.local)));
 let s1=structuredClone(A.engine.local);importBlocks(s1,'PEDIDO SP\n3 TOMATE RAMA');A.engine.keepLocal(s1);await A.engine.flush();
 check('first device writes remote revision 2',()=>assert.equal(db.document.revision,2));
 await B.engine.refresh();
 check('second device receives first device order',()=>assert.equal(B.engine.local.orders[0].dest,'SP'));
-check('second device displays count from cloud',()=>assert.equal(totals(B.engine.local).find(x=>x.product==='TOMATE RAMA').total,3));
+check('second device displays count from cloud',()=>assert.equal(totals(B.engine.local).find(x=>x.product==='TOMATE RAMA').total,4));
 // Scenario 2: concurrent independent edits on different stores auto merge.
 const s2=structuredClone(B.engine.local);importBlocks(s2,'PEDIDO SL\n2 TOMATE RAMA');B.engine.keepLocal(s2);
 const s3=structuredClone(A.engine.local);importBlocks(s3,'PEDIDO ST\n1 BROCOLI');A.engine.keepLocal(s3);
 await A.engine.flush();await B.engine.flush();
-check('concurrent independent shops merge in cloud',()=>assert.deepEqual(db.document.data.orders.map(x=>x.dest).sort(),['SL','SP','ST']));
+check('concurrent independent shops merge in cloud',()=>assert.deepEqual(db.document.data.orders.map(x=>x.dest).sort(),['SL','SP','SP','ST']));
 check('cloud revision increases without overwriting',()=>assert.equal(db.document.revision,4));
 await A.engine.refresh();
-check('both devices eventually see merged totals',()=>assert.deepEqual(A.engine.local.orders.map(x=>x.dest).sort(),['SL','SP','ST']));
+check('both devices eventually see merged totals',()=>assert.deepEqual(A.engine.local.orders.map(x=>x.dest).sort(),['SL','SP','SP','ST']));
 // Scenario 3: same line conflict is surfaced rather than overwritten.
 const baseA=structuredClone(A.engine.local),baseB=structuredClone(B.engine.local);
 baseA.orders.find(x=>x.dest==='SP').q=9; A.engine.keepLocal(baseA);
@@ -138,5 +145,5 @@ check('initial local data requires explicit import',()=>assert.equal(C.status,'i
 check('local data not auto uploaded',()=>assert.equal(newdb.document,null));
 await C.engine.initializeFromLocal();
 check('explicit import preserves local data',()=>assert.equal(newdb.document.data.orders[0].q,12));
-for(const e of [A,B,C])e.engine.stop();
+for(const e of [A,B,C,Origin])e.engine.stop();
 console.log('PRUEBAS SINCRONIZACIÓN: '+passed+' correctas');

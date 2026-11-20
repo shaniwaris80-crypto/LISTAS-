@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 const src=fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
-const script=src.match(/<script>([\s\S]*?)<\/script>/)?.[1];
+const script=src.match(/<script>([\s\S]*?)<\/script>/)?.[1].replace('const ARSLAN_CLOUD_ACTIVE = Boolean(', 'const ARSLAN_CLOUD_ACTIVE = false && Boolean(');
 assert.ok(script, 'HTML con JS integrado');
 const html={innerHTML:''};
 const stored=new Map();
