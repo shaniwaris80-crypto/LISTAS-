@@ -71,3 +71,15 @@ El proyecto incorpora `firebase-adapter.js` (Firebase Authentication, escucha `o
 Consulta **[docs/FIREBASE_CONFIGURACION.md](docs/FIREBASE_CONFIGURACION.md)** para todos los pasos sin instalar ningún complemento en ChatGPT. La conexión real queda pendiente de crear y configurar el proyecto Firebase.
 
 Esta versión sincroniza *la misma cuenta* entre móvil y ordenador. Cuentas diferentes para empleados y permisos por tienda aún necesitan una ampliación específica.
+
+## Mejoras iPhone y control de compra — 20/11/2026
+
+- Navegación móvil fija de **cinco botones grandes** (Hoy, Pedidos, Proveedores, Compras, Bajar), con iconos, zona táctil de al menos 44 px, soporte del área segura del iPhone y acceso a Carga/Auditoría desde **Más** (arriba a la derecha).
+- **Compras** abre en **«Por comprar»** y muestra solo las cantidades realmente pendientes. Un producto íntegramente cubierto por pedidos a proveedores enviados, borradores reservados o compras manuales no aparece para volver a comprarlo. **No se borra** del Global, del pedido individual ni de su proveedor.
+- Pestaña **«A proveedores»** para consultar pedidos enviados o borradores, y **«Comprado manual»** para verificar lo registrado; **«Ver todos»** permite auditar.
+- Si un proveedor cubrió 4 de 10 cajas, solo aparecen **6 pendientes** para compra manual; el botón Comprar no duplica las 4 del proveedor.
+- Tocando un producto se sigue viendo **quién lleva cuánto**, como Ruta Madrid.
+- Si Firebase está pendiente de importación y este ordenador conserva una copia local, **las listas se muestran en modo consulta**; no se suben ni sustituyen hasta confirmar la migración. Nunca uses «Limpiar día» para resolver un problema de sincronización.
+- Pantallas Compras, Bajar, Pedidos y Proveedores probadas con navegadores de 320, 375, 390, 430 y 768 px. Pruebas específicas de importación segura y compras sin duplicidad en `tests/`.
+
+**Límite:** esto actualiza el software y la presentación del iPhone; no traslada automáticamente pedidos guardados en otro navegador ni concede a diferentes cuentas de Firebase acceso compartido al mismo espacio de trabajo. La primera copia debe subirse desde el navegador original.

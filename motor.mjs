@@ -207,13 +207,16 @@ export function manualBuySafe(state,key,q,{removeDraft=false,allowExtra=false}={
  const qty=fix(Number(String(q).replace(',','.')));
  if(!(qty>0))throw Error('Cantidad de compra positiva requerida');
  const status=productStatus(state,key);
- if(status.assignedDraft>0&&!removeDraft)throw Error('Existe pedido a proveedor sin enviar: elige retirarlo antes de la compra manual');
+ const unassigned=fix(Math.max(0,row.total-status.authorized-status.assignedDraft));
+ if(status.assignedDraft>0&&!removeDraft&&qty>unassigned+1e-8)throw Error('Existe pedido a proveedor sin enviar: no dupliques ese borrador. Retíralo antes de comprar su cantidad');
  const expected=fix(status.authorized+qty);
  if(expected>row.total+1e-8&&!allowExtra)throw Error('Compra superior al pedido: confirma expresamente la cantidad extra');
  if(removeDraft){
   // Reduce el borrador exactamente por la compra manual, sin borrar
   // silenciosamente los otros bultos que aún se esperan del proveedor.
-  let toReduce=qty;
+  // Solo se retira del borrador la cantidad de compra que supera
+  // lo que estaba libre, sin tocar otros bultos reservados al proveedor.
+  let toReduce=fix(Math.max(0,qty-unassigned));
   for(const a of state.allocations.filter(a=>a.key===key&&a.status==='draft')){
    if(toReduce<=0)break;
    const reduction=Math.min(toReduce,a.q);
@@ -230,7 +233,14 @@ export function manualBuySafe(state,key,q,{removeDraft=false,allowExtra=false}={
  * Reparto únicamente reciba los autorizados.
  */
 export function pendingPurchases(state){
- return totals(state).map(row=>({...row,...productStatus(state,row.key)}));
+ return totals(state).map(row=>{
+  const st=productStatus(state,row.key);
+  // Cada cantidad se cuenta una sola vez: enviada a proveedor, reservada
+  // en borrador o comprada manualmente. La recepción no crea una segunda compra.
+  const supplierCovered=fix(st.assignedSent+st.assignedDraft);
+  const remainingToBuy=fix(Math.max(0,row.total-supplierCovered-st.manuallyBought));
+  return {...row,...st,supplierCovered,remainingToBuy};
+ });
 }
 
 const dOrder=(a,b)=>{const ai=STORE_ORDER.indexOf(a),bi=STORE_ORDER.indexOf(b);if(ai>=0&&bi>=0)return ai-bi;if(ai>=0)return -1;if(bi>=0)return 1;return a.localeCompare(b);};
