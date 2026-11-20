@@ -20,3 +20,12 @@ label{font-size:13px;font-weight:800;display:block;margin:0 0 8px}textarea,input
 @media(max-width:850px){.destination-picker{top:62px;padding:13px}.destination-picker label{font-size:13px}.destination-picker select{font-size:15px}.order-card .mini-actions{max-width:unset}}
 
 .item[role=button][data-action=assign]{cursor:pointer;border-color:#c4c4c4}.item[role=button][data-action=assign]:hover{border-color:#080808;background:#f8f8f8}.item[role=button][data-action=assign]:focus-visible{outline:3px solid #000;outline-offset:2px}
+
+/* Estado de nube: el rojo nunca equivale a guardado; verde solo con confirmación remota. */
+.sync-pill{display:inline-flex;align-items:center;border:1px solid #d4d4d4;border-radius:999px;padding:7px 10px;background:#fafafa;font-size:11px;font-weight:850;white-space:nowrap;color:#191919;letter-spacing:.01em}
+.sync-pill.ok{border-color:#a7e4b3;background:#eef9f0;color:#107335}
+.sync-pill.warn{border-color:#ebd19b;background:#fff6e4;color:#79520b}
+.sync-pill.err{border-color:#eda9af;background:#fff0f1;color:#b21c25}
+.sync-panel{margin:12px 0 16px}
+.sync-panel .sectionline{flex-wrap:wrap}
+@media(max-width:550px){.top-inner{gap:7px;padding:11px 14px}.sync-pill{font-size:10px;padding:6px 8px;max-width:45vw;white-space:normal;text-align:center}.sync-panel .tools .btn{flex:1 1 175px}}

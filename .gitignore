@@ -12,3 +12,7 @@ local-data/
 backups/
 coverage/
 tests/resultado_tests.json
+
+.env
+.env.*
+node_modules/

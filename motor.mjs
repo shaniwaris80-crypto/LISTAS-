@@ -24,7 +24,7 @@ export function suggest(name,catalog){
  const lev=(a,b)=>{const m=a.length,n=b.length,dp=Array.from({length:m+1},()=>Array(n+1).fill(0));for(let i=0;i<=m;i++)dp[i][0]=i;for(let j=0;j<=n;j++)dp[0][j]=j;for(let i=1;i<=m;i++)for(let j=1;j<=n;j++)dp[i][j]=Math.min(dp[i-1][j]+1,dp[i][j-1]+1,dp[i-1][j-1]+(a[i-1]===b[j-1]?0:1));return dp[m][n];};
  return (candidates.length?candidates:c).map(x=>({x,score:lev(t,x)})).filter(v=>v.score<=Math.max(2,Math.ceil(t.length*.32))).sort((a,b)=>a.score-b.score).slice(0,3).map(v=>v.x);
 }
-let serial=0;const id=(p)=>`${p}_${++serial}`;
+let serial=0;const id=(p)=>`${p}_${typeof crypto!=='undefined' && crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+'_'+(++serial)+'_'+Math.random().toString(36).slice(2)}`;
 export function createState(){return {day:'2026-11-19',catalog:[...SEED_CATALOG],aliases:{},orders:[],allocations:[],manual:[],receipts:[],delivery:{},load:{},shortageAllocation:{},riderAssignments:{},riders:['REPARTIDOR 1','REPARTIDOR 2'],destinations:structuredClone(DESTINATIONS),history:[],sentMessages:[],importedFingerprints:[]};}
 export function matchCatalog(name,state){const k=canonical(name);return state.catalog.find(c=>canonical(c)===k)||state.aliases[k]||null;}
 const num=(x)=>Number(String(x).replace(',','.'));

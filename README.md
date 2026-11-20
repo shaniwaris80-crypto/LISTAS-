@@ -1,6 +1,6 @@
 # ARSLAN LISTAS — Reparto seguro (versión autónoma de pruebas)
 
-> **Versión de laboratorio:** no es el código fuente completo de la aplicación privada ARSLAN LISTAS Next. No altera los repositorios antiguos ni los datos de la web publicada.
+> **Versión de laboratorio con sincronización preparada:** no es el código fuente completo de la aplicación privada ARSLAN LISTAS Next. No altera los repositorios antiguos ni los datos de la web publicada.
 
 > Los productos y cantidades que se cargan de forma inicial son **ficticios**. La demo no incorpora datos privados del negocio.
 
@@ -18,7 +18,7 @@
 - Botón rojo **Limpiar día** en la portada: archiva los pedidos de la jornada y conserva catálogo, restaurantes y proveedores.
 - Interfaz móvil en blanco y negro, estados verde/rojo.
 
-**Importante:** no se envían mensajes de WhatsApp automáticamente, no hay un backend de sincronización multiusuario en esta demo, y los ejemplos quedan guardados solamente en el `localStorage` de este HTML. Para integrar la regla en la web privada hacen falta los archivos fuente de esa aplicación.
+**Importante:** no se envían mensajes de WhatsApp automáticamente. El código de sincronización por Supabase ya está implementado, pero **NO hay base de datos conectada todavía**: hasta configurar `cloud-config.js` y ejecutar `sql/001_sync.sql`, los datos siguen locales. Ver [Guía de sincronización](docs/SINCRONIZACION.md). Para integrar la regla en la web privada hacen falta los archivos fuente de esa aplicación.
 
 ## Uso local
 
@@ -45,7 +45,7 @@ El comando utiliza Node.js 20 o posterior y **no requiere instalar dependencias*
 
 Código de demostración subido a **`shaniwaris80-crypto/LISTAS-`**. Este repositorio es **público**. La fixture contiene datos **inventados y sintéticos**, no los pedidos reales ni nombres de dependientes.
 
-**No es la versión completa publicada en Sites**, ni incluye contraseñas, clientes reales, importaciones privadas o sincronización en nube. El estado de la demo se almacena solo en el navegador.
+**No es la versión completa publicada en Sites**, ni incluye contraseñas, clientes reales, importaciones privadas o una sincronización en nube ya activada. El estado de la demo se almacena solo en el navegador.
 
 Los repositorios `PEDIDOPRUEBAS`, `ponerprecios` y `reparto` no se modifican.
 
@@ -60,3 +60,12 @@ En **Pedidos**, puedes pegar varios pedidos juntos (`PEDIDO SP`, `PEDIDO SL`, `P
 ## Estados en Proveedores
 
 **Sin asignar → Asignado sin enviar → Enviado**. Elegir un proveedor y tocar un producto lo mueve a su lista de proveedor. Cada proveedor puede copiar o descargar únicamente sus líneas pendientes de envío, preparar WhatsApp y confirmar **Marcar enviado**. Si se asignan más líneas después de un envío, las nuevas aparecen en pendientes; las antiguas no se incluyen automáticamente en otro WhatsApp. Deshacer una marca de envío queda bloqueado si se han registrado bajadas de ese producto.
+
+
+## Sincronización entre dispositivos (nueva)
+
+**La causa de que antes no se sincronizara:** `localStorage` solo se comparte dentro del mismo navegador, no entre móvil y ordenador. Ya se ha incorporado el código del servidor cliente, guardado local con cola offline, sincronización con control de versión, autorización por correo y conflictos seguros. **No funciona entre dispositivos hasta crear y conectar una base de datos propia**. La pantalla muestra ahora una etiqueta que dice «SOLO EN ESTE DISPOSITIVO» en lugar de fingir que está sincronizado.
+
+Consulta [docs/SINCRONIZACION.md](docs/SINCRONIZACION.md) para la configuración y las pruebas, y [sql/001_sync.sql](sql/001_sync.sql) para crear la tabla protegida exclusivamente en el nuevo proyecto Supabase. Para ejecutarlas usa `npm run check`.
+
+La primera fase es para una misma cuenta entre varios dispositivos; las cuentas independientes de dependientes y sus permisos requieren la siguiente fase de equipo.
