@@ -114,3 +114,22 @@ html{width:100%;scroll-padding-bottom:112px}body{min-width:0;overflow-x:clip}but
 .purchase-item .purchase-qty-controls{max-width:100%}
 .purchase-item .purchase-qty-controls input{flex:1 1 48px;width:48px;min-width:0}
 @media(max-width:425px){.purchase-item .grow{flex:none;min-width:0}.purchase-item>.btn{width:100%;flex:none}}
+
+/* Progreso de reparto por tienda/restaurante (sin mezclar unidades de mercancía) */
+.delivery-progress{margin-top:12px;border:1px solid #d1e9d8;background:#fff;padding:16px}
+.progress-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.progress-heading>div{display:flex;flex-direction:column;gap:3px;min-width:0}
+.progress-heading strong{font-size:16px;font-weight:900;color:#080808;overflow-wrap:anywhere}
+.progress-heading span{font-size:12px;color:#565656}
+.progress-heading>b{font-size:25px;font-variant-numeric:tabular-nums;color:#117b39;font-weight:950}
+.progress-track{height:15px;border-radius:999px;background:#e2e8e2;overflow:hidden;position:relative}
+.progress-fill{height:100%;min-width:0;background:#158b45;border-radius:999px;transition:width .16s ease}
+.progress-caption{font-size:12px;font-weight:700;color:#565656;margin-top:9px}
+.team-panel{margin:12px 0}.team-panel summary{cursor:pointer;color:#0a0a0a;font-size:14px}
+.team-panel summary strong{font-weight:850}
+.team-panel[open] summary{margin-bottom:12px}
+.team-id,.team-member{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;border:1px solid #ddd;border-radius:12px;background:#fafafa;padding:9px 10px;margin-bottom:10px}
+.team-member code{font-size:11px;font-weight:700;overflow-wrap:anywhere;word-break:break-all;flex:1;min-width:90px}
+.team-owner{margin-top:16px;padding-top:12px;border-top:1px solid #ddd}
+.team-owner h3{margin:0 0 8px;font-size:14px}
+@media(max-width:540px){.delivery-progress{padding:14px}.progress-heading>b{font-size:23px}.team-member button{min-height:40px}}
