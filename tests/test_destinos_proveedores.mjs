@@ -30,5 +30,5 @@ t('Selector en Reparto por destino',()=>{assert.match(html,/id="deliveryDestinat
 t('No se mezclan varias tarjetas de Reparto',()=>{const fragment=html.slice(html.indexOf('function reparto(){'),html.indexOf('function mas(){'));assert.ok(!fragment.includes('dests.map(d=>`<div class="card"'));assert.ok(fragment.includes('x.dest===dest'));});
 t('Lista de restaurantes con WhatsApp y TXT',()=>{assert.match(html,/newdest/);assert.match(html,/destwa/);assert.match(html,/destdownload/);assert.match(html,/Pedidos de restaurantes/);});
 t('Proveedor con TXT descargable y casilla enviado',()=>{assert.match(html,/provdownload/);assert.match(html,/Marcar enviado/);assert.match(html,/supplierDraftTXT/);});
-t('Compras con desglose expandible por producto',()=>{assert.match(html,/data-action="breakdown"/);assert.match(html,/purchase-breakdown/);});
+t('Compras con desglose visible y controles de cantidad por tienda',()=>{assert.match(html,/purchase-breakdown/);assert.match(html,/data-action="destqty"/);assert.match(html,/destination-qty-step/);});
 console.log(`DESTINOS, PROVEEDORES, COMPRAS Y BAJADAS: ${ok} pruebas correctas`);
