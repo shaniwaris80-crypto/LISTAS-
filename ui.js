@@ -459,7 +459,7 @@ async function processDeliveryClick(action,key,dest,qty=null){
 
 async function handleAction(action,key,target,dest){
  try{
- const readonly=['goto','export','copy','copyall','provdownload','provdownloadall','whatsapp','destcopy','destdownload','destwa','purchasefilter','breakdown','filter','selprov','purchase-step','manual-copy-pending','manual-download-pending','manual-wa-pending'];
+ const readonly=['goto','export','copy','copyall','provdownload','provdownloadall','whatsapp','destcopy','destdownload','destwa','purchasefilter','breakdown','filter','selprov','purchase-step','additional-step','order-open','order-filter','toggle-paste','goto-additional','manual-copy-pending','manual-download-pending','manual-wa-pending'];
  if(deliveryBusy&&!readonly.includes(action)&&!action.startsWith('cloud-')&&!action.startsWith('team-'))throw Error('Guardando el último cambio en Firebase.');
  if(CLOUD_ENABLED&&!action.startsWith('cloud-')&&!action.startsWith('team-')&&!readonly.includes(action)&&!cloudCanEdit())throw Error('Para guardar cambios debes entrar y tener sincronización lista. Revisa el estado de la nube en Inicio.');
  switch(action){
@@ -480,6 +480,41 @@ async function handleAction(action,key,target,dest){
 
  case 'goto':tab=key;toastMessage='';render();try{window.scrollTo({top:0,behavior:'instant'});}catch{}return;
  case 'purchasefilter':purchaseView=['pending','supplier','manual','all'].includes(key)?key:'pending';render();return;
+ case 'additional-step':{
+  const input=[...document.querySelectorAll('[data-additional-qty]')].find(el=>el.dataset.additionalKey===key);
+  if(!input)throw Error('No está disponible la cantidad adicional');
+  const delta=Number(String(target).replace(',','.')),value=Number(String(input.value).replace(',','.'));
+  if(!Number.isFinite(delta)||!delta)throw Error('Ajuste inválido');
+  input.value=String(fix(Math.max(0,(Number.isFinite(value)?value:0)+delta))).replace('.',',');
+  purchaseDrafts['additional:'+key]=input.value;return;
+ }
+ case 'additional-buy':{
+  const row=additionalPurchaseRows(state).find(r=>r.key+'@'+r.dest===key);
+  if(!row||row.pending<=0)throw Error('Esta ampliación ya está cubierta; comprueba Reparto');
+  const input=[...document.querySelectorAll('[data-additional-qty]')].find(el=>el.dataset.additionalKey===key);
+  const amount=Number(String(input?.value??row.pending).replace(',','.'));
+  if(!Number.isFinite(amount)||amount<=0||amount>row.pending+1e-8)throw Error('La cantidad debe ser positiva y no superar lo que falta del pedido adicional');
+  const prev=state.manual.length;
+  manualBuySafe(state,row.key,amount);
+  if(state.manual.length!==prev+1)throw Error('La compra adicional no quedó registrada');
+  state.manual[state.manual.length-1].additionalDest=row.dest;
+  state.manual[state.manual.length-1].kind='compra-adicional';
+  state.manual[state.manual.length-1].createdAt=new Date().toISOString();
+  delete purchaseDrafts['additional:'+key];
+  commit('Compra adicional registrada para '+destName(row.dest)+'; reparto habilitado sin reenviar proveedor');return;
+ }
+ case 'additional-undo':{
+  const row=additionalPurchaseRows(state).find(r=>r.key+'@'+r.dest===key);
+  if(!row||!(row.purchased>0))throw Error('No hay compra adicional que deshacer');
+  if(deliveredFor(state,row.key,row.dest)>row.original+1e-8)throw Error('Esta ampliación ya tiene mercancía bajada. Deshaz primero las bajadas adicionales.');
+  if(!confirm('¿Deshacer la compra adicional de '+row.purchased+' '+row.product+' de '+destName(row.dest)+'? Las cantidades del proveedor no se modifican.'))return;
+  const previous=state.manual.length;
+  reverseManualPurchase(state,row.key,row.purchased);
+  if(state.manual.length!==previous+1)throw Error('No se registró la reversión');
+  state.manual[state.manual.length-1].additionalDest=row.dest;
+  state.manual[state.manual.length-1].kind='reversion-adicional';
+  commit('Compra adicional deshecha con historial; no se alteró el pedido original');return;
+ }
  case 'purchase-step': {
   const [mode,stepString]=target.split(':'),step=Number(stepString);
   if(!['pending','manual'].includes(mode)||![-1,1].includes(step))throw Error('Control de cantidad inválido');
@@ -493,7 +528,8 @@ async function handleAction(action,key,target,dest){
   const row=pendingPurchases(state).find(r=>r.key===key);
   if(!row)throw Error('Producto no encontrado');
   const undo=action==='purchase-undo'||(action==='purchase-toggle'&&target==='manual');
-  if(undo){reverseManualPurchase(state,key);delete purchaseDrafts['manual:'+key];purchaseView='pending';commit('Compra manual DESMARCADA. Ahora vuelve a pendientes; no se borraron los movimientos.');return;}
+  if(undo){if(additionalPurchaseRows(state).some(r=>r.key===key&&r.purchased>0))throw Error('Compra reservada para un destino. Deshazla desde Pedidos adicionales para no alterar el reparto.');reverseManualPurchase(state,key);delete purchaseDrafts['manual:'+key];purchaseView='pending';commit('Compra manual DESMARCADA. Ahora vuelve a pendientes; no se borraron los movimientos.');return;}
+  if(action==='purchase-save'&&additionalPurchaseRows(state).some(r=>r.key===key&&r.purchased>0))throw Error('Producto con compra adicional reservada. Corrige su cantidad desde Pedidos adicionales.');
   const mode=action==='purchase-save'?'manual':'pending';
   const wanted=purchaseQtyFromInput(key,mode);
   if(mode==='pending'){
@@ -515,6 +551,7 @@ async function handleAction(action,key,target,dest){
   commit(wanted===0?'Compra manual desmarcada; vuelve a pendientes':'Cantidad manual actualizada: '+wanted+' '+row.product);return;
  }
  case 'manual-undo-all': {
+  if(additionalPurchaseRows(state).some(r=>r.purchased>0))throw Error('Hay compras adicionales reservadas por restaurante. Deshazlas individualmente en Pedidos adicionales.');
   const products=pendingPurchases(state).filter(r=>r.manuallyBought>0);
   if(!products.length)throw Error('No hay compras manuales para deshacer');
   if(!confirm('¿DESHACER las compras manuales de '+products.length+' productos? Se conservarán los pedidos, proveedores e historial. Las bajadas realizadas no se alterarán.'))return;
@@ -564,7 +601,16 @@ async function handleAction(action,key,target,dest){
  case 'whatsapp':{const t=supplierDraftWhatsApp(state,key);if(!t.text)throw Error('No hay líneas pendientes de envío');window.open(t.url,'_blank','noopener');toastMessage='WhatsApp preparado solo con lo no enviado. Confirma el envío al regresar.';render();return;}
  case 'sent':{if(!confirm('¿Confirmas que has enviado realmente el pedido a '+key+'? Abrir WhatsApp no cuenta como envío hasta que lo confirmes.'))return;const packet=markSupplierSent(state,key);commit(`Confirmado como ENVIADO a ${key}: ${packet.text.split('\n').length} líneas. No se envía automáticamente.`);return;}
  case 'reopensent':{if(!confirm('¿Reabrir como SIN ENVIAR las líneas marcadas enviadas a '+key+'? Si ya se bajó mercancía se bloqueará.'))return;reopenSupplierSent(state,key);commit('Marcado SIN ENVIAR de nuevo para '+key);return;}
- case 'buyall':{const rows=pendingPurchases(state).filter(r=>!r.unresolved&&r.remainingToBuy>0);if(!rows.length)throw Error('No quedan productos pendientes de compra manual');const keyword=prompt(`ATENCIÓN: vas a marcar ${rows.length} productos como COMPRADOS. Esto no envía mensajes. Escribe COMPRAR para confirmar:`);if(keyword!=='COMPRAR')return;const copy=structuredClone(state);for(const r of rows)manualBuySafe(copy,r.key,r.remainingToBuy);state.manual=copy.manual;state.allocations=copy.allocations;for(const k of Object.keys(purchaseDrafts))delete purchaseDrafts[k];commit(`${rows.length} productos comprados manualmente. Puedes deshacerlos abajo.`);return;}
+ case 'buyall':{
+  const extra=new Map();for(const r of additionalPurchaseRows(state))extra.set(r.key,fix((extra.get(r.key)||0)+r.pending));
+  const rows=pendingPurchases(state).map(r=>({...r,remainingToBuy:fix(Math.max(0,r.remainingToBuy-(extra.get(r.key)||0)))})).filter(r=>!r.unresolved&&r.remainingToBuy>0);
+  if(!rows.length)throw Error('No quedan compras normales pendientes. Revisa Pedidos adicionales.');
+  const keyword=prompt(`Marcar ${rows.length} productos NORMALES como comprados (sin ampliaciones). Escribe COMPRAR para confirmar:`);
+  if(keyword!=='COMPRAR')return;
+  const copy=structuredClone(state);for(const r of rows)manualBuySafe(copy,r.key,r.remainingToBuy);
+  state.manual=copy.manual;state.allocations=copy.allocations;for(const k of Object.keys(purchaseDrafts))delete purchaseDrafts[k];
+  commit(`${rows.length} productos normales comprados manualmente; ampliaciones intactas.`);return;
+ }
  case 'buy':{const r=pendingPurchases(state).find(x=>x.key===key);if(!r)throw Error('Producto inexistente');const q=r.remainingToBuy;if(q<=0)throw Error('Ya cubierto por proveedor o compra manual; evita comprarlo otra vez');manualBuySafe(state,key,q);commit(`Comprado manualmente: solo ${q} ${r.product} que faltaban`);return;}
  case 'buyedit':{const r=pendingPurchases(state).find(x=>x.key===key);if(!r)throw Error('Producto inexistente');const val=prompt('Cantidad REAL de compra manual, evitando lo cubierto por proveedor:',String(r.remainingToBuy));if(val===null)return;const q=Number(val.replace(',','.'));if(!(q>0))throw Error('Introduce una cantidad positiva');const removeDraft=r.assignedDraft>0&&q>r.remainingToBuy&&confirm('¿Quieres reducir expresamente el borrador de proveedor en la cantidad adicional que compras?');if(r.assignedDraft>0&&q>r.remainingToBuy&&!removeDraft)return;const allowExtra=r.authorized+q>r.total+1e-8;if(allowExtra&&!confirm('Atención: esta compra excede lo pedido. ¿Confirmas una compra EXTRA real?'))return;manualBuySafe(state,key,q,{removeDraft,allowExtra});commit('Compra manual confirmada; sin duplicar proveedor');return;}
  case 'load':{const r=deliveryPlan(state).eligible.find(x=>x.key===key&&x.dest===dest);if(!r)throw Error('Producto no habilitado');loadItem(state,key,dest,r.allowed);commit('Marcado como cargado; el reparto sigue siendo independiente');return;}
@@ -610,6 +656,6 @@ document.addEventListener('change',async e=>{
   }catch(err){toastMessage='ERROR AL IMPORTAR: '+(err?.message||err);render();}
  }
 });
-document.addEventListener('input',e=>{if(e.target.matches('[data-purchase-qty]'))purchaseDrafts[e.target.dataset.purchaseMode+':'+e.target.dataset.purchaseKey]=e.target.value;if(e.target.id==='searchRows'){const word=canonical(e.target.value);document.querySelectorAll('.searchable').forEach(el=>{el.hidden=!canonical(el.dataset.search).includes(word);});}});
+document.addEventListener('input',e=>{if(e.target.matches('[data-additional-qty]'))purchaseDrafts['additional:'+e.target.dataset.additionalKey]=e.target.value;if(e.target.matches('[data-purchase-qty]'))purchaseDrafts[e.target.dataset.purchaseMode+':'+e.target.dataset.purchaseKey]=e.target.value;if(e.target.id==='searchRows'){const word=canonical(e.target.value);document.querySelectorAll('.searchable').forEach(el=>{el.hidden=!canonical(el.dataset.search).includes(word);});}if(e.target.id==='homeSearch'&&e.target.value.trim().length>1){tab='pedidos';render();const input=document.getElementById('searchRows');if(input){input.value=e.target.value;input.dispatchEvent(new Event('input',{bubbles:true}));}}});
 document.addEventListener('click',e=>{const b=e.target.closest('[data-action]');if(b){e.preventDefault();handleAction(b.dataset.action,dec(b.dataset.key||''),b.dataset.target?dec(b.dataset.target):'',b.dataset.dest?dec(b.dataset.dest):'');}});
 void bootCloud();
