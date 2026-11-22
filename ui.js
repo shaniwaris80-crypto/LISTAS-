@@ -273,24 +273,52 @@ function purchaseItem(row,mode){
    ${mode==='pending'&&!row.unresolved?btn('purchase-confirm','Confirmar compra',row.key,'small dark'):''}
    ${checked?btn('purchase-undo','Deshacer',row.key,'small'):''}</div>`;
 }
+
+/** Pedidos incorporados después de enviar a proveedores; no reenviar WhatsApp. */
+function additionalPurchaseRows(snapshot){
+ const rows=new Map(),plan=deliveryPlan(snapshot),t=totals(snapshot);
+ for(const line of snapshot.orders||[]){
+  if(line.kind!=='pedido-adicional'||!(Number(line.q)>0)||line.review)continue;
+  const key=canonical(normalizedProductName(line.product,snapshot))+'|'+(line.unit||'BULTO'),id=key+'@'+line.dest;
+  if(!rows.has(id))rows.set(id,{key,dest:line.dest,product:normalizedProductName(line.product,snapshot),unit:line.unit||'BULTO',qty:0});
+  rows.get(id).qty=fix(rows.get(id).qty+line.q);
+ }
+ return [...rows.values()].map(r=>{
+  const ordered=t.find(x=>sameProductKey(snapshot,x.key,r.key));
+  const original=fix(Math.max(0,(ordered?.by?.[r.dest]||0)-r.qty));
+  const allowed=plan.eligible.find(x=>sameProductKey(snapshot,x.key,r.key)&&x.dest===r.dest)?.allowed||0;
+  const purchased=fix(Math.max(0,(snapshot.manual||[]).filter(m=>m.confirmed&&m.additionalDest===r.dest&&sameProductKey(snapshot,m.key,r.key)).reduce((n,m)=>n+(Number(m.q)||0),0)));
+  return {...r,purchased,original,pending:fix(Math.max(0,r.qty-Math.max(0,allowed-original)))};
+ }).sort((a,b)=>a.dest.localeCompare(b.dest)||a.product.localeCompare(b.product,'es'));
+}
+function additionalPurchaseItem(row){
+ const id=row.key+'@'+row.dest,inputId='additional-'+encodeURIComponent(id),value=purchaseDrafts['additional:'+id]??String(row.pending).replace('.',',');
+ return `<div class="item searchable additional-item" data-search="${esc(row.product+' '+destName(row.dest))}"><div class="icon-tile">${uiIcon('package',23)}</div><div class="grow"><div class="product">${esc(row.product)}</div><div class="details">${esc(destName(row.dest))} · ${esc(row.unit)} · Pedido adicional: <b>${row.qty}</b></div>
+ ${row.purchased>0?pill(row.purchased+' compra manual confirmada','ok'):''}
+ ${row.pending>0?`<div class="additional-controls"><button type="button" class="qty-step" data-action="additional-step" data-key="${enc(id)}" data-target="-1">−</button><input id="${esc(inputId)}" data-additional-qty data-additional-key="${esc(id)}" type="text" inputmode="decimal" autocomplete="off" value="${esc(value)}" aria-label="Cantidad de compra adicional de ${esc(row.product)}"><button type="button" class="qty-step" data-action="additional-step" data-key="${enc(id)}" data-target="1">+</button>${btn('additional-buy','✓ Comprado',id,'small dark')}</div>`:pill('Cubierto · listo para reparto','ok')}
+ ${row.purchased>0?btn('additional-undo','Deshacer compra adicional',id,'small'):''}</div></div>`;
+}
+
 function compras(){
- const all=pendingPurchases(state);
- const pending=all.filter(r=>r.remainingToBuy>0||r.unresolved);
+ const all=pendingPurchases(state),additional=additionalPurchaseRows(state),subtract=new Map();
+ for(const r of additional)if(r.pending>0)subtract.set(r.key,fix((subtract.get(r.key)||0)+r.pending));
+ const pending=all.map(r=>({...r,remainingToBuy:fix(Math.max(0,r.remainingToBuy-(subtract.get(r.key)||0)))})).filter(r=>r.remainingToBuy>0||r.unresolved);
  const bought=all.filter(r=>r.manuallyBought>0);
- const counts={pending:pending.length,supplier:all.filter(r=>r.supplierCovered>0).length,manual:bought.length,all:all.length};
- const filters=[['pending','Por comprar'],['supplier','A proveedores'],['manual','Comprado manual'],['all','Ver todos']];
+ const counts={pending:pending.length,additional:additional.filter(r=>r.pending>0).length,manual:bought.length,supplier:all.filter(r=>r.supplierCovered>0).length,all:all.length};
+ const filters=[['pending','Pendientes'],['additional','Pedidos adicionales'],['manual','Comprados'],['supplier','Proveedores'],['all','Todos']];
  const other=purchaseView==='supplier'?all.filter(r=>r.supplierCovered>0):all;
  const exportable=pendingManualPurchaseTXT(state);
- const title=purchaseView==='pending'?'Pendiente de comprar':purchaseView==='supplier'?'Pedidos a proveedores':purchaseView==='manual'?'Compras manuales':'Todos los productos';
- return sectionTitle('Compras','Marca los productos con un toque, ajusta cantidades con + / − o escríbelas, como en Ruta Madrid.')+
- `<div class="notice green purchase-guidance"><b>Sin compras duplicadas.</b> Lo enviado o reservado a proveedor no entra en pendientes manuales. Lo marcado aparece ABAJO y se puede desmarcar. No se eliminan pedidos ni proveedores.</div>`+
- `<div class="card"><div class="purchase-tabs" role="group" aria-label="Filtro de compras">${filters.map(([name,label])=>`<button type="button" class="purchase-filter ${purchaseView===name?'active':''}" data-action="purchasefilter" data-key="${name}" aria-pressed="${purchaseView===name}">${esc(label)} <span class="filter-count">${counts[name]}</span></button>`).join('')}</div><label for="searchRows">Buscar producto</label><input id="searchRows" type="search" placeholder="Ej.: TOMATE RAMA" autocomplete="off"/>
- <div class="sectionline"><h2>${title}</h2>${pill((purchaseView==='manual'?bought.length:purchaseView==='pending'?pending.length:other.length)+' productos')}</div>`+
- (purchaseView==='pending'?`<div class="purchase-bulk"><div class="tools">${btn('manual-copy-pending','Copiar TXT pendiente','','small')}${btn('manual-download-pending','Descargar TXT','','small')}${btn('manual-wa-pending','WhatsApp pendientes','','small green')}</div><p class="subtle">${exportable?'Solo lo que queda por comprar manualmente; WhatsApp no lo marca como comprado.':'No hay productos pendientes confirmados para exportar.'}</p><details><summary>Acciones masivas (confirmación obligatoria)</summary><div class="tools">${btn('buyall','Marcar TODOS como comprados','','small dark')}</div></details></div>`:'')+
- `<div class="items">${purchaseView==='pending'?pending.map(r=>purchaseItem(r,'pending')).join('')||'<div class="notice green"><b>Todo cubierto.</b> No quedan compras pendientes.</div>':purchaseView==='manual'?bought.map(r=>purchaseItem(r,'manual')).join('')||'<p class="subtle">No hay compras manuales activas.</p>':other.map(r=>purchaseItem(r,'readonly')).join('')||'<p class="subtle">No hay productos para esta vista.</p>'}</div></div>`+
- (purchaseView==='pending'&&bought.length?`<div class="card purchase-completed"><div class="sectionline"><h2>✓ Comprados manualmente</h2>${pill(bought.length+' seleccionados','ok')}</div><p class="subtle">Están abajo para no mezclarlos con lo pendiente. Toca ✓ para desmarcar o ajusta la cantidad.</p><div class="items">${bought.map(r=>purchaseItem(r,'manual')).join('')}</div>${btn('manual-undo-all','Deshacer TODAS las compras manuales','','small red')}</div>`:'')+
- (purchaseView==='manual'&&bought.length?`<div class="card"><div class="tools">${btn('manual-undo-all','Deshacer TODAS las compras manuales','','small red')}</div><p class="subtle">Se conservan los movimientos anteriores en el historial. No se modifican bajadas ya realizadas.</p></div>`:'')+
- `<div class="card"><div class="sectionline"><h2>Extras confirmados</h2>${pill('No duplicar compra')}</div>${surplus(state).length?surplus(state).map(r=>`<div class="item"><div class="keynum">+${r.extra}</div><div class="grow"><b>${esc(r.product)}</b><div class="subtle">Compra EXTRA real. Distribución manual opcional.</div></div>${btn('extra','Ver reparto',r.key,'small')}</div>`).join(''):'<p class="subtle">No hay compra extra confirmada.</p>'}</div>`;
+ const title={pending:'Por comprar',additional:'Pedidos adicionales',manual:'Compras realizadas',supplier:'Cubierto por proveedores',all:'Todos los productos'}[purchaseView]||'Compras';
+ return sectionTitle('Compras manuales','Lo enviado a proveedores no se compra dos veces. Los pedidos tardíos se identifican por destino.')+
+ `<label class="shop-search">${uiIcon('search',21)}<input id="searchRows" type="search" placeholder="Buscar producto" autocomplete="off"></label>
+ <div class="purchase-tabs" role="group" aria-label="Filtros de compras">${filters.map(([k,label])=>`<button type="button" class="purchase-filter ${purchaseView===k?'active':''}" data-action="purchasefilter" data-key="${k}" aria-pressed="${purchaseView===k}">${label} <span class="filter-count">${counts[k]}</span></button>`).join('')}</div>
+ ${purchaseView==='additional'?'<div class="notice green"><b>Pedidos recibidos después de enviar a proveedores.</b> Compra y marca sólo lo que falte. Cada cantidad se reserva a su tienda o restaurante, sin modificar los mensajes enviados.</div>':'<div class="notice green"><b>Compras sin duplicados.</b> Lo enviado o reservado al proveedor no se suma otra vez. Usa + / − para editar cantidades y confirma la compra real.</div>'}
+ <div class="card purchases-list"><div class="sectionline"><h2>${title}</h2>${pill((purchaseView==='additional'?additional.filter(r=>r.pending>0).length:purchaseView==='manual'?bought.length:purchaseView==='pending'?pending.length:other.length)+' productos')}</div>
+ ${purchaseView==='pending'?`<div class="purchase-bulk"><div class="tools">${btn('manual-copy-pending','Copiar TXT pendiente','','small')}${btn('manual-download-pending','Descargar TXT','','small')}${btn('manual-wa-pending','WhatsApp pendientes','','small green')}</div><details><summary>Acciones masivas · confirmar antes de comprar</summary><div class="tools">${btn('buyall','Marcar pendientes normales como comprados','','small dark')}</div></details><p class="subtle">${exportable?'El TXT pendiente incluye también ampliaciones sin comprar.':'Todo cubierto.'}</p></div>`:''}
+ <div class="items">${purchaseView==='pending'?(pending.map(r=>purchaseItem(r,'pending')).join('')||'<p class="subtle">No quedan compras normales pendientes.</p>'):purchaseView==='additional'?(additional.map(additionalPurchaseItem).join('')||'<p class="subtle">Todavía no hay pedidos adicionales. Cuando añadas un pedido después de enviar a proveedores, aparecerá aquí.</p>'):purchaseView==='manual'?(bought.map(r=>purchaseItem(r,'manual')).join('')||'<p class="subtle">No hay compras manuales confirmadas.</p>'):(other.map(r=>purchaseItem(r,'readonly')).join('')||'<p class="subtle">Sin productos en esta vista.</p>')}</div></div>
+ ${purchaseView==='pending'&&bought.length?`<details class="card purchase-completed"><summary>✓ Comprados manualmente · ${bought.length} productos</summary><div class="items">${bought.map(r=>purchaseItem(r,'manual')).join('')}</div></details>`:''}
+ ${purchaseView==='manual'&&bought.length?`<div class="card"><div class="tools">${btn('manual-undo-all','Deshacer todas (si no hay reservas ni bajadas)','','small red')}</div></div>`:''}
+ <div class="card"><div class="sectionline"><h2>Extras confirmados</h2>${pill('Sin compras duplicadas')}</div>${surplus(state).length?surplus(state).map(r=>`<div class="item"><div class="keynum">+${r.extra}</div><div class="grow"><b>${esc(r.product)}</b><div class="subtle">Compra adicional real; distribución opcional.</div></div>${btn('extra','Distribución',r.key,'small')}</div>`).join(''):'<p class="subtle">No hay sobrantes confirmados.</p>'}</div>`;
 }
 function carga(){const x=deliveryPlan(state);return sectionTitle('Carga · opcional','Si quieres, marca lo que has cargado. Si prefieres ir directamente a Reparto, puedes saltarte este paso.')+`<div class="notice green"><b>La carga no bloquea reparto.</b> Los productos habilitados aparecen en Reparto aunque no marques nada aquí.</div><div class="tools" style="margin-bottom:15px">${btn('goto','Ir directo a Reparto','reparto','dark')}</div>`+
  `<div class="card"><h2>Por cargar</h2><div class="items">${x.eligible.map(r=>{const q=state.load[r.key+'@'+r.dest]||0;return `<div class="item ${q>=r.allowed?'done':''}"><button class="clickable" data-action="load" data-key="${enc(r.key)}" data-dest="${enc(r.dest)}"><span class="check">${q>=r.allowed?'✓':''}</span><div class="grow"><div class="product">${esc(r.allowed)} ${esc(r.product)}</div><div class="details">${esc(destName(r.dest))} · ${esc(r.unit)}${q?' · cargado '+q:''}</div></div></button></div>`}).join('')||'<div class="subtle">Primero registra envío a proveedor o compra manual.</div>'}</div></div>`;}
