@@ -27,8 +27,8 @@ check('JSON import blocks overwrite of existing orders',ui.includes('Ya hay pedi
 check('First upload requires user approval',ui.includes("case 'cloud-init'")&&ui.includes('confirm('));
 check('Conflict requires explicit choice',ui.includes("case 'cloud-publish-local'")&&ui.includes('copia de la nube'));
 // RTDB elimina arrays vacíos: simular documento antiguo sin campos opcionales.
-const hydrate=new Function(code+'; return hydrateCloudDocumentState;')();
 const {createState,deliveryPlan,applyDeliveryMutation,adjustDestinationDemand,totals}=await import('../motor.mjs');
+const hydrate=new Function('createState',code+'; return hydrateCloudDocumentState;')(createState);
 const complete=createState();
 const legacy={day:complete.day,orders:[{id:'line-1',dest:'SP',q:2,product:'TOMATE RAMA',unit:'BULTO',review:false}],destinations:complete.destinations,
  catalog:complete.catalog,allocations:[{id:'alloc-1',key:'TOMATE RAMA|BULTO',q:2,status:'sent',supplier:'ESMO'}],
