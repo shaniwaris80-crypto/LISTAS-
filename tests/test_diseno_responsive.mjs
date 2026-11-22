@@ -1,0 +1,20 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+
+const read=(name)=>readFileSync(new URL('../'+name,import.meta.url),'utf8');
+const css=read('estilos.css'),ui=read('ui.js'),html=read('index.html');
+let checks=0;
+const check=(label,ok)=>{assert.ok(ok,label);checks++};
+check('Paleta blanco negro verde rojo',css.includes('--black:#080808')&&css.includes('--green:#138547')&&css.includes('--red:#c92731'));
+check('Estilo optimizado para pantalla ancha PC',css.includes('@media(min-width:1150px)')&&css.includes('grid-template-columns:232px minmax(0,1fr)'));
+check('Vista automática para móvil',css.includes('@media(max-width:850px)')&&css.includes('grid-template-columns:repeat(5,minmax(0,1fr))'));
+check('Incluye área segura de iPhone',css.includes('env(safe-area-inset-bottom)'));
+check('Tamaños táctiles de cantidades',css.includes('.destination-qty-step{width:43px;height:43px')||css.includes('width:43px;height:43px'));
+check('Scroll horizontal desactivado en contenido principal',css.includes('overflow-x:clip')&&css.includes('.shell>main{min-width:0'));
+check('Formulario iPhone evita zoom al editar',css.includes('select,textarea{border-color:#cbd0d5')&&css.includes('font-size:16px'));
+check('Progreso de reparto verde legible',css.includes('.progress-fill{background:#138b48')&&ui.includes('deliveryProgress(state,dest)'));
+check('Botones de navegación móvil visibles',ui.includes("['reparto','Bajar']")&&ui.includes('class="bottomnav"'));
+check('No cambia clave de almacenamiento local',ui.includes("arslan_listas_reparto_seguro_v5_local_only"));
+check('Vista compras directa sigue disponible',ui.includes('destination-qty-step')&&ui.includes('case \'destqty\''));
+check('Compilado contiene estilos nuevos y motor concurrente',html.includes('/* ARSLAN LISTAS · diseño operativo responsive 2026-11-22 */')&&html.includes('applyDeliveryMutation(')&&html.includes('changeDemandOneTap('));
+console.log('DISEÑO PC/IPHONE: '+checks+' comprobaciones');
