@@ -340,3 +340,23 @@ input[type=search]{appearance:none;-webkit-appearance:none}
 @media(prefers-reduced-motion:reduce){
  *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}
 }
+
+/* iPhone SE y teléfonos estrechos: el nombre y los controles de cada
+   tienda usan todo el ancho, no un tercio de una tarjeta. */
+@media(max-width:375px){
+ .purchase-item,.purchase-item[data-purchase-type="readonly"]{
+  grid-template-columns:44px minmax(0,1fr);column-gap:9px;row-gap:7px;
+ }
+ .purchase-item .purchase-tick{grid-column:1;grid-row:1}
+ .purchase-item .keynum{grid-column:2;grid-row:1;width:max-content;max-width:100%;min-width:44px}
+ .purchase-item .grow,
+ .purchase-item[data-purchase-type="readonly"] .grow{
+  grid-column:1/-1;grid-row:2;min-width:0;width:100%;
+ }
+ .purchase-item[data-purchase-type="readonly"] .keynum{grid-column:1}
+ .purchase-inline .editable-destination{display:flex;min-height:47px}
+ .breakdown-destination{font-size:12px}
+ .destination-qty-step{width:41px;height:44px}
+ .destination-qty-value{min-width:36px}
+ .purchase-item>.btn{grid-column:1/-1}
+}
