@@ -133,3 +133,20 @@ html{width:100%;scroll-padding-bottom:112px}body{min-width:0;overflow-x:clip}but
 .team-owner{margin-top:16px;padding-top:12px;border-top:1px solid #ddd}
 .team-owner h3{margin:0 0 8px;font-size:14px}
 @media(max-width:540px){.delivery-progress{padding:14px}.progress-heading>b{font-size:23px}.team-member button{min-height:40px}}
+
+
+/* Compras: desglose siempre visible, directo y manejable con el pulgar. */
+.purchase-inline{padding:9px 10px;background:#fafafa;border-radius:10px;margin:11px 0 3px}
+.purchase-inline-label{font-size:11px;font-weight:850;letter-spacing:.02em;color:#555;margin-bottom:6px}
+.purchase-inline .editable-destination{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;min-height:46px}
+.breakdown-destination{font-size:13px;font-weight:750;min-width:0;overflow-wrap:anywhere}
+.destination-qty-controls{display:flex;align-items:center;gap:5px;flex:0 0 auto}
+.destination-qty-step{height:40px;width:40px;display:grid;place-items:center;background:white;border:1.5px solid #111;border-radius:10px;color:#080808;font-size:22px;line-height:1;font-weight:900;touch-action:manipulation;cursor:pointer}
+.destination-qty-step:active{background:#080808;color:white}
+.destination-qty-step:disabled{opacity:.45;cursor:wait}
+.destination-qty-value{display:inline-block;text-align:center;min-width:39px;font-size:15px;font-weight:900;font-variant-numeric:tabular-nums;color:#0b0b0b}
+.purchase-title{font-size:16px;font-weight:850;color:#070707;overflow-wrap:anywhere}
+.purchase-inline .shortage-note{color:#af2029;font-weight:850}
+.purchase-inline .shortage-note strong{color:#b71c26}
+@media(max-width:430px){.purchase-inline{padding:9px 8px}.destination-qty-step{height:40px;width:40px}.destination-qty-controls{gap:3px}.destination-qty-value{min-width:34px}.breakdown-destination{font-size:12px}}
+@media(prefers-reduced-motion:reduce){.destination-qty-step{transition:none}}
