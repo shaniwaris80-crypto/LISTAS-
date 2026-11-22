@@ -327,6 +327,50 @@ export function deliveryPlan(state){const eligible=[],blocked=[],short=[],needsR
 
 export function deliver(state,key,dest,q=null){const row=deliveryPlan(state).eligible.find(r=>r.key===key&&r.dest===dest);if(!row)throw Error('Producto no habilitado para reparto');const add=q===null?row.remaining:num(q);if(!(add>0)||add>row.remaining+1e-8)throw Error('Cantidad superior al reparto habilitado');const k=key+'@'+dest;state.delivery[k]=fix((state.delivery[k]||0)+add);return state.delivery[k];}
 export function undoDelivery(state,key,dest){delete state.delivery[key+'@'+dest];}
+
+/** Progreso de bajada por destino, ponderado por cantidades realmente habilitadas.
+ * No mezcla tiendas y nunca cuenta productos sin compra/envío como bajados.
+ */
+export function deliveryProgress(state,dest){
+ const rows=deliveryPlan(state).eligible.filter(x=>x.dest===dest);
+ const total=fix(rows.reduce((sum,r)=>sum+r.allowed,0));
+ const bajado=fix(rows.reduce((sum,r)=>sum+Math.min(r.allowed,Math.max(0,r.delivered)),0));
+ const completos=rows.filter(r=>r.remaining<=1e-8).length;
+ const pendientes=rows.length-completos;
+ return {total,bajado,restante:fix(Math.max(0,total-bajado)),
+   porcentaje:total>0?Math.min(100,Math.round(bajado/total*100)):0,
+   productos:rows.length,completos,pendientes};
+}
+
+/** Mutación segura para una transacción Firebase: compara la fila VISIBLE con la
+ * última fila de la nube. Dos personas no pueden tickar dos veces lo mismo.
+ * Devuelve changed=false SIN modificar el estado cuando hay cambio concurrente.
+ */
+export function applyDeliveryMutation(state,{action,key,dest,quantity=null,expectedDelivered,expectedAllowed,day,historyLength}){
+ if(state.day!==day||((state.history||[]).length)!==historyLength)
+  return {changed:false,code:'JORNADA_CAMBIADA'};
+ const row=deliveryPlan(state).eligible.find(r=>r.key===key&&r.dest===dest);
+ if(!row)return {changed:false,code:'NO_HABILITADO'};
+ if(!Number.isFinite(Number(expectedDelivered))||Math.abs(row.delivered-Number(expectedDelivered))>1e-8)
+  return {changed:false,code:'MODIFICADO_POR_OTRO'};
+ if(!Number.isFinite(Number(expectedAllowed))||Math.abs(row.allowed-Number(expectedAllowed))>1e-8)
+  return {changed:false,code:'CANTIDAD_ACTUALIZADA'};
+ if(action==='bajar'){
+  if(row.remaining<=1e-8)return {changed:false,code:'YA_BAJADO'};
+  const amount=quantity===null?row.remaining:num(quantity);
+  if(!Number.isFinite(amount)||amount<=0)return {changed:false,code:'CANTIDAD_INVALIDA'};
+  if(amount>row.remaining+1e-8)return {changed:false,code:'CANTIDAD_INSUFICIENTE'};
+  deliver(state,key,dest,amount);
+  return {changed:true,code:'BAJADO',cantidad:fix(amount)};
+ }
+ if(action==='deshacer'){
+  if(row.delivered<=1e-8)return {changed:false,code:'YA_DESHECHO'};
+  undoDelivery(state,key,dest);
+  return {changed:true,code:'DESHECHO',cantidad:fix(row.delivered)};
+ }
+ return {changed:false,code:'ACCION_DESCONOCIDA'};
+}
+
 export function loadItem(state,key,dest,q){state.load[key+'@'+dest]=fix(q);}
 export function surplus(state){const out=[];for(const t of totals(state)){const extra=fix(Math.max(0,actuallyReceived(state,t.key)-t.total));if(extra>0)out.push({...t,extra});}return out;}
 export function distributeSurplus(extra,{fractional=false}={}){
