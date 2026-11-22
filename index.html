@@ -1,4 +1,4 @@
-<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#050505"><title>ARSLAN LISTAS — Pedidos y reparto</title><style>:root{--black:#050505;--ink:#131313;--muted:#686868;--line:#e1e1e1;--soft:#f5f5f5;--white:#fff;--green:#138542;--greenbg:#e6f7eb;--red:#d3222c;--redbg:#ffeced;--amber:#9b5e0f;--amberbg:#fff2da;--radius:16px}
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#050505"><title>ARSLAN LISTAS — Gestión diaria</title><style>:root{--black:#050505;--ink:#131313;--muted:#686868;--line:#e1e1e1;--soft:#f5f5f5;--white:#fff;--green:#138542;--greenbg:#e6f7eb;--red:#d3222c;--redbg:#ffeced;--amber:#9b5e0f;--amberbg:#fff2da;--radius:16px}
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:#f7f7f7;color:var(--ink);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:15px}button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit}button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid #999;outline-offset:2px}
 .top{background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}.top-inner{max-width:1270px;margin:auto;padding:12px 24px;display:flex;justify-content:space-between;align-items:center;gap:16px}.brand{display:flex;align-items:center;gap:12px;font-weight:900;letter-spacing:-.7px;font-size:19px}.logo{height:39px;width:39px;border-radius:11px;background:#070707;color:#fff;display:grid;place-items:center;font-size:19px}.subtitle{font-size:12px;color:#626262;font-weight:500;letter-spacing:0}.demo-pill{border:1px solid #e6cfcf;border-radius:999px;padding:7px 11px;background:#fff5f5;color:#9e2323;font-size:12px;font-weight:750;white-space:nowrap}
 .shell{max-width:1270px;margin:0 auto;display:grid;grid-template-columns:216px minmax(0,1fr);gap:24px;padding:22px 24px 65px}.side{position:sticky;top:90px;align-self:start}.side button{display:flex;align-items:center;gap:12px;padding:13px 14px;border:0;background:transparent;border-radius:11px;width:100%;text-align:left;color:#5f5f5f;font-weight:650;margin-bottom:3px}.side button.active{background:#080808;color:#fff}.side .step{font-size:12px;width:27px;height:27px;display:grid;place-items:center;border-radius:8px;background:#eee;color:#222;font-weight:850}.side button.active .step{background:#fff;color:#000}.side .caption{font-size:11px;text-transform:uppercase;font-weight:850;letter-spacing:.12em;color:#909090;margin:24px 14px 7px}
@@ -114,7 +114,418 @@ html{width:100%;scroll-padding-bottom:112px}body{min-width:0;overflow-x:clip}but
 .purchase-item .purchase-qty-controls{max-width:100%}
 .purchase-item .purchase-qty-controls input{flex:1 1 48px;width:48px;min-width:0}
 @media(max-width:425px){.purchase-item .grow{flex:none;min-width:0}.purchase-item>.btn{width:100%;flex:none}}
-</style></head><body><div id="app"></div><script>// ARSLAN LISTAS — laboratorio de auditoría aislado. No toca el sistema publicado.
+
+/* Progreso de reparto por tienda/restaurante (sin mezclar unidades de mercancía) */
+.delivery-progress{margin-top:12px;border:1px solid #d1e9d8;background:#fff;padding:16px}
+.progress-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.progress-heading>div{display:flex;flex-direction:column;gap:3px;min-width:0}
+.progress-heading strong{font-size:16px;font-weight:900;color:#080808;overflow-wrap:anywhere}
+.progress-heading span{font-size:12px;color:#565656}
+.progress-heading>b{font-size:25px;font-variant-numeric:tabular-nums;color:#117b39;font-weight:950}
+.progress-track{height:15px;border-radius:999px;background:#e2e8e2;overflow:hidden;position:relative}
+.progress-fill{height:100%;min-width:0;background:#158b45;border-radius:999px;transition:width .16s ease}
+.progress-caption{font-size:12px;font-weight:700;color:#565656;margin-top:9px}
+.team-panel{margin:12px 0}.team-panel summary{cursor:pointer;color:#0a0a0a;font-size:14px}
+.team-panel summary strong{font-weight:850}
+.team-panel[open] summary{margin-bottom:12px}
+.team-id,.team-member{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;border:1px solid #ddd;border-radius:12px;background:#fafafa;padding:9px 10px;margin-bottom:10px}
+.team-member code{font-size:11px;font-weight:700;overflow-wrap:anywhere;word-break:break-all;flex:1;min-width:90px}
+.team-owner{margin-top:16px;padding-top:12px;border-top:1px solid #ddd}
+.team-owner h3{margin:0 0 8px;font-size:14px}
+@media(max-width:540px){.delivery-progress{padding:14px}.progress-heading>b{font-size:23px}.team-member button{min-height:40px}}
+
+
+/* Compras: desglose siempre visible, directo y manejable con el pulgar. */
+.purchase-inline{padding:9px 10px;background:#fafafa;border-radius:10px;margin:11px 0 3px}
+.purchase-inline-label{font-size:11px;font-weight:850;letter-spacing:.02em;color:#555;margin-bottom:6px}
+.purchase-inline .editable-destination{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;min-height:46px}
+.breakdown-destination{font-size:13px;font-weight:750;min-width:0;overflow-wrap:anywhere}
+.destination-qty-controls{display:flex;align-items:center;gap:5px;flex:0 0 auto}
+.destination-qty-step{height:40px;width:40px;display:grid;place-items:center;background:white;border:1.5px solid #111;border-radius:10px;color:#080808;font-size:22px;line-height:1;font-weight:900;touch-action:manipulation;cursor:pointer}
+.destination-qty-step:active{background:#080808;color:white}
+.destination-qty-step:disabled{opacity:.45;cursor:wait}
+.destination-qty-value{display:inline-block;text-align:center;min-width:39px;font-size:15px;font-weight:900;font-variant-numeric:tabular-nums;color:#0b0b0b}
+.purchase-title{font-size:16px;font-weight:850;color:#070707;overflow-wrap:anywhere}
+.purchase-inline .shortage-note{color:#af2029;font-weight:850}
+.purchase-inline .shortage-note strong{color:#b71c26}
+@media(max-width:430px){.purchase-inline{padding:9px 8px}.destination-qty-step{height:40px;width:40px}.destination-qty-controls{gap:3px}.destination-qty-value{min-width:34px}.breakdown-destination{font-size:12px}}
+@media(prefers-reduced-motion:reduce){.destination-qty-step{transition:none}}
+
+
+/* ARSLAN LISTAS · VISUAL SYSTEM V2. Desktop operativo + iPhone de reparto.
+   Blanco puro, negro profundo, verde confirmado, rojo incidencias.
+   Estos cambios son de presentación y no modifican datos de la jornada. */
+:root{
+ --black:#090a0a;--ink:#0c0d0e;--muted:#555e62;
+ --line:#dfe4e2;--soft:#f4f6f5;--green:#138044;
+ --greenbg:#e9f7ee;--red:#c92532;--redbg:#fff0f1;
+ --radius:17px;--shadow-card:0 1px 2px rgba(7,12,9,.025),0 9px 24px rgba(7,12,9,.025);
+}
+html{color-scheme:light;scroll-padding-top:84px}
+body{background:#f4f6f5;color:#0b0e0c;font-family:-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",sans-serif;
+ -webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+button,input,select,textarea{accent-color:#128044}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[role=button]:focus-visible{
+ outline:3px solid #127d40;outline-offset:3px}
+button:disabled{cursor:not-allowed}
+main{min-width:0}
+.card{border-color:#e1e5e2;box-shadow:var(--shadow-card)}
+.head h1{color:#060707;font-weight:900;letter-spacing:-.045em}
+.head p{max-width:760px;color:#53605b;font-size:14px;line-height:1.5}
+.sectionline{align-items:center}
+.sectionline h2{font-size:18px;font-weight:850;letter-spacing:-.024em;color:#101110}
+.item{background:#fff;border-color:#e7eae8;transition:border-color .12s ease,background .12s ease}
+.item .product{color:#0a0b0a;font-weight:820}
+.item .details{color:#5b6560}
+.item:focus-within{border-color:#879f8f}
+.keynum{background:#090b0a;color:#fff;border-radius:11px;font-variant-numeric:tabular-nums}
+.btn{border-color:#d3d9d6;border-radius:11px;font-weight:780;transition:background .12s ease,border-color .12s ease}
+.btn.dark{background:#090b0a;color:#fff}
+.btn.green{background:#138044;border-color:#138044}
+.btn.red{border-color:#d7b8bb;color:#bc2030}
+.tools{min-width:0}
+.tools .btn{min-width:0}
+.pill{border-radius:999px;letter-spacing:0;font-weight:820}
+.pill.ok{color:#086b33;background:#e8f6eb;border-color:#c5e4ce}
+.pill.err{color:#aa1426;background:#ffeded;border-color:#f0c7ca}
+.pill.warn{color:#80540b;background:#fff4dd;border-color:#ead5af}
+.notice{border-radius:13px}
+.notice.green{color:#15542e}
+.notice.amber{color:#704c0d}
+.stat{border-radius:14px;border-color:#e0e5e1;background:#fff;box-shadow:var(--shadow-card)}
+.stat b{color:#070a08;font-weight:900;letter-spacing:-.04em}
+.stat span{color:#59645c;font-weight:600}
+input:focus,select:focus,textarea:focus{border-color:#178047}
+input[type=search]{appearance:none;-webkit-appearance:none}
+.purchase-tabs{gap:7px}
+.purchase-filter{background:#f7f8f7;border-color:#e0e4e1;font-weight:850}
+.purchase-filter.active{background:#0a0c0b;border-color:#0a0c0b}
+.purchase-item{border-color:#e1e5e2}
+.purchase-title{font-weight:900;letter-spacing:-.015em}
+.purchase-inline{background:#f8faf9;border-color:#e5e9e7}
+.purchase-inline-label{color:#5c6660;font-size:10px;letter-spacing:.055em}
+.breakdown-line.total{font-weight:900}
+.breakdown-line.shortage-note{color:#ae1d2b}
+.destination-qty-controls{gap:7px}
+.destination-qty-step{border-color:#1d2520;border-radius:11px;background:#fff;color:#080a09}
+.destination-qty-step:focus-visible{outline-offset:1px}
+.destination-qty-step:active{background:#090b0a;color:#fff}
+.destination-qty-value{font-weight:900}
+.purchase-completed{border-color:#bfdac6}
+.purchase-tick.checked{background:#128044;border-color:#128044}
+.supplier-pills{align-items:center}
+.supplier-pills .btn{background:#fff;border-color:#d5dfd8;min-height:43px}
+.supplier-pills .btn.on{background:#0b0e0c;color:#fff;border-color:#0b0e0c}
+.provider-card .copy{max-height:170px;overflow:auto}
+.order-card{min-width:0}
+.delivery-progress{border-color:#bfd9c5;box-shadow:var(--shadow-card)}
+.progress-track{background:#e3e8e4;height:15px;border-radius:999px}
+.progress-fill{background:#168548}
+.progress-heading>b{color:#08783a}
+.sync-pill{font-weight:850;line-height:1.2}
+.destination-picker{border:1px solid #cfd9d3}
+.destination-picker select{font-weight:850;border-color:#0b0d0c;appearance:auto}
+.clear-day-home{background:#fff;border-color:#eac5ca}
+.clear-day-home .clear-day-description strong{font-weight:900}
+.searchable[hidden]{display:none!important}
+.orders-grid,.provider-grid{display:grid;gap:14px;align-items:start}
+.orders-grid>.card,.provider-grid>.card{min-width:0;margin:0}
+.orders-grid,.provider-grid{margin-bottom:20px}
+@media(min-width:851px){
+ .top{z-index:30;border-bottom:1px solid #e1e6e2;background:rgba(255,255,255,.98)}
+ .top-inner{max-width:1560px;padding:12px 34px;gap:16px}
+ .brand{font-size:20px;color:#080b09;letter-spacing:-.055em}
+ .logo{height:43px;width:43px;border-radius:13px;font-size:21px;background:#090b0a}
+ .top-inner .sync-pill{margin-left:auto}
+ .shell{max-width:1560px;grid-template-columns:230px minmax(0,1fr);gap:24px;padding:24px 30px 80px}
+ .side{top:94px;background:#0b0d0c;border-radius:20px;padding:14px 11px 16px;max-height:calc(100vh - 112px);overflow-y:auto;scrollbar-width:thin}
+ .side .caption{color:#89908a;font-size:10px;letter-spacing:.12em;margin:16px 10px 10px}
+ .side button{color:#cbd0cc;min-height:47px;border-radius:11px;margin-bottom:4px;font-size:13px;font-weight:740;padding:9px 10px}
+ .side button:hover{background:#242925;color:#fff}
+ .side button.active{background:#fff;color:#080b09;font-weight:900}
+ .side .step{background:#303631;color:#d7ded8;width:29px;height:29px;border-radius:9px;font-weight:850}
+ .side button.active .step{background:#0d100e;color:#fff}
+ .side .subtle{color:#aeb9b0!important;font-size:12px}
+ main{padding:0 2px;min-width:0}
+ .head{margin:5px 0 22px}
+ .head h1{font-size:clamp(31px,3.1vw,42px)}
+ .head p{font-size:14px}
+ .card{padding:23px;margin-bottom:16px}
+ .stat{padding:21px}
+ .grid{gap:14px}
+ .orders-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .provider-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .provider-grid .provider-card .items{max-height:360px;overflow:auto;scrollbar-width:thin}
+ .provider-grid .provider-card .item{padding:10px 11px}
+ .provider-grid .provider-card .copy{max-height:135px}
+ .purchase-inline{padding:13px 16px}
+ .purchase-inline .editable-destination{min-height:50px}
+ .purchase-inline .breakdown-destination{font-size:13px}
+ .destination-qty-step{width:42px;height:42px}
+ .purchase-item{padding:16px 18px}
+ .purchase-item .keynum{margin-top:2px}
+ .purchase-filter{min-height:48px}
+ .destination-picker{top:86px}
+ .clear-day-home{padding:16px 20px}
+}
+@media(min-width:1320px){
+ .shell{grid-template-columns:246px minmax(0,1fr);gap:30px}
+ .provider-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .orders-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:850px){
+ html{scroll-padding-top:62px;scroll-padding-bottom:120px}
+ body{background:#f5f6f5}
+ .top{z-index:65;background:#fff}
+ .top-inner{min-height:60px;padding:9px max(12px,env(safe-area-inset-right)) 9px max(12px,env(safe-area-inset-left))}
+ .brand{letter-spacing:-.035em}
+ .logo{border-radius:11px}
+ .shell{padding:11px max(12px,env(safe-area-inset-right)) calc(105px + env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left))}
+ main{max-width:760px;margin:0 auto}
+ .head{margin:10px 0 16px}
+ .head h1{font-size:27px;letter-spacing:-.045em;line-height:1.08}
+ .head p{font-size:13px;margin-top:7px}
+ .top-more{min-width:43px;width:43px;height:43px;border-radius:12px}
+ .bottomnav{padding-top:7px;padding-bottom:calc(9px + env(safe-area-inset-bottom));border-top-color:#e3e7e3;box-shadow:0 -3px 20px rgba(7,13,9,.065)}
+ .bottomnav button{min-height:58px;gap:4px;font-size:11px;padding:5px 1px;color:#59615b}
+ .bottomnav button.active{background:#090b0a;color:#fff}
+ .bottomnav button .nav-icon{height:23px;width:23px}
+ .card{padding:14px;border-radius:15px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.018)}
+ .sectionline h2{font-size:17px}
+ .grid{gap:8px}
+ .stat{padding:12px}
+ .stat b{font-size:26px}
+ .stat span{font-size:11px}
+ .item{padding:11px;gap:8px;border-radius:12px}
+ .item .product{font-size:14px;line-height:1.33}
+ .purchase-title{font-size:15px}
+ .keynum{font-size:17px}
+ .btn{min-height:44px}
+ .btn.small{min-height:43px}
+ .tools{gap:7px}
+ .purchase-tabs{gap:6px}
+ .purchase-filter{min-height:48px;font-size:12px}
+ .purchase-item .purchase-tick{width:44px;height:44px}
+ .purchase-inline{padding:9px 9px;margin-top:10px}
+ .purchase-inline .editable-destination{min-height:50px}
+ .destination-qty-step{height:43px;width:43px;border-radius:11px;font-size:23px}
+ .destination-qty-value{font-size:16px}
+ .breakdown-destination{font-size:12px;line-height:1.25}
+ .orders-grid,.provider-grid{grid-template-columns:minmax(0,1fr);gap:10px;margin-bottom:14px}
+ .destination-picker{top:62px;box-shadow:0 7px 20px rgba(0,0,0,.06)}
+ .destination-picker select{min-height:54px;font-size:16px}
+ .delivery-progress{margin-top:9px}
+ .progress-heading>b{font-size:25px}
+ .progress-track{height:17px}
+ .progress-caption{font-size:11px}
+ .purchase-bulk{margin-bottom:12px}
+ .purchase-bulk .tools .btn{flex:1 1 120px}
+ textarea,input,select{font-size:16px}
+}
+@media(max-width:380px){
+ .shell{padding-left:9px;padding-right:9px}
+ .brand{font-size:13px}
+ .top .sync-pill{font-size:8px;max-width:96px}
+ .stat b{font-size:23px}
+ .stat span{font-size:10px}
+ .bottomnav button{font-size:10px}
+ .bottomnav button .nav-icon{width:21px;height:21px}
+ .purchase-item{column-gap:6px}
+ .purchase-inline{padding:8px}
+ .destination-qty-step{width:39px;height:42px}
+ .destination-qty-controls{gap:3px}
+ .destination-qty-value{min-width:30px;font-size:14px}
+ .breakdown-destination{font-size:11.5px}
+}
+@media(prefers-reduced-motion:reduce){
+ *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
+
+/* iPhone SE y teléfonos estrechos: el nombre y los controles de cada
+   tienda usan todo el ancho, no un tercio de una tarjeta. */
+@media(max-width:375px){
+ .purchase-item,.purchase-item[data-purchase-type="readonly"]{
+  grid-template-columns:44px minmax(0,1fr);column-gap:9px;row-gap:7px;
+ }
+ .purchase-item .purchase-tick{grid-column:1;grid-row:1}
+ .purchase-item .keynum{grid-column:2;grid-row:1;width:max-content;max-width:100%;min-width:44px}
+ .purchase-item .grow,
+ .purchase-item[data-purchase-type="readonly"] .grow{
+  grid-column:1/-1;grid-row:2;min-width:0;width:100%;
+ }
+ .purchase-item[data-purchase-type="readonly"] .keynum{grid-column:1}
+ .purchase-inline .editable-destination{display:flex;min-height:47px}
+ .breakdown-destination{font-size:12px}
+ .destination-qty-step{width:41px;height:44px}
+ .destination-qty-value{min-width:36px}
+ .purchase-item>.btn{grid-column:1/-1}
+}
+
+
+/* ARSLAN LISTAS · diseño operativo responsive 2026-11-22 */
+:root{
+ --black:#080808;--ink:#0a0a0a;--muted:#555b63;--line:#dce0e4;
+ --soft:#f3f5f6;--white:#ffffff;--green:#138547;--greenbg:#e9f7ee;
+ --red:#c92731;--redbg:#fff0f1;--amber:#94600c;--amberbg:#fff6e5;
+ --radius:15px;--focus:#0e8350;--nav-height:72px;
+}
+html{max-width:100%;overflow-x:clip;-webkit-text-size-adjust:100%}
+body{color:var(--ink);background:#f5f6f7;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Arial,sans-serif;line-height:1.4;overflow-x:clip}
+button,select,input,textarea{min-width:0}
+button,[role="button"]{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[role="button"]:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.top{border-bottom:1px solid #e3e5e8;background:#fff;box-shadow:0 3px 14px rgba(0,0,0,.035)}
+.top-inner{max-width:1550px;padding:13px 28px;min-height:70px}
+.brand{color:#050505;font-weight:900;letter-spacing:-.045em;min-width:0}
+.brand>span:last-child{min-width:0}
+.logo{height:43px;width:43px;flex:0 0 43px;background:#050505;color:white;border-radius:12px;font-size:22px}
+.subtitle{color:#626871;font-size:12px;font-weight:600;letter-spacing:0}
+.sync-pill{font-size:11px;font-weight:850;letter-spacing:.012em;padding:8px 11px;max-width:min(40vw,270px);overflow-wrap:anywhere}
+.sync-pill.ok{background:#e9f8ed;border-color:#a7dbb5;color:#116b36}
+.sync-pill.warn{background:#fff7e8;border-color:#e5cc98;color:#825313}
+.sync-pill.err{background:#fff0f1;border-color:#edacb1;color:#b31f2c}
+.shell{max-width:1550px;grid-template-columns:232px minmax(0,1fr);gap:25px;padding:24px 28px 72px}
+.shell>main{min-width:0;width:100%;max-width:100%;padding-bottom:18px}
+.side{top:90px;min-width:0;background:#fff;border:1px solid #e4e6e9;border-radius:16px;padding:12px 9px 16px;box-shadow:0 5px 20px rgba(18,23,28,.035)}
+.side .caption{margin:15px 12px 8px;color:#757c83;letter-spacing:.09em}
+.side button{min-height:48px;padding:10px 12px;border-radius:10px;margin-bottom:3px;font-weight:760;font-size:14px;color:#424850;gap:11px}
+.side button:hover{background:#f2f4f5;color:#090909}
+.side button.active{background:#080808;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.side .step{flex:0 0 29px;height:29px;width:29px;background:#f0f1f2;font-variant-numeric:tabular-nums}
+.head{align-items:flex-end;margin:5px 0 19px;gap:15px}
+.head h1{font-size:clamp(25px,2.7vw,35px);color:#050505;font-weight:900;letter-spacing:-.055em}
+.head p{color:#525861;font-size:14px;line-height:1.45}
+.card,.stat{border-color:#e1e4e6;box-shadow:0 3px 12px rgba(17,24,39,.025)}
+.card{padding:20px 22px;margin-bottom:15px}
+.card h2{font-size:17px;font-weight:850;letter-spacing:-.025em;color:#101010}
+.grid{gap:10px}
+.stat{background:#fff;padding:17px;border-radius:13px}
+.stat b{font-size:30px;color:#080808;font-weight:900}
+.stat span{font-weight:600;color:#606770}
+.btn{min-height:42px;border-radius:10px;padding:10px 13px;font-size:13px;font-weight:820;transition:background-color .13s,border-color .13s,transform .12s}
+.btn:active:not(:disabled){transform:scale(.985)}
+.btn.dark{background:#070707;border-color:#070707}
+.btn.green{background:#128748;border-color:#128748;color:#fff}
+.btn.red{border-color:#e4aeb3;color:#b8202b}
+.btn.small{min-height:39px;padding:9px 12px;font-size:12px}
+.btn:disabled{opacity:.46;transform:none}
+.tools{gap:8px}
+.pill{font-weight:850;border-radius:8px;line-height:1.25;letter-spacing:0;font-size:10px}
+.pill.ok{background:#e9f7ee;border-color:#b2dfc2;color:#146d3b}
+.pill.err{background:#fff0f1;border-color:#edb5b8;color:#af202b}
+.pill.warn{background:#fff5e6;border-color:#e9d3aa;color:#87580e}
+.item{border-color:#e2e4e6;border-radius:12px;padding:12px 14px;background:#fff;gap:12px}
+.item .grow{flex:1;min-width:0}
+.item .product,.purchase-title{font-weight:850;color:#0b0b0b}
+.item .details{color:#60666d;font-size:12px;line-height:1.5}
+.item.done{background:#f0fbf3;border-color:#c3e9ce}
+.item.done .check{background:#138b48;border-color:#138b48}
+.item.err{background:#fff7f8;border-color:#efc7ca}
+.keynum{background:#080808;color:#fff;min-width:43px;min-height:40px;display:grid;place-items:center;font-weight:900;font-variant-numeric:tabular-nums;white-space:nowrap;padding:7px 10px}
+input:not([type="checkbox"]),select,textarea{border-color:#cbd0d5;border-radius:10px;font-size:16px;line-height:1.35;max-width:100%}
+input:focus,select:focus,textarea:focus{border-color:#101010}
+textarea{font-size:14px}
+label{color:#202327}
+.notice{border-radius:11px}
+.notice.green{background:#eefaf1;border-color:#b8dfc4}
+.notice.red{background:#fff0f1;border-color:#e6b5b9}
+.purchase-tabs{gap:7px}
+.purchase-filter{font-weight:800}
+.purchase-item{min-width:0;overflow:visible}
+.purchase-item .purchase-inline{border:1px solid #e4e5e8;background:#fafbfb}
+.purchase-inline .editable-destination{border-bottom:1px solid #e4e6e9}
+.purchase-inline .editable-destination:last-of-type{border-bottom:0}
+.breakdown-destination{color:#13171b}
+.destination-qty-value{font-variant-numeric:tabular-nums}
+.destination-qty-step{width:43px;height:43px;border-color:#141414;font-weight:900}
+.destination-qty-step:active{background:#111;color:white}
+.purchase-title{font-size:16px;line-height:1.35}
+.purchase-guidance{font-size:13px}
+.destination-picker{border:1px solid #d7dbdf;background:#fff;box-shadow:0 7px 20px rgba(0,0,0,.06)}
+.destination-picker select{background:#fff;min-height:50px;border-color:#090909}
+.delivery-progress{background:#fff;border:1px solid #bce3ca;box-shadow:0 3px 14px rgba(19,133,71,.04)}
+.progress-track{height:16px;background:#e1e8e3}
+.progress-fill{background:#138b48}
+.progress-heading>b{color:#0f793c}
+.bottomnav{display:none}
+@media(min-width:1150px){
+ .purchase-item .grow{min-width:0}
+ .purchase-inline{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:17px;align-items:center}
+ .purchase-inline-label,.purchase-inline .breakdown-line.total,.purchase-inline .shortage-note{grid-column:1/-1}
+ .purchase-inline .editable-destination{min-height:54px}
+ .purchase-item .destination-qty-step{width:41px;height:41px}
+ .card:has(.destination-picker){max-width:100%}
+}
+@media(max-width:850px){
+ :root{--nav-height:68px}
+ body{background:#f7f8f9}
+ .top-inner{min-height:59px;padding:9px 12px;gap:7px}
+ .brand{gap:8px;font-size:15px;letter-spacing:-.045em;flex:1;min-width:0}
+ .brand .subtitle{display:none}
+ .logo{height:36px;width:36px;flex:0 0 36px;border-radius:10px;font-size:18px}
+ .top-more{min-width:40px;min-height:41px;border-radius:10px}
+ .sync-pill{font-size:10px;max-width:34vw;line-height:1.15;padding:6px 7px}
+ .shell{display:block;max-width:100%;padding:12px 11px calc(var(--nav-height) + env(safe-area-inset-bottom) + 30px)}
+ .side{display:none}
+ .head{display:block;margin:7px 0 14px}
+ .head h1{font-size:26px}
+ .head p{font-size:13px;margin-top:6px;line-height:1.42}
+ .head .mini{display:none}
+ .card{border-radius:13px;padding:14px 13px;margin-bottom:12px}
+ .card h2{font-size:16px}
+ .sectionline{gap:8px;margin-bottom:10px}
+ .grid{gap:7px}
+ .grid .stat{padding:11px}
+ .grid .stat b{font-size:25px}
+ .grid .stat span{font-size:11px}
+ .item{padding:10px;gap:8px;align-items:flex-start;flex-wrap:wrap}
+ .item .product,.purchase-title{font-size:14px}
+ .item .details{font-size:11.5px}
+ .keynum{min-width:38px;min-height:38px;font-size:16px;padding:6px 8px}
+ .item .mini-actions{justify-content:flex-end;gap:7px}
+ .item .mini-actions .btn{min-height:41px}
+ .purchase-item>.grow{width:auto;min-width:0;flex:1 1 145px}
+ .purchase-item .purchase-inline{width:100%;padding:9px 8px;margin-top:9px}
+ .purchase-inline .editable-destination{padding:5px 0;min-height:47px}
+ .destination-qty-step{width:42px;height:42px;font-size:22px}
+ .destination-qty-value{min-width:35px}
+ .breakdown-destination{font-size:12px;max-width:46%;word-break:normal}
+ .destination-picker{top:59px;padding:12px 11px}
+ .destination-picker select{min-height:49px;font-size:16px}
+ .delivery-progress{padding:13px}
+ .progress-heading strong{font-size:14px}
+ .progress-heading>b{font-size:24px}
+ .progress-track{height:15px}
+ .bottomnav{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));justify-content:stretch;align-items:stretch;gap:2px;bottom:0;left:0;right:0;width:100%;height:calc(var(--nav-height) + env(safe-area-inset-bottom));padding:5px 5px calc(6px + env(safe-area-inset-bottom));border-top:1px solid #dfe2e5;background:rgba(255,255,255,.98);box-shadow:0 -5px 18px rgba(0,0,0,.035)}
+ .bottomnav button{display:flex;flex-direction:column;gap:3px;align-items:center;justify-content:center;min-width:0;max-width:none;min-height:51px;padding:6px 1px 4px;font-size:10px;font-weight:800;color:#666;line-height:1.1;border-radius:10px;white-space:nowrap}
+ .bottomnav button .nav-icon{width:21px;height:21px;flex:0 0 auto}
+ .bottomnav button.active{background:#0c0c0c;color:#fff}
+ .bottomnav button.active .nav-icon{stroke:#fff}
+ .btn{min-height:43px}
+ .btn.small{min-height:40px}
+ .purchase-tabs{display:flex;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+ .purchase-tabs::-webkit-scrollbar{display:none}
+ .purchase-filter{white-space:nowrap;flex:0 0 auto;min-height:42px}
+ .team-member code{min-width:0;overflow-wrap:anywhere}
+}
+@media(max-width:359px){
+ .shell{padding-left:8px;padding-right:8px}
+ .top-inner{padding-left:9px;padding-right:9px}
+ .brand{font-size:13px}
+ .logo{width:32px;height:32px;flex-basis:32px}
+ .sync-pill{font-size:9px;max-width:30vw}
+ .bottomnav{padding-left:2px;padding-right:2px}
+ .bottomnav button{font-size:9px}
+ .bottomnav button .nav-icon{width:19px;height:19px}
+ .destination-qty-step{width:39px;height:39px}
+ .destination-qty-value{min-width:28px}
+ .breakdown-destination{max-width:45%;font-size:11.5px}
+ .purchase-item>.grow{flex-basis:120px}
+}
+@media(prefers-reduced-motion:reduce){
+ *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
+</style></head><body><div id="app"></div><script>// ARSLAN LISTAS — motor de pedidos, proveedores, compras y reparto para uso diario.
 const STORE_ORDER=['SP','SL','ST'];
 const DESTINATIONS=[
  {id:'SP',name:'SAN PABLO',kind:'tienda'},
@@ -129,32 +540,102 @@ const DESTINATIONS=[
 ];
 const SUPPLIERS=['ESMO','MONTENEGRO','ÁNGEL VACA','JOSÉ ANTONIO','JAVI','ANGELO','COMPRA EXTERNA'];
 const catalogList=`MANZANA PINK LADY|CHIRIMOYA|MANDARINA PLASENCIA|MARACUYA|MANDARINA COLOMBE|PINA|MELON|BROCOLI|MANZANA GOLDEN 28|LIMON SEGUNDA|PLATANO CANARIO PRIMERA|PAPAYA|MANGO|MANZANA GOLDEN 24|NARANJA MESA SONRISA|NARANJA HOJA|BATAVIA|PEREJIL|CHAMPINON|UVA BLANCA|UVA ROJA|CEREZA|ZANAHORIA|TOMATE ASURCADO MARRON|TOMATE ROSA|CEBOLLA DULCE|CEBOLLA NORMAL|MANDARINA HOJA|MANZANA GRANNY SMITH|KIWI ZESPRI GOLD|VALVENOSTA GOLDEN|KIWI ZESPRI|PERA RINCON DEL SOTO|GRANADA|PERA LIMONERA|NUECES|AGUACATE GRANEL|PERA CONFERENCIA SEGUNDA|KIWI SEGUNDA|KAKI|REINETA PARDA|COLIFLOR|ICEBERG|GUINDILLA|PIMIENTO PADRON|CASTANA|ESCAROLA|ACELGAS|ESPINACA|APIO|NARANJA ZUMO|ARANDANOS|SETAS|BERENJENA|CALABACIN|PIMIENTO ITALIANO ROJO|PUERROS|PEPINO|BONIATO|TOMATE PERA|TOMATE RAFF|TOMATE RAMA|TOMATE ASURCADO AZUL|CEBOLLA ROJA|PATATA 5 KG|AJO PRIMERA|REMOLACHA|MANZANA GOLDEN 20|MANZANA GOLDEN 24|MANZANA GOLDEN 28|MANZANA ROYAL GALA 24|REINETA 24|REINETA 28|PATATA 10 KG|PATATA 25 KG|CILANTRO|KIWI TOMASIN|YAUTIA|YAME|MACHO VERDE|MACHO MADURO|CEBOLLA ROJA|SANDIA|NARANJA ZUMO`; 
-const SEED_CATALOG=[...new Set(catalogList.split('|'))].sort((a,b)=>a.localeCompare(b,'es',{numeric:true}));
+const SEED_CATALOG=[...new Set([...catalogList.split('|'),'BANANA'])].sort((a,b)=>a.localeCompare(b,'es',{numeric:true}));
 function canonical(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]+/g,' ').replace(/\s+/g,' ').trim();}
 function display(s){return canonical(s);}
 function suggest(name,catalog){
  const t=canonical(name), c=catalog.map(x=>canonical(x));
  // Los términos varietales/numéricos tienen preferencia sobre coincidencias de otras familias.
  const words=t.split(' '),family=words[0];
- const candidates=c.filter(v=>v.split(' ')[0]===family || (family==='GOLDEN'&&v.includes('GOLDEN')) || (family==='GRNNY'&&v.includes('GRANNY')) || (t.includes('GRNNY')&&v.includes('GRANNY')));
+ // Nunca sugerir calibre distinto por una errata numérica: GOLDEN 29 no es GOLDEN 28.
+ const numericTokens=t.split(' ').filter(w=>/^\d+$/.test(w));
+ const compatible=v=>numericTokens.every(n=>v.split(' ').includes(n));
+ const candidates=c.filter(v=>compatible(v)&&(v.split(' ')[0]===family || (family==='GOLDEN'&&v.includes('GOLDEN')) || (family==='GRNNY'&&v.includes('GRANNY')) || (t.includes('GRNNY')&&v.includes('GRANNY'))));
  const lev=(a,b)=>{const m=a.length,n=b.length,dp=Array.from({length:m+1},()=>Array(n+1).fill(0));for(let i=0;i<=m;i++)dp[i][0]=i;for(let j=0;j<=n;j++)dp[0][j]=j;for(let i=1;i<=m;i++)for(let j=1;j<=n;j++)dp[i][j]=Math.min(dp[i-1][j]+1,dp[i][j-1]+1,dp[i-1][j-1]+(a[i-1]===b[j-1]?0:1));return dp[m][n];};
- return (candidates.length?candidates:c).map(x=>({x,score:lev(t,x)})).filter(v=>v.score<=Math.max(2,Math.ceil(t.length*.32))).sort((a,b)=>a.score-b.score).slice(0,3).map(v=>v.x);
+ const compare=x=>{
+  // Una abreviatura conocida puede omitir la familia, pero no variedad ni calibre.
+  const forms=[x];
+  if(x.startsWith('MANZANA '))forms.push(x.slice(8));
+  if(x.startsWith('PERA '))forms.push(x.slice(5));
+  return Math.min(...forms.map(form=>lev(t,form)));
+ };
+ return (candidates.length?candidates:c.filter(compatible))
+  .map(x=>({x,score:compare(x)}))
+  .filter(v=>v.score<=Math.max(2,Math.ceil(t.length*.32)))
+  .sort((a,b)=>a.score-b.score||a.x.localeCompare(b.x,'es')).slice(0,3).map(v=>v.x);
 }
 let serial=0;const id=(p)=>`${p}_${typeof crypto!=='undefined' && crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+'_'+(++serial)+'_'+Math.random().toString(36).slice(2)}`;
-function createState(){return {day:'2026-11-19',catalog:[...SEED_CATALOG],aliases:{},orders:[],allocations:[],manual:[],receipts:[],delivery:{},load:{},shortageAllocation:{},riderAssignments:{},riders:['REPARTIDOR 1','REPARTIDOR 2'],destinations:structuredClone(DESTINATIONS),history:[],sentMessages:[],importedFingerprints:[]};}
-function matchCatalog(name,state){const k=canonical(name);return state.catalog.find(c=>canonical(c)===k)||state.aliases[k]||null;}
+function createState(){const d=new Date();const day=[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');return {day,catalog:[...SEED_CATALOG],aliases:{},orders:[],allocations:[],manual:[],receipts:[],delivery:{},load:{},shortageAllocation:{},riderAssignments:{},riders:['REPARTIDOR 1','REPARTIDOR 2'],destinations:structuredClone(DESTINATIONS),history:[],sentMessages:[],importedFingerprints:[]};}
+/** Erratas seguras de productos: solo abreviaturas inequívocas. Nunca corregir
+ * automáticamente variedades, calibres ni denominaciones ambiguas. */
+/** Reconocimiento seguro: alias explícitos y plurales de familias.
+ * Nunca se elimina un calibre, calidad u origen para forzar una coincidencia.
+ */
+const SAFE_EXACT_ALIASES=Object.freeze({
+ BANAN:'BANANA',BANANAS:'BANANA',
+ 'PINK LADY':'MANZANA PINK LADY',
+ 'GRANNY SMITH':'MANZANA GRANNY SMITH',
+ 'GOLDEN 20':'MANZANA GOLDEN 20','GOLDEN 24':'MANZANA GOLDEN 24','GOLDEN 28':'MANZANA GOLDEN 28'
+});
+const FAMILY_PLURALS=Object.freeze({
+ MANZANAS:'MANZANA',TOMATES:'TOMATE',BANANAS:'BANANA',
+ PERAS:'PERA',PATATAS:'PATATA',CEBOLLAS:'CEBOLLA',
+ NARANJAS:'NARANJA',LIMONES:'LIMON',MANDARINAS:'MANDARINA',
+ PIMIENTOS:'PIMIENTO',PLATANOS:'PLATANO',PEPINOS:'PEPINO',
+ AGUACATES:'AGUACATE',ZANAHORIAS:'ZANAHORIA',CHAMPINONES:'CHAMPINON',
+ KIWIS:'KIWI',CALABACINES:'CALABACIN',MELONES:'MELON'
+});
+function normalizedProductName(name,state){
+ const key=canonical(name);
+ if(!key)return key;
+ const aliases=state.aliases||{};
+ // Una corrección confirmada por el usuario se recuerda para próximas listas.
+ if(aliases[key])return canonical(aliases[key]);
+ const fixed=SAFE_EXACT_ALIASES[key];
+ if(fixed)return (state.catalog||[]).find(c=>canonical(c)===fixed)||fixed;
+ const exact=(state.catalog||[]).find(c=>canonical(c)===key);
+ if(exact)return exact;
+ const words=key.split(' ');
+ if(FAMILY_PLURALS[words[0]]){
+  const singular=[FAMILY_PLURALS[words[0]],...words.slice(1)].join(' ');
+  const match=(state.catalog||[]).find(c=>canonical(c)===singular);
+  if(match)return match;
+ }
+ return key;
+}
+function matchCatalog(name,state){
+ const key=canonical(name),norm=normalizedProductName(key,state);
+ return (state.catalog||[]).find(c=>canonical(c)===canonical(norm))
+   ||(SAFE_EXACT_ALIASES[key]===norm ? norm:null);
+}
 const num=(x)=>Number(String(x).replace(',','.'));
+/** Quita el prefijo de WhatsApp [fecha, hora] remitente: sin alterar cantidades. */
+function stripWhatsAppPrefix(line){
+ return String(line||'')
+  .replace(/^\s*\[\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4}[^\]]*\]\s*[^:]{1,100}:\s*/,'')
+  .replace(/^\s*[-•*]+\s*/,'').trim();
+}
 function parseOrderLine(line,state){
- const text=String(line).replace(/^[-•*]\s*/,'').trim();if(!text)return null;
+ const text=stripWhatsAppPrefix(line);if(!text)return null;
  let name=text,q=null,unit='BULTO';
  // 3TOMATE RAMA; 1,5 KG TOMATE; 3 x MANZANA; 7 PATATA 5 KG
  const m=text.match(/^(\d+\/\d+|\d+(?:[,.]\d+)?)\s*(?:[xX*]\s*)?(KG|KGS|CAJAS?|MANOJOS?|SACOS?|UNDS?|UDS?)?\s*(.+)$/i);
  if(m){q=m[1].includes('/')?m[1].split('/').map(Number).reduce((a,b)=>a/b):num(m[1]);name=m[3];if(m[2]){const token=canonical(m[2]);unit=token.startsWith('KG')?'KG':token.startsWith('CAJA')?'CAJA':token.startsWith('SACO')?'SACO':token.startsWith('MANOJO')?'MANOJO':'UD';}}
  else {
    // Nombre terminado en cantidad: GOLDEN 28 3 y PATATA 5 KG 7.
-   const last=text.match(/^(.+?)\s+(\d+(?:[,.]\d+)?)$/);
-   if(last){const maybeFull=canonical(text);const end=last[2];const calibreLike=/\b(GOLDEN|REINETA|FUJI|ROYAL GALA|PATATA)\b/.test(canonical(last[1]))&&(/^\d{2}$/.test(end)||/\b\d+\s*KG$/i.test(text));
-     if(!matchCatalog(maybeFull,state)&&!calibreLike){name=last[1];q=num(end);}
+   // Nombre + cantidad (BANANA 0,5), incluyendo unidad final y fracciones.
+   // Si el texto completo ES un producto del catálogo, no confundir calibre
+   // GOLDEN 28 o formato PATATA 5 KG con una cantidad comprada.
+   const last=text.match(/^(.+?)(?:\s+|\s*[:=]\s*)(\d+(?:[,.]\d+)?|\d+\/\d+)(?:\s*(KG|KGS|CAJAS?|MANOJOS?|SACOS?|UNDS?|UDS?))?$/i);
+   if(last){
+    const maybeFull=canonical(text),end=last[2],prefix=canonical(last[1]);
+    const calibreLike=/\b(GOLDEN|REINETA|FUJI|ROYAL GALA)\b/.test(prefix)&&/^\d{2}$/.test(end);
+    const packWeight=/^PATATA\s+\d+(?:[,.]\d+)?\s*KG$/.test(maybeFull);
+    if(!matchCatalog(maybeFull,state)&&!calibreLike&&!packWeight){
+     name=last[1].trim();
+     q=end.includes('/')?end.split('/').map(Number).reduce((a,b)=>a/b):num(end);
+     if(last[3]){const token=canonical(last[3]);unit=token.startsWith('KG')?'KG':token.startsWith('CAJA')?'CAJA':token.startsWith('SACO')?'SACO':token.startsWith('MANOJO')?'MANOJO':'UD';}
+    }
    }
  }
  // GOLDEN 28 3 se interpreta como qty 3, calibre 28; nunca 28 cajas.
@@ -176,8 +657,9 @@ function parseHeader(line,state){
 function importBlocks(state,text,{replace=false}={}){
  const fingerprint=canonical(text);if(!replace&&state.importedFingerprints?.includes(fingerprint))throw Error('Estas listas ya se han pegado en esta jornada. Evita duplicar pedidos.');
  let dest=null,n=0;const issues=[];const seen=new Set();
- for(const raw of String(text).split(/\r?\n/)){
-  if(!raw.trim())continue;
+ for(const original of String(text).split(/\r?\n/)){
+  const raw=stripWhatsAppPrefix(original);
+  if(!raw)continue;
   const heading=parseHeader(raw,state);
   if(heading){dest=heading.startsWith('UNKNOWN:')?null:heading;if(!dest)issues.push('Destino no reconocido: '+heading.substring(8));if(replace&&dest&&!seen.has(dest)){if(state.allocations.some(a=>a.status==='sent')||state.manual.length||Object.keys(state.delivery).length)throw Error('No se pueden sustituir pedidos con compras o bajadas ya iniciadas; importa una corrección aparte');state.orders=state.orders.filter(o=>o.dest!==dest);seen.add(dest);}continue;}
   if(!dest){if(raw.trim().startsWith('['))continue;issues.push('Línea sin destino: '+raw.trim());continue;}
@@ -198,7 +680,12 @@ function confirmProduct(state,lineId,target,{create=false,remember=true}={}){
  const targetName=existing||clean;
  const original=canonical(line.sourceName);
  if(remember&&original!==canonical(targetName)){
-   const prior=matchCatalog(original,state);if(!prior||canonical(prior)===canonical(targetName))state.aliases[original]=targetName;
+   const signature=x=>canonical(x).split(' ').filter(w=>/^\d+$/.test(w)||['PRIMERA','SEGUNDA','TERCERA'].includes(w)).join('|');
+   // Una corrección puntual NO debe enseñar a cambiar calibre o calidad
+   // de todos los pedidos futuros (GOLDEN 24 nunca se aprende como GOLDEN 28).
+   const safeSignature=signature(original)===signature(targetName);
+   const prior=matchCatalog(original,state);
+   if(safeSignature&&(!prior||canonical(prior)===canonical(targetName)))state.aliases[original]=targetName;
  }
  line.product=targetName;line.review=false;line.issues=line.q==null?['CANTIDAD_SIN_CONFIRMAR']:[];line.suggestions=[];
  if(line.issues.length)line.review=true;
@@ -207,43 +694,120 @@ function confirmProduct(state,lineId,target,{create=false,remember=true}={}){
 function setQuantity(state,lineId,value){const line=state.orders.find(l=>l.id===lineId);if(!line)throw Error('Línea no encontrada');const q=num(value);if(!Number.isFinite(q)||q<=0)throw Error('Cantidad positiva requerida');line.q=q;line.issues=line.issues.filter(x=>x!=='CANTIDAD_SIN_CONFIRMAR');line.review=line.issues.length>0;}
 function addDestination(state,name,kind='restaurante'){const key=canonical(name);let d=state.destinations.find(x=>canonical(x.name)===key);if(d)return d;d={id:id('dest'),name:key,kind};state.destinations.push(d);return d;}
 function totals(state){
- const map=new Map();for(const l of state.orders){if(!l.q)continue;const key=canonical(l.product)+'|'+l.unit;let item=map.get(key);if(!item){item={key,product:l.product,unit:l.unit,total:0,by:{},unresolved:false};map.set(key,item);}
- item.total=fix(item.total+l.q);item.by[l.dest]=fix((item.by[l.dest]||0)+l.q);item.unresolved ||= l.review;
+ const map=new Map();for(const l of state.orders){if(!l.q)continue;const name=normalizedProductName(l.product,state),key=canonical(name)+'|'+l.unit;let item=map.get(key);if(!item){item={key,product:name,unit:l.unit,total:0,by:{},unresolved:false};map.set(key,item);}
+ item.total=fix(item.total+l.q);item.by[l.dest]=fix((item.by[l.dest]||0)+l.q);item.unresolved ||= (l.review && !(canonical(l.product)==='BANAN' && canonical(name)==='BANANA'));
  }
  return [...map.values()].sort((a,b)=>a.product.localeCompare(b.product,'es',{numeric:true}));
 }
-function qtyRequested(state,key){return totals(state).find(t=>t.key===key)?.total||0;}
+/** Compatibilidad sin borrar registros antiguos: las compras y bajadas
+ * guardadas como BANAN se asocian al nuevo total BANANA. */
+function normalizedProductKey(state,key){
+ const raw=String(key||''),split=raw.lastIndexOf('|');
+ if(split<0)return canonical(normalizedProductName(raw,state));
+ return canonical(normalizedProductName(raw.slice(0,split),state))+'|'+canonical(raw.slice(split+1));
+}
+function sameProductKey(state,a,b){return normalizedProductKey(state,a)===normalizedProductKey(state,b);}
+function deliveredFor(state,key,dest){
+ return fix(Object.entries(state.delivery||{}).reduce((sum,[location,qty])=>{
+  const i=location.lastIndexOf('@');
+  return i>=0&&location.slice(i+1)===dest&&sameProductKey(state,location.slice(0,i),key)?sum+(Number(qty)||0):sum;
+ },0));
+}
+function legacyShortage(state,key){
+ return state.shortageAllocation[key]||Object.entries(state.shortageAllocation||{}).find(([k])=>sameProductKey(state,k,key))?.[1]||null;
+}
+/** Ajuste rápido de cantidades pedidas por destino, SIN comprar el incremento.
+ * Modifica las líneas de pedido existentes sin tocar proveedores, compras o
+ * datos de bajadas. Valida la operación completa antes de aplicar cambios.
+ * Sólo se acepta un destino y la misma unidad del producto.
+ */
+function adjustDestinationDemand(state,key,dest,change,{expectedQuantity=null,day=null,historyLength=null}={}){
+ if(day!==null&&day!==state.day)return {changed:false,code:'JORNADA_CAMBIADA'};
+ if(historyLength!==null&&historyLength!==(state.history||[]).length)return {changed:false,code:'JORNADA_CAMBIADA'};
+ if(!state.destinations.some(d=>d.id===dest))throw Error('Tienda o restaurante no encontrado');
+ const row=totals(state).find(r=>sameProductKey(state,r.key,key));
+ if(!row)throw Error('Producto no encontrado en el Global');
+ const actual=fix(row.by[dest]||0);
+ if(expectedQuantity!==null&&Math.abs(actual-Number(expectedQuantity))>1e-8)
+  return {changed:false,code:'MODIFICADO_POR_OTRO',cantidad:actual,total:row.total};
+ const delta=fix(Number(String(change).replace(',','.')));
+ if(!Number.isFinite(delta)||delta===0)throw Error('Cambio de cantidad inválido');
+ const next=fix(Math.max(0,actual+delta));
+ const changeApplied=fix(next-actual);
+ if(Math.abs(changeApplied)<1e-8)return {changed:false,code:'SIN_CAMBIOS',cantidad:actual,total:row.total};
+ const nextOrders=structuredClone(state.orders);
+ const matching=nextOrders.filter(o=>o.dest===dest&&o.q>0&&sameProductKey(state,canonical(o.product)+'|'+(o.unit||'BULTO'),row.key));
+ if(changeApplied>0){
+  if(matching.length){
+   const l=matching[matching.length-1];
+   l.q=fix(l.q+changeApplied);
+  }else{
+   nextOrders.push({id:id('cantidad'),dest,raw:String(changeApplied)+' '+row.product,
+    sourceName:canonical(row.product),product:row.product,q:changeApplied,unit:row.unit,
+    review:false,issues:[],suggestions:[],kind:'ajuste-cantidad'});
+  }
+ }else{
+  let remaining=fix(-changeApplied);
+  for(const l of [...matching].reverse()){
+   if(remaining<=1e-8)break;
+   const taken=fix(Math.min(l.q,remaining));
+   l.q=fix(l.q-taken);remaining=fix(remaining-taken);
+  }
+  if(remaining>1e-8)throw Error('La cantidad indicada supera el pedido actual');
+ }
+ const draft={...state,orders:nextOrders}; // Conserva también las líneas ajustadas a 0 para poder recuperarlas en Pedidos.
+ // Nunca permitir que el nuevo reparto deje cantidades ya bajadas sin respaldo.
+ const plan=deliveryPlan(draft);
+ for(const [location,q] of Object.entries(state.delivery||{})){
+  if(!(Number(q)>0))continue;
+  const at=location.lastIndexOf('@');if(at<0)continue;
+  const productKey=location.slice(0,at),place=location.slice(at+1);
+  const allowed=plan.eligible.filter(r=>r.dest===place&&sameProductKey(draft,r.key,productKey))
+   .reduce((sum,r)=>sum+r.allowed,0);
+  if(allowed+1e-8<deliveredFor(state,productKey,place))
+   throw Error('Hay mercancía bajada que quedaría sin respaldo. Corrige primero Reparto o compra la diferencia.');
+ }
+ state.orders=draft.orders;
+ return {changed:true,code:'ACTUALIZADO',cantidad:next,total:fix(row.total+changeApplied),
+  anterior:actual,diferencia:changeApplied,pendiente:pendingPurchases(state).find(x=>sameProductKey(state,x.key,row.key))?.remainingToBuy||0};
+}
+function qtyRequested(state,key){return totals(state).find(t=>sameProductKey(state,t.key,key))?.total||0;}
 function fix(n){return Math.round((Number(n)||0)*1000)/1000;}
 function assignSupplier(state,key,supplier,quantity){if(!SUPPLIERS.includes(supplier))throw Error('Proveedor desconocido');const row=totals(state).find(t=>t.key===key);if(!row)throw Error('Producto inexistente');if(row.unresolved)throw Error('Revisa el nombre en rojo antes de asignar');
  const q=quantity??row.total; if(!(q>0))throw Error('Cantidad no válida');
  // Prevent multiple draft assignments that exceed requested qty (extra requires separate manual purchase).
- const active=state.allocations.filter(a=>a.key===key&&a.status!=='cancelled');const existing=active.find(a=>a.supplier===supplier&&a.status==='draft');
+ const active=state.allocations.filter(a=>sameProductKey(state,a.key,key)&&a.status!=='cancelled');const existing=active.find(a=>a.supplier===supplier&&a.status==='draft');
  const others=active.reduce((s,a)=>s+a.q,0)-(existing?.q||0);
  if(others+q>row.total+1e-8)throw Error('La asignación supera la cantidad pedida');
  if(existing)existing.q=fix(q);else state.allocations.push({id:id('prov'),key,supplier,q:fix(q),status:'draft'});
 }
 function moveDraftToSupplier(state,key,supplier){
- const active=state.allocations.filter(a=>a.key===key&&a.status!=='cancelled');
+ const active=state.allocations.filter(a=>sameProductKey(state,a.key,key)&&a.status!=='cancelled');
  if(active.some(a=>a.status==='sent'))throw Error('Este producto ya se envió: corrige el pedido en vez de moverlo silenciosamente');
- state.allocations=state.allocations.filter(a=>a.key!==key||a.status==='cancelled');
+ state.allocations=state.allocations.filter(a=>!sameProductKey(state,a.key,key)||a.status==='cancelled');
  return assignSupplier(state,key,supplier,qtyRequested(state,key));
 }
-function supplierLines(state,supplier,includeSent=true){return state.allocations.filter(a=>a.supplier===supplier&&a.status!=='cancelled'&&(includeSent||a.status==='draft')).map(a=>({ ...a,product:totals(state).find(t=>t.key===a.key)?.product||a.key.split('|')[0] })).sort((a,b)=>a.product.localeCompare(b.product,'es',{numeric:true}));}
+function supplierLines(state,supplier,includeSent=true){return state.allocations.filter(a=>a.supplier===supplier&&a.status!=='cancelled'&&(includeSent||a.status==='draft')).map(a=>({ ...a,product:normalizedProductName(a.key.split('|')[0],state) })).sort((a,b)=>a.product.localeCompare(b.product,'es',{numeric:true}));}
 const qtyLabel=n=>String(n).replace('.',',');
-function supplierTXT(state,supplier){return supplierLines(state,supplier).map(a=>`${qtyLabel(a.q)}${display(a.product)}`).join('\n');}
+function combinedSupplierTXT(lines,state){
+ const map=new Map();for(const a of lines){const key=normalizedProductKey(state,a.key),old=map.get(key);
+  if(old)old.q=fix(old.q+a.q);else map.set(key,{name:normalizedProductName(a.product,state),q:fix(a.q)});}
+ return [...map.values()].sort((a,b)=>a.name.localeCompare(b.name,'es',{numeric:true})).map(a=>`${qtyLabel(a.q)}${display(a.name)}`).join('\n');
+}
+function supplierTXT(state,supplier){return combinedSupplierTXT(supplierLines(state,supplier),state);}
 function prepareWhatsApp(state,supplier){return {supplier,text:supplierTXT(state,supplier),url:`https://wa.me/?text=${encodeURIComponent('PEDIDO '+supplier+'\n'+supplierTXT(state,supplier))}`};}
 /** Sólo los productos que aún no han sido enviados: previene reenviar un pedido antiguo. */
-function supplierDraftTXT(state,supplier){return supplierLines(state,supplier,false).map(a=>`${qtyLabel(a.q)}${display(a.product)}`).join('\n');}
+function supplierDraftTXT(state,supplier){return combinedSupplierTXT(supplierLines(state,supplier,false),state);}
 function supplierDraftWhatsApp(state,supplier){const text=supplierDraftTXT(state,supplier);return {supplier,text,url:text?`https://wa.me/?text=${encodeURIComponent('PEDIDO '+supplier+'\n'+text)}`:''};}
 /** Un pedido individual es independiente y forma parte del total Global sólo cuando contiene líneas. */
 function destinationLines(state,dest){
  if(!state.destinations.some(d=>d.id===dest))throw Error('Destino desconocido');
  const map=new Map();
  for(const line of state.orders.filter(l=>l.dest===dest&&l.q>0)){
-  const key=canonical(line.product)+'|'+line.unit;
+  const product=normalizedProductName(line.product,state),key=canonical(product)+'|'+line.unit;
   const old=map.get(key);
   if(old){old.q=fix(old.q+line.q);old.review ||= line.review;}
-  else map.set(key,{key,product:line.product,unit:line.unit,q:fix(line.q),review:line.review});
+  else map.set(key,{key,product,unit:line.unit,q:fix(line.q),review:line.review && !(canonical(line.product)==='BANAN'&&canonical(product)==='BANANA')});
  }
  return [...map.values()].sort((a,b)=>a.product.localeCompare(b.product,'es',{numeric:true}));
 }
@@ -251,7 +815,7 @@ function destinationTXT(state,dest){return destinationLines(state,dest).map(l=>`
 function destinationWhatsApp(state,dest){const d=state.destinations.find(x=>x.id===dest);if(!d)throw Error('Destino desconocido');const text=destinationTXT(state,dest);return {text,url:text?`https://wa.me/?text=${encodeURIComponent('PEDIDO '+display(d.name)+'\n'+text)}`:''};}
 /** Conservar el Global completo, pero sacar lo asignado de la bandeja rápida de asignación. */
 function unassignedProducts(state){return totals(state).filter(r=>{
- const allocations=state.allocations.filter(a=>a.key===r.key&&a.status!=='cancelled');
+ const allocations=state.allocations.filter(a=>sameProductKey(state,a.key,r.key)&&a.status!=='cancelled');
  const manual=productStatus(state,r.key).manuallyBought;
  return !allocations.length && r.total-manual>1e-8;
 });}
@@ -259,17 +823,17 @@ function unassignedProducts(state){return totals(state).filter(r=>{
 function reopenSupplierSent(state,supplier){
  const lines=supplierLines(state,supplier).filter(a=>a.status==='sent');
  if(!lines.length)throw Error('No hay líneas enviadas para reabrir');
- for(const a of lines){if(Object.keys(state.delivery).some(k=>k.startsWith(a.key+'@')&&state.delivery[k]>0))throw Error('Hay mercancía bajada: no se puede anular el envío sin corregir el reparto');}
+ for(const a of lines){if(Object.entries(state.delivery||{}).some(([location,q])=>{const at=location.lastIndexOf('@');return at>=0&&sameProductKey(state,location.slice(0,at),a.key)&&q>0;}))throw Error('Hay mercancía bajada: no se puede anular el envío sin corregir el reparto');}
  for(const a of state.allocations)if(a.supplier===supplier&&a.status==='sent')a.status='draft';
  return lines.length;
 }
 
-function markSupplierSent(state,supplier){const lines=supplierLines(state,supplier,false);if(!lines.length)throw Error('No hay líneas nuevas para enviar');const packet={id:id('envio'),supplier,text:lines.map(x=>`${qtyLabel(x.q)}${display(x.product)}`).join('\n'),timestamp:new Date().toISOString(),simulation:true};for(const a of state.allocations)if(a.supplier===supplier&&a.status==='draft')a.status='sent';state.sentMessages.push(packet);return packet;}
+function markSupplierSent(state,supplier){const lines=supplierLines(state,supplier,false);if(!lines.length)throw Error('No hay líneas nuevas para enviar');const packet={id:id('envio'),supplier,text:combinedSupplierTXT(lines,state),timestamp:new Date().toISOString(),confirmedByUser:true,channel:'confirmacion-manual'};for(const a of state.allocations)if(a.supplier===supplier&&a.status==='draft')a.status='sent';state.sentMessages.push(packet);return packet;}
 function manualBuy(state,key,q){const row=totals(state).find(t=>t.key===key);if(!row)throw Error('No existe producto');if(row.unresolved)throw Error('Confirma el producto antes de comprar');if(!(q>0))throw Error('Cantidad positiva requerida');state.manual.push({id:id('manual'),key,q:fix(q),confirmed:true});}
 function receiveSupplier(state,allocationId,q){const a=state.allocations.find(x=>x.id===allocationId&&x.status==='sent');if(!a)throw Error('El pedido debe estar enviado');if(!(q>0))throw Error('Cantidad inválida');const previous=state.receipts.filter(x=>x.allocationId===allocationId).reduce((s,x)=>s+x.q,0);if(previous+q>a.q+1e-8)throw Error('No se recibe más de lo enviado sin registrar una compra extra');state.receipts.push({id:id('receipt'),allocationId,q:fix(q)});}
-function authorizedQty(state,key){const sent=state.allocations.filter(a=>a.key===key&&a.status==='sent').reduce((s,a)=>s+a.q,0);const manual=state.manual.filter(m=>m.key===key&&m.confirmed).reduce((s,a)=>s+a.q,0);return fix(sent+manual);}
-function actuallyReceived(state,key){const manual=state.manual.filter(m=>m.key===key&&m.confirmed).reduce((s,x)=>s+x.q,0);
- const received=state.receipts.filter(r=>state.allocations.find(a=>a.id===r.allocationId)?.key===key).reduce((s,x)=>s+x.q,0);return fix(manual+received);
+function authorizedQty(state,key){const sent=state.allocations.filter(a=>sameProductKey(state,a.key,key)&&a.status==='sent').reduce((s,a)=>s+a.q,0);const manual=state.manual.filter(m=>sameProductKey(state,m.key,key)&&m.confirmed).reduce((s,a)=>s+a.q,0);return fix(sent+manual);}
+function actuallyReceived(state,key){const manual=state.manual.filter(m=>sameProductKey(state,m.key,key)&&m.confirmed).reduce((s,x)=>s+x.q,0);
+ const received=state.receipts.filter(r=>sameProductKey(state,state.allocations.find(a=>a.id===r.allocationId)?.key,key)).reduce((s,x)=>s+x.q,0);return fix(manual+received);
 }
 
 /** Regla única de negocio usada por Global, Compras y Reparto.
@@ -279,10 +843,10 @@ function actuallyReceived(state,key){const manual=state.manual.filter(m=>m.key==
  */
 function productStatus(state,key){
  const requested=qtyRequested(state,key);
- const active=state.allocations.filter(a=>a.key===key&&a.status!=='cancelled');
+ const active=state.allocations.filter(a=>sameProductKey(state,a.key,key)&&a.status!=='cancelled');
  const assignedDraft=fix(active.filter(a=>a.status==='draft').reduce((sum,a)=>sum+a.q,0));
  const assignedSent=fix(active.filter(a=>a.status==='sent').reduce((sum,a)=>sum+a.q,0));
- const manuallyBought=fix(state.manual.filter(m=>m.key===key&&m.confirmed).reduce((sum,m)=>sum+m.q,0));
+ const manuallyBought=fix(state.manual.filter(m=>sameProductKey(state,m.key,key)&&m.confirmed).reduce((sum,m)=>sum+m.q,0));
  const supplierReceived=fix(state.receipts.filter(r=>active.some(a=>a.id===r.allocationId)).reduce((sum,r)=>sum+r.q,0));
  const authorized=fix(assignedSent+manuallyBought);
  const status=authorized>0?'REPARTO_HABILITADO':assignedDraft>0?'ASIGNADO_SIN_ENVIAR':'SIN_GESTIONAR';
@@ -297,7 +861,7 @@ function quickAssign(state,key,supplier){
  if(!row)throw Error('Producto no encontrado');
  if(row.unresolved)throw Error('Revisa el nombre en rojo antes de asignar');
  if(!SUPPLIERS.includes(supplier)||supplier==='COMPRA EXTERNA')throw Error('Selecciona un proveedor válido');
- const active=state.allocations.filter(a=>a.key===key&&a.status!=='cancelled');
+ const active=state.allocations.filter(a=>sameProductKey(state,a.key,key)&&a.status!=='cancelled');
  if(active.some(a=>a.status==='sent'))throw Error('Ya enviado: cualquier cambio requiere una corrección explícita');
  if(active.length&&active.every(a=>a.supplier===supplier&&a.status==='draft')){
   state.allocations=state.allocations.filter(a=>a.key!==key||a.status!=='draft');
@@ -333,13 +897,13 @@ function manualBuySafe(state,key,q,{removeDraft=false,allowExtra=false}={}){
   // Solo se retira del borrador la cantidad de compra que supera
   // lo que estaba libre, sin tocar otros bultos reservados al proveedor.
   let toReduce=fix(Math.max(0,qty-unassigned));
-  for(const a of state.allocations.filter(a=>a.key===key&&a.status==='draft')){
+  for(const a of state.allocations.filter(a=>sameProductKey(state,a.key,key)&&a.status==='draft')){
    if(toReduce<=0)break;
    const reduction=Math.min(toReduce,a.q);
    a.q=fix(a.q-reduction);
    toReduce=fix(toReduce-reduction);
   }
-  state.allocations=state.allocations.filter(a=>!(a.key===key&&a.status==='draft'&&a.q<=0));
+  state.allocations=state.allocations.filter(a=>!(sameProductKey(state,a.key,key)&&a.status==='draft'&&a.q<=0));
  }
  manualBuy(state,key,qty);
  return productStatus(state,key);
@@ -370,7 +934,7 @@ function checkManualPurchaseReversal(state,key,quantity){
  if(!Number.isFinite(qty)||qty<=0||qty>st.manuallyBought+1e-8)
   throw Error('Cantidad a deshacer inválida o superior a lo comprado manualmente');
  const after=fix(st.authorized-qty);
- const delivered=fix(Object.entries(state.delivery||{}).filter(([location,v])=>location.startsWith(key+'@')&&Number(v)>0).reduce((n,[,v])=>n+Number(v),0));
+ const delivered=fix(Object.entries(state.delivery||{}).filter(([location,v])=>{const at=location.lastIndexOf('@');return at>=0&&sameProductKey(state,location.slice(0,at),key)&&Number(v)>0;}).reduce((n,[,v])=>n+Number(v),0));
  if(after+1e-8<delivered){
   const name=totals(state).find(x=>x.key===key)?.product||key;
   throw Error(`No puedes desmarcar ${name}: hay ${delivered} ya bajado y quedarían ${after} habilitados. Deshaz primero las bajadas que correspondan.`);
@@ -417,7 +981,7 @@ function planShortage(state,key,by){
  for(const [dest,rawQty] of Object.entries(by)){
   const q=num(rawQty);if(!Number.isFinite(q)||q<0)throw Error('Cantidad inválida');
   if(q>(row.by[dest]||0)+1e-8)throw Error('No se pueden asignar más de las cajas pedidas por tienda');
-  if(q+(1e-8)<(state.delivery[key+'@'+dest]||0))throw Error('No se puede quitar mercancía ya bajada');
+  if(q+(1e-8)<deliveredFor(state,key,dest))throw Error('No se puede quitar mercancía ya bajada');
   total+=q;
  }
  if(total>authorized+1e-8)throw Error('Se supera la mercancía habilitada');
@@ -430,11 +994,26 @@ function deliveryPlan(state){const eligible=[],blocked=[],short=[],needsReview=[
   const sorted=Object.entries(t.by).sort((a,b)=>dOrder(a[0],b[0]));
   // Si afecta a varias tiendas y falta producto, no se elige arbitrariamente quién recibe menos.
   const partial=authorized<t.total-1e-8&&sorted.length>1;
-  const specified=state.shortageAllocation[t.key];
-  if(partial&&!specified){needsReview.push({...t,authorized,reason:'REPARTO INSUFICIENTE: ELIGE CANTIDADES POR DESTINO'});continue;}
+  const specified=legacyShortage(state,t.key);
+  if(partial&&!specified){
+   needsReview.push({...t,authorized,reason:'REPARTO INSUFICIENTE: ELIGE CANTIDADES POR DESTINO'});
+   // Las bajadas ya hechas no desaparecen porque después aumenten un pedido.
+   // Se mantienen únicamente esos mínimos y la disponibilidad libre queda
+   // pendiente de distribuir manualmente, nunca se reparte a otra tienda.
+   const physical=sorted.map(([dest,demand])=>({dest,demand,delivered:deliveredFor(state,t.key,dest)}));
+   const taken=fix(physical.reduce((sum,x)=>sum+x.delivered,0));
+   if(taken<=authorized+1e-8){
+    for(const {dest,demand,delivered} of physical){
+     if(delivered>0)eligible.push({key:t.key,dest,product:t.product,unit:t.unit,
+      requested:demand,allowed:delivered,delivered,remaining:0});
+     if(delivered<demand)short.push({key:t.key,dest,product:t.product,missing:fix(demand-delivered),unit:t.unit});
+    }
+   }
+   continue;
+  }
   let left=authorized;
   for(const [dest,demand] of sorted){const proposal=partial?fix(specified[dest]||0):demand;const allowed=fix(Math.min(demand,left,proposal));
-   if(allowed>0){const delivered=fix(state.delivery[t.key+'@'+dest]||0);eligible.push({key:t.key,dest,product:t.product,unit:t.unit,requested:demand,allowed,delivered,remaining:fix(Math.max(0,allowed-delivered))});}
+   if(allowed>0){const delivered=deliveredFor(state,t.key,dest);eligible.push({key:t.key,dest,product:t.product,unit:t.unit,requested:demand,allowed,delivered,remaining:fix(Math.max(0,allowed-delivered))});}
    if(allowed<demand)short.push({key:t.key,dest,product:t.product,missing:fix(demand-allowed),unit:t.unit});
    left=fix(Math.max(0,left-allowed));}
  }
@@ -442,7 +1021,54 @@ function deliveryPlan(state){const eligible=[],blocked=[],short=[],needsReview=[
 }
 
 function deliver(state,key,dest,q=null){const row=deliveryPlan(state).eligible.find(r=>r.key===key&&r.dest===dest);if(!row)throw Error('Producto no habilitado para reparto');const add=q===null?row.remaining:num(q);if(!(add>0)||add>row.remaining+1e-8)throw Error('Cantidad superior al reparto habilitado');const k=key+'@'+dest;state.delivery[k]=fix((state.delivery[k]||0)+add);return state.delivery[k];}
-function undoDelivery(state,key,dest){delete state.delivery[key+'@'+dest];}
+function undoDelivery(state,key,dest){for(const location of Object.keys(state.delivery||{})){const at=location.lastIndexOf('@');if(at>=0&&location.slice(at+1)===dest&&sameProductKey(state,location.slice(0,at),key))delete state.delivery[location];}}
+
+/** Progreso de bajada por destino, ponderado por cantidades realmente habilitadas.
+ * No mezcla tiendas y nunca cuenta productos sin compra/envío como bajados.
+ */
+function deliveryProgress(state,dest){
+ // El progreso incluye TODO el pedido de la tienda, también lo que aún
+ // falta comprar o repartir. Evita enseñar 100 % con cajas todavía faltantes.
+ // Cada producto pesa una fila; nunca se suman bultos, kilos y manojos.
+ const rows=totals(state).filter(x=>(x.by[dest]||0)>0);
+ const total=rows.length;
+ const bajado=fix(rows.reduce((sum,r)=>sum+Math.min(1,deliveredFor(state,r.key,dest)/(r.by[dest]||1)),0));
+ const completos=rows.filter(r=>deliveredFor(state,r.key,dest)+1e-8>=r.by[dest]).length;
+ const pendientes=total-completos;
+ return {total,bajado,restante:fix(Math.max(0,total-bajado)),
+   porcentaje:total>0?Math.min(100,Math.round(bajado/total*100)):0,
+   productos:rows.length,completos,pendientes};
+}
+
+/** Mutación segura para una transacción Firebase: compara la fila VISIBLE con la
+ * última fila de la nube. Dos personas no pueden tickar dos veces lo mismo.
+ * Devuelve changed=false SIN modificar el estado cuando hay cambio concurrente.
+ */
+function applyDeliveryMutation(state,{action,key,dest,quantity=null,expectedDelivered,expectedAllowed,day,historyLength}){
+ if(state.day!==day||((state.history||[]).length)!==historyLength)
+  return {changed:false,code:'JORNADA_CAMBIADA'};
+ const row=deliveryPlan(state).eligible.find(r=>r.key===key&&r.dest===dest);
+ if(!row)return {changed:false,code:'NO_HABILITADO'};
+ if(!Number.isFinite(Number(expectedDelivered))||Math.abs(row.delivered-Number(expectedDelivered))>1e-8)
+  return {changed:false,code:'MODIFICADO_POR_OTRO'};
+ if(!Number.isFinite(Number(expectedAllowed))||Math.abs(row.allowed-Number(expectedAllowed))>1e-8)
+  return {changed:false,code:'CANTIDAD_ACTUALIZADA'};
+ if(action==='bajar'){
+  if(row.remaining<=1e-8)return {changed:false,code:'YA_BAJADO'};
+  const amount=quantity===null?row.remaining:num(quantity);
+  if(!Number.isFinite(amount)||amount<=0)return {changed:false,code:'CANTIDAD_INVALIDA'};
+  if(amount>row.remaining+1e-8)return {changed:false,code:'CANTIDAD_INSUFICIENTE'};
+  deliver(state,key,dest,amount);
+  return {changed:true,code:'BAJADO',cantidad:fix(amount)};
+ }
+ if(action==='deshacer'){
+  if(row.delivered<=1e-8)return {changed:false,code:'YA_DESHECHO'};
+  undoDelivery(state,key,dest);
+  return {changed:true,code:'DESHECHO',cantidad:fix(row.delivered)};
+ }
+ return {changed:false,code:'ACCION_DESCONOCIDA'};
+}
+
 function loadItem(state,key,dest,q){state.load[key+'@'+dest]=fix(q);}
 function surplus(state){const out=[];for(const t of totals(state)){const extra=fix(Math.max(0,actuallyReceived(state,t.key)-t.total));if(extra>0)out.push({...t,extra});}return out;}
 function distributeSurplus(extra,{fractional=false}={}){
@@ -455,7 +1081,6 @@ function distributeSurplus(extra,{fractional=false}={}){
 function assignRider(state,dest,name){if(!state.destinations.some(x=>x.id===dest))throw Error('Destino desconocido');const rider=canonical(name);if(!rider)throw Error('Repartidor vacío');if(!state.riders.includes(rider))state.riders.push(rider);state.riderAssignments[dest]=rider;}
 function newDay(state,newDate){if(!/^\d{4}-\d{2}-\d{2}$/.test(newDate))throw Error('Fecha inválida');const before={day:state.day,orders:state.orders,allocations:state.allocations,manual:state.manual,receipts:state.receipts,delivery:state.delivery,load:state.load,shortageAllocation:state.shortageAllocation||{},riderAssignments:state.riderAssignments||{},sentMessages:state.sentMessages||[]};state.history.push(structuredClone(before));state.day=newDate;state.orders=[];state.allocations=[];state.manual=[];state.receipts=[];state.delivery={};state.load={};state.shortageAllocation={};state.riderAssignments={};state.sentMessages=[];state.importedFingerprints=[];}
 function summary(state){const t=totals(state),p=deliveryPlan(state);return {day:state.day,destinations:state.destinations.length,originalLines:state.orders.length,products:t.length,quantities:fix(t.reduce((s,x)=>s+x.total,0)),unreviewed:state.orders.filter(x=>x.review).length,assignedDraft:state.allocations.filter(a=>a.status==='draft').length,assignedSent:state.allocations.filter(a=>a.status==='sent').length,manualBought:pendingPurchases(state).filter(r=>r.manuallyBought>0).length,deliverable:p.eligible.length,blocked:p.blocked.length,shortages:p.short.length,shortageReview:p.needsReview.length,delivered:Object.keys(state.delivery).length};}
-
 // ARSLAN LISTAS — motor de sincronización (independiente de la UI y del proveedor).
 // Una instantánea con revisión CAS y fusión conservadora de cambios simultáneos.
 const SYNC_SCHEMA_VERSION = 1;
@@ -589,9 +1214,17 @@ class SyncEngine {
   }
   async acceptRemote(remote){
     if(!Number.isInteger(remote.revision)||!plain(remote.data)||!Array.isArray(remote.data.orders))throw Error('Datos de nube no válidos');
+    // Ya sincronizado y sin cambios pendientes: aceptar la última revisión
+    // de Firebase, sin provocar conflictos contra la copia del primer inicio.
+    if(this.revision!==null&&!this.dirty&&this.base&&same(this.local,this.base)){
+      if(remote.revision<this.revision)return;
+      this.revision=remote.revision;this.base=clone(remote.data);this.conflict=null;
+      this.apply(remote.data);this.setStatus('sincronizado','Cambios del equipo recibidos');
+      return;
+    }
     if(this.hasLocal&&!same(this.local,remote.data)){
-      if(this.meta?.base && Number.isInteger(this.meta.revision)){
-        const merged=mergeStates(this.meta.base,this.local,remote.data);
+      if(this.base||this.meta?.base){
+        const merged=mergeStates(this.base||this.meta.base,this.local,remote.data);
         if(merged.ok){this.revision=remote.revision;this.base=clone(remote.data);this.apply(merged.value);this.dirty=!same(this.local,remote.data);if(this.dirty){this.setStatus('pendiente','Se han combinado cambios independientes; guardando…');this.schedule();}else this.setStatus('sincronizado','Actualizado desde la nube');return;}
       }
       this.conflict={remote:clone(remote),local:clone(this.local)};this.revision=remote.revision;this.base=clone(remote.data);this.setStatus('conflicto','Hay datos diferentes en este dispositivo y en la nube. Elige una versión sin perder la copia local.');return;
@@ -628,6 +1261,14 @@ class SyncEngine {
     }catch(err){this.setStatus('sin_conexion','No se pudo enviar a la nube; cambios guardados localmente: '+(err?.message||err));}
     finally{this.running=false;if(this.dirty&&!this.conflict&&this.status!=='sin_conexion')this.schedule();}
   }
+  /** Incorporar una bajada confirmada atómicamente en Firebase. */
+  applyConfirmedDocument(remote){
+    if(!remote||!Number.isSafeInteger(remote.revision)||!remote.data)throw Error('Confirmación de Firebase inválida');
+    if(this.dirty||this.conflict)throw Error('Hay cambios locales sin guardar; no se sustituyeron tus datos');
+    if(this.revision!==null&&remote.revision<this.revision)return;
+    this.revision=remote.revision;this.base=clone(remote.data);this.meta=this.getMeta();
+    this.apply(remote.data);this.setStatus('sincronizado','Bajada confirmada en Firebase');
+  }
   async useRemote(){
     if(!this.conflict)throw Error('No hay conflicto');
     const remote=this.conflict.remote;this.conflict=null;this.revision=remote.revision;this.base=clone(remote.data);this.dirty=false;this.apply(remote.data);this.setStatus('sincronizado','Versión de la nube recuperada');
@@ -639,7 +1280,6 @@ class SyncEngine {
   }
   stop(){this.stopped=true;clearTimeout(this.timer);if(typeof this.unsubscribe==='function')this.unsubscribe();}
 }
-
 // ARSLAN LISTAS — configuración PÚBLICA de Firebase, proyecto NUEVO y exclusivo.
 // Igual que Ruta Madrid: Firebase Authentication + Realtime Database.
 // No usar la configuración de RUTA1 ni sus credenciales, base de datos o workspace.
@@ -658,7 +1298,6 @@ const ARSLAN_CLOUD_ACTIVE = Boolean(
   ARSLAN_FIREBASE_CONFIG.databaseURL && ARSLAN_FIREBASE_CONFIG.projectId &&
   ARSLAN_FIREBASE_CONFIG.appId
 );
-
 // Adaptador de Firebase Realtime Database (misma arquitectura que Ruta Madrid).
 // Snapshot privado por UID con versión CAS para evitar pisar otro dispositivo.
 const FIREBASE_SDK_VERSION='12.16.0'; // versión usada en RUTA1 como referencia de compatibilidad
@@ -676,22 +1315,29 @@ async function createArslanCloudAdapter(config=ARSLAN_FIREBASE_CONFIG) {
  const app=appSDK.getApps().find(a=>a.name==='arslan-listas-next')||appSDK.initializeApp(config,'arslan-listas-next');
  const auth=authSDK.getAuth(app),db=dbSDK.getDatabase(app);
  await authSDK.setPersistence(auth,authSDK.browserLocalPersistence);
- let currentUid=null;
+ let currentUid=null, workspaceOwner=null;
  const authUser=()=>{
    const actual=auth.currentUser?.uid;
    if(!currentUid || currentUid!==actual)throw Error('La sesión ha cambiado. Vuelve a iniciar sesión.');
    return currentUid;
  };
- const docPath=()=>`arslanListas/${ARSLAN_FIREBASE_WORKSPACE}/${authUser()}/document`;
+ const workspacePath=()=>`arslanListas/${ARSLAN_FIREBASE_WORKSPACE}/${workspaceOwner||authUser()}`;
+ const docPath=()=>`${workspacePath()}/document`;
+ const validUid=id=>typeof id==='string'&&/^[A-Za-z0-9]{16,128}$/.test(id);
  const normalize=(obj)=>{
    if(!obj)return null;
    const rev=Number(obj.revision);
    if(!Number.isSafeInteger(rev) || rev<1 || !obj.data || !Array.isArray(obj.data.orders))throw Error('Los datos recibidos de Firebase no tienen un formato válido');
    return {revision:rev,data:obj.data,updated_at:obj.updated_at||null};
  };
- const {ref,get,onValue,runTransaction}=dbSDK;
+ const {ref,get,set,onValue,runTransaction}=dbSDK;
  return {
-  setUser(id){currentUid=id;},
+  setUser(id){if(currentUid!==id)workspaceOwner=id;currentUid=id;},
+  setWorkspaceOwner(uid){if(!validUid(uid))throw Error('ID de equipo inválido');workspaceOwner=uid;},
+  getWorkspaceOwner(){return workspaceOwner||authUser();},
+  async addMember(uid){if(!validUid(uid))throw Error('ID de trabajador inválido');if((workspaceOwner||authUser())!==authUser())throw Error('Solo el propietario puede autorizar trabajadores');if(uid===authUser())throw Error('Ya eres propietario');await set(ref(db,workspacePath()+'/members/'+uid),true);},
+  async revokeMember(uid){if(!validUid(uid))throw Error('ID de trabajador inválido');if((workspaceOwner||authUser())!==authUser())throw Error('Solo el propietario puede retirar accesos');await set(ref(db,workspacePath()+'/members/'+uid),false);},
+  async listMembers(){if((workspaceOwner||authUser())!==authUser())return [];const snap=await get(ref(db,workspacePath()+'/members'));const data=snap.val()||{};return Object.keys(data).filter(uid=>data[uid]===true);},
   onAuthChange(listener){
    return authSDK.onAuthStateChanged(auth,user=>listener(user?'SIGNED_IN':'SIGNED_OUT',user?{user}:null),error=>listener('AUTH_ERROR',{error}));
   },
@@ -725,6 +1371,48 @@ async function createArslanCloudAdapter(config=ARSLAN_FIREBASE_CONFIG) {
     {revision:expectedRevision+1,data:state,updated_at:Date.now()}:undefined,{applyLocally:false});
    return tx.committed?normalize(tx.snapshot.val()):null;
   },
+  /** Cada tick se procesa dentro de UNA transacción sobre el documento vigente.
+   * El SDK reintenta si otro repartidor guardó entre la lectura y la escritura.
+   * Un tick tardío sobre la misma fila queda rechazado, nunca se duplica.
+   */
+  async mutateDelivery(operation){
+   const location=ref(db,docPath());
+   const first=await get(location);
+   if(!first.exists())throw Error('No hay jornada sincronizada todavía');
+   let outcome={changed:false,code:'NO_DISPONIBLE'};
+   const tx=await runTransaction(location,old=>{
+    if(!old||!old.data||!Number.isSafeInteger(old.revision)){outcome={changed:false,code:'NO_DISPONIBLE'};return;}
+    const draft=structuredClone(old.data);
+    const result=applyDeliveryMutation(draft,operation);
+    outcome=result;
+    if(!result.changed)return;
+    return {revision:old.revision+1,data:draft,updated_at:Date.now()};
+   },{applyLocally:false});
+   if(tx.committed)return {...outcome,document:normalize(tx.snapshot.val())};
+   const latest=await get(location);
+   return {...outcome,document:latest.exists()?normalize(latest.val()):null};
+  },
+  /** Cambiar cantidad de una tienda en la última versión de Firebase.
+   * Un segundo clic obsoleto no pisa el cambio de otra persona.
+   */
+  async mutateDemand(operation){
+   const location=ref(db,docPath());
+   let outcome={changed:false,code:'NO_DISPONIBLE'};
+   const tx=await runTransaction(location,old=>{
+    if(!old||!old.data||!Number.isSafeInteger(old.revision)){
+     outcome={changed:false,code:'NO_DISPONIBLE'};return;
+    }
+    const draft=structuredClone(old.data);
+    const result=adjustDestinationDemand(draft,operation.key,operation.dest,operation.delta,{
+     expectedQuantity:operation.expectedQuantity,day:operation.day,historyLength:operation.historyLength});
+    outcome=result;
+    if(!result.changed)return;
+    return {revision:old.revision+1,data:draft,updated_at:Date.now()};
+   },{applyLocally:false});
+   if(tx.committed)return {...outcome,document:normalize(tx.snapshot.val())};
+   const latest=await get(location);
+   return {...outcome,document:latest.exists()?normalize(latest.val()):null};
+  },
   watch(callback){
    let first=true;
    const unsub=onValue(ref(db,docPath()),()=>{
@@ -735,16 +1423,15 @@ async function createArslanCloudAdapter(config=ARSLAN_FIREBASE_CONFIG) {
   }
  };
 }
-
-// Código de interfaz separado para compilar una demo HTML autónoma.
-const FIXTURE = "PEDIDO SL\n3 MANZANA GOLDEN 28\n2 MANZANA GOLDEN 24\n1 LIMON SEGUNDA\n1 KAKI PRIMERA\n1 PERA EDEN\n1 MANDARINA DE BOLSA\n2 MANZANA PINK LADY\n2 CHIRIMOYA\n2 MANDARINA PLASENCIA\n2 MARACUYA\n2 MANDARINA COLOMBE\n2 PINA\n2 MELON\n2 BROCOLI\n2 PLATANO CANARIO PRIMERA\n2 PAPAYA\n2 MANGO\n2 NARANJA MESA SONRISA\n2 NARANJA HOJA\n2 BATAVIA\n2 PEREJIL\n2 CHAMPINON\n2 UVA BLANCA\n2 UVA ROJA\n2 CEREZA\n2 ZANAHORIA\n2 TOMATE ASURCADO MARRON\n2 TOMATE ROSA\n2 CEBOLLA DULCE\n2 CEBOLLA NORMAL\n\nPEDIDO SP\n8 MANZANA GOLDEN 28\n5 MANZANA GOLDEN 24\n1 LIMON SEGUNDA\n3 LIMON SEGUNDA\n3 TOMATE RAMA\n2 KAKI SEGUNDA\n1 MANZANA GRNNY SMITH\n2 MANDARINA HOJA\n2 MANZANA GRANNY SMITH\n2 KIWI ZESPRI GOLD\n2 VALVENOSTA GOLDEN\n2 KIWI ZESPRI\n2 PERA RINCON DEL SOTO\n2 GRANADA\n2 PERA LIMONERA\n2 NUECES\n2 AGUACATE GRANEL\n2 PERA CONFERENCIA SEGUNDA\n2 KIWI SEGUNDA\n2 KAKI\n2 REINETA PARDA\n2 COLIFLOR\n2 ICEBERG\n2 GUINDILLA\n2 PIMIENTO PADRON\n2 CASTANA\n2 ESCAROLA\n2 ACELGAS\n2 ESPINACA\n2 APIO\n2 NARANJA ZUMO\n2 ARANDANOS\n2 SETAS\n2 BERENJENA\n2 CALABACIN\n2 PIMIENTO ITALIANO ROJO\n2 PUERROS\n2 PEPINO\n2 BONIATO\n2 TOMATE PERA\n2 TOMATE RAFF\n2 TOMATE ASURCADO AZUL\n2 CEBOLLA ROJA\n2 PATATA 5 KG\n2 AJO PRIMERA\n1 MANZANA PINK LADY\n1 CHIRIMOYA\n1 MANDARINA PLASENCIA\n1 MARACUYA\n1 MANDARINA COLOMBE\n1 PINA\n1 MELON\n1 BROCOLI\n1 PLATANO CANARIO PRIMERA\n1 PAPAYA\n1 MANGO\n1 NARANJA MESA SONRISA\n1 NARANJA HOJA\n1 BATAVIA\n1 PEREJIL\n1 CHAMPINON\n";
+// ARSLAN LISTAS · interfaz operativa para pedidos, compras y reparto.
+const FIXTURE = "";
 const KEY='arslan_listas_reparto_seguro_v5_local_only';
 let state;
 const CLOUD_ENABLED=ARSLAN_CLOUD_ACTIVE;
 if(!CLOUD_ENABLED){
  try{state=JSON.parse(localStorage.getItem(KEY)||'null');}catch{state=null;}
  if(!state||!Array.isArray(state.orders)||!Array.isArray(state.catalog)){
-  state=createState();importBlocks(state,FIXTURE);
+  state=createState(); // No cargar pedidos ficticios.
  }
 }else{
  // Mostrar la copia existente del mismo navegador antes de entrar en Firebase.
@@ -757,6 +1444,7 @@ let tab='inicio',supplier='ESMO',filter='pending',purchaseView='pending',toastMe
 let selectedDeliveryDest='SP',expandedPurchaseKey='',editingDestination='';
 const purchaseDrafts=Object.create(null); // Sólo controles temporales. Ninguna compra se guarda sin confirmar.
 let cloudAdapter=null,cloudEngine=null,cloudUser=null;
+let teamOwnerUid=null,teamMembers=[],deliveryBusy=false;
 let cloudStatus=CLOUD_ENABLED?'conectando':'sin_configurar';
 let cloudMessage=CLOUD_ENABLED?'Iniciando conexión…':'Guardado solo en este dispositivo';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -775,13 +1463,30 @@ function normalizeRuntimeState(value){
 
 function freshCloudState(){const s=createState(),d=new Date();s.day=[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');return s;}
 function cloudCanEdit(){return !CLOUD_ENABLED||(cloudUser&&cloudEngine&&['sincronizado','pendiente','sin_conexion'].includes(cloudStatus)&&cloudEngine.revision!==null&&!cloudEngine.conflict);}
-function persistCloudUser(next,meta){if(!cloudUser)return;try{localStorage.setItem(KEY+':user:'+cloudUser.id,JSON.stringify({state:next,meta}));}catch(e){cloudStatus='error';cloudMessage='El navegador no permite guardar el trabajo: '+(e?.message||e);updateSyncDisplay();}}
+function persistCloudUser(next,meta){if(!cloudUser)return;try{localStorage.setItem(KEY+':user:'+cloudUser.id+':team:'+(teamOwnerUid||cloudUser.id),JSON.stringify({state:next,meta}));}catch(e){cloudStatus='error';cloudMessage='El navegador no permite guardar el trabajo: '+(e?.message||e);updateSyncDisplay();}}
 function syncBadge(withId=true){
  const titles={sin_configurar:'SOLO EN ESTE DISPOSITIVO',conectando:'CONECTANDO',sin_sesion:'ENTRA PARA SINCRONIZAR',sincronizado:'SINCRONIZADO',pendiente:'GUARDANDO…',sin_conexion:'SIN CONEXIÓN',conflicto:'REVISAR CONFLICTO',importar:'IMPORTAR A NUBE',esperando_origen:'ESPERANDO LISTAS DEL ORDENADOR',error:'ERROR DE SINCRONIZACIÓN'};
  const tone=cloudStatus==='sincronizado'?'ok':cloudStatus==='conflicto'||cloudStatus==='error'?'err':'warn';
  return `<span class="sync-pill ${tone}" ${withId?'id="sync-badge"':''} title="${esc(cloudMessage)}">${esc(titles[cloudStatus]||cloudStatus)}</span>`;
 }
 function legacyBackupButtons(){let saved=null;try{saved=JSON.parse(localStorage.getItem(KEY)||'null');}catch{}return saved&&Array.isArray(saved.orders)?`<div class="notice"><b>Datos anteriores en este navegador:</b> ${saved.orders.length} líneas. Descarga una copia antes de conectar la nube. ${btn('cloud-legacy-export','Descargar copia JSON','','small')}</div>`:'';}
+
+function teamPanel(){
+ if(!CLOUD_ENABLED||!cloudUser)return '';
+ const owner=teamOwnerUid||cloudUser.id,isOwner=owner===cloudUser.id;
+ return `<details class="card team-panel"><summary><strong>Equipo · acceso de repartidores</strong></summary>
+ <p class="subtle">Cada persona utiliza su cuenta propia de Firebase. El propietario autoriza las cuentas del equipo.</p>
+ <label>Mi ID de Firebase</label><div class="team-member"><code>${esc(cloudUser.id)}</code>${btn('team-copy-id','Copiar','','small')}</div>
+ <label for="team-owner-id">ID del propietario</label><input id="team-owner-id" value="${esc(owner)}" autocomplete="off" spellcheck="false">
+ <div class="tools">${btn('team-join','Conectar a este equipo','','small dark')}</div>
+ ${isOwner?`<div class="team-owner"><h3>Dar acceso a un trabajador</h3><p class="subtle">El trabajador crea su cuenta y te pasa su ID. No compartas tu contraseña.</p>
+ <label for="team-member-id">ID del trabajador</label><input id="team-member-id" placeholder="ID de Firebase" autocomplete="off" spellcheck="false">
+ <div class="tools">${btn('team-add','Autorizar acceso','','small dark')}</div>
+ ${teamMembers.map(id=>`<div class="team-member"><code>${esc(id)}</code>${btn('team-revoke','Revocar',id,'small red')}</div>`).join('')}</div>`:
+ `<p class="subtle">El propietario debe autorizar tu ID para ver la jornada.</p>`}
+ </details>`;
+}
+
 function cloudPanel(){
  if(!CLOUD_ENABLED)return `<div class="card sync-panel"><h2>Sincronización entre dispositivos</h2><div class="notice red"><b>No activada.</b> Estos pedidos se guardan solamente en este navegador. Abrir la página en otro móvil no los copia.</div>${legacyBackupButtons()}<p class="subtle">La conexión requiere un proyecto Firebase independiente de Ruta Madrid. Consulta docs/FIREBASE_CONFIGURACION.md.</p></div>`;
  if(!cloudUser)return `<div class="card sync-panel"><h2>Conectar mis dispositivos</h2>${state.orders.length?`<div class="notice amber"><b>Copia local detectada: ${state.orders.length} líneas.</b> La puedes consultar sin perderla, pero aún no está sincronizada. Descarga JSON y entra para subirla a Firebase. No pulses Limpiar día.</div>`:''}<p class="subtle">Usa el mismo correo y contraseña en móvil y ordenador. Se requiere una base propia de Firebase, nunca la de Ruta Madrid.</p><label for="cloud-email">Correo electrónico</label><input id="cloud-email" type="email" autocomplete="username" placeholder="tu-correo@ejemplo.es"><label for="cloud-password">Contraseña</label><input id="cloud-password" type="password" autocomplete="current-password" placeholder="Contraseña de Firebase"><div class="tools">${btn('cloud-login','Entrar','','dark')}${btn('cloud-signup','Crear cuenta','','small')}${btn('cloud-reset','Recuperar contraseña','','small')}</div><p class="subtle">${esc(cloudMessage)}</p>${legacyBackupButtons()}</div>`;
@@ -790,8 +1495,8 @@ function cloudPanel(){
  if(cloudStatus==='esperando_origen')actions=`<div class="notice"><b>La nube está vacía y este dispositivo no tiene pedidos guardados.</b> No crearemos una jornada vacía que pueda bloquear la importación del ordenador. Abre LISTAS desde el navegador donde hiciste los pedidos, inicia sesión con esta misma cuenta y pulsa «Subir los datos de este dispositivo». Después pulsa ${btn('cloud-refresh','Comprobar si ya están las listas','','dark')} aquí.</div>`;
   else if(cloudStatus==='importar')actions=`<div class="notice"><b>Hay datos locales y la nube está vacía.</b> Para evitar pérdidas no subimos nada automáticamente.</div><div class="tools">${btn('cloud-init','Subir los datos de este dispositivo','','dark')}</div>`;
  else if(cloudStatus==='conflicto')actions=`<div class="notice red"><b>Dos dispositivos modificaron los datos.</b> Nada se sobrescribirá automáticamente. Al elegir una opción se descargará una copia de seguridad.</div><div class="tools">${btn('cloud-use-remote','Usar datos de la nube','','dark')}${btn('cloud-publish-local','Publicar mis datos locales','','red')}</div>`;
- else actions=`<div class="tools">${btn('cloud-refresh','Sincronizar ahora','','dark')}${localStorage.getItem(KEY)?btn('cloud-import-demo','Importar datos anteriores de este navegador','','small'):''}</div>`;
- return `<div class="card sync-panel"><div class="sectionline"><h2>Sincronización de LISTAS</h2>${syncBadge(false)}</div><p class="subtle">${user} · ${esc(cloudMessage)}</p>${actions}<div class="tools">${btn('cloud-backup','Descargar copia de esta jornada','','small')}${btn('cloud-choose-import','Importar copia JSON de otro dispositivo','','small')}${btn('cloud-logout','Cerrar sesión','','small')}</div><input id="cloud-import-file" type="file" accept="application/json,.json" hidden><p class="subtle">El trabajo sin conexión queda pendiente de subir; nunca se sustituyen cambios conflictivos sin revisión. Para mover tus pedidos desde otra URL, primero exporta allí el JSON.</p></div>`;
+ else actions=`<div class="tools">${btn('cloud-refresh','Sincronizar ahora','','dark')}${localStorage.getItem(KEY)?btn('cloud-import-local','Recuperar copia anterior de este navegador','','small'):''}</div>`;
+ return `<div class="card sync-panel"><div class="sectionline"><h2>Sincronización de LISTAS</h2>${syncBadge(false)}</div><p class="subtle">${user} · ${esc(cloudMessage)}</p>${actions}<div class="tools">${btn('cloud-backup','Descargar copia de esta jornada','','small')}${btn('cloud-choose-import','Importar copia JSON de otro dispositivo','','small')}${btn('cloud-logout','Cerrar sesión','','small')}</div><input id="cloud-import-file" type="file" accept="application/json,.json" hidden><p class="subtle">El trabajo sin conexión queda pendiente de subir; nunca se sustituyen cambios conflictivos sin revisión. Para mover tus pedidos desde otra URL, primero exporta allí el JSON.</p></div>`+teamPanel();
 }
 function updateSyncDisplay(){
  const b=document.getElementById('sync-badge');if(b){const temp=document.createElement('div');temp.innerHTML=syncBadge();b.replaceWith(temp.firstElementChild);}
@@ -810,9 +1515,14 @@ async function beginCloudUser(user){
  if(cloudUser?.id===userId&&cloudEngine)return;
  if(cloudEngine)cloudEngine.stop();
  cloudUser={id:userId,email:user.email||''};cloudAdapter.setUser(userId);
+ let owner=userId;
+ try{owner=localStorage.getItem(KEY+':team:'+userId)||userId;}catch{}
+ cloudAdapter.setWorkspaceOwner(owner);teamOwnerUid=owner;teamMembers=[];
+ if(owner===userId)void cloudAdapter.listMembers().then(list=>{teamMembers=list;updateSyncDisplay();}).catch(()=>{});
  let record=null;
- try{record=JSON.parse(localStorage.getItem(KEY+':user:'+userId)||'null');}catch{record=null;}
- let legacy=null;try{legacy=JSON.parse(localStorage.getItem(KEY)||'null');}catch{}
+ try{record=JSON.parse(localStorage.getItem(KEY+':user:'+userId+':team:'+owner)||'null');}catch{}
+ if(!record&&owner===userId)try{record=JSON.parse(localStorage.getItem(KEY+':user:'+userId)||'null');}catch{}
+ let legacy=null;if(owner===userId)try{legacy=JSON.parse(localStorage.getItem(KEY)||'null');}catch{}
  const hasRecord=!!(record?.state&&Array.isArray(record.state.orders));
  const hasLegacy=!!(!hasRecord&&legacy&&Array.isArray(legacy.orders));
  state=normalizeRuntimeState(hasRecord?record.state:hasLegacy?legacy:freshCloudState());
@@ -834,7 +1544,7 @@ async function bootCloud(){
   cloudAdapter.onAuthChange((event,session)=>{
    if(session?.user&&cloudUser?.id!==(session.user.uid||session.user.id))void beginCloudUser(session.user);
    if(event==='SIGNED_OUT'){
-     if(cloudEngine)cloudEngine.stop();cloudEngine=null;cloudUser=null;let old=null;try{old=JSON.parse(localStorage.getItem(KEY)||'null');}catch{}state=normalizeRuntimeState(old&&Array.isArray(old.orders)?old:createState());
+     if(cloudEngine)cloudEngine.stop();cloudEngine=null;cloudUser=null;teamOwnerUid=null;teamMembers=[];let old=null;try{old=JSON.parse(localStorage.getItem(KEY)||'null');}catch{}state=normalizeRuntimeState(old&&Array.isArray(old.orders)?old:createState());
      cloudStatus='sin_sesion';cloudMessage='Sesión cerrada; tus pedidos siguen en la nube';render();
    }
   });
@@ -860,7 +1570,7 @@ function nav(){
  const mobile=[['inicio','Hoy'],['pedidos','Pedidos'],['global','Prov.'],['compras','Compras'],['reparto','Bajar']];
  return `<aside class="side"><div class="caption">Operativa diaria</div>${links.map(([k,label],i)=>`<button class="${tab===k?'active':''}" data-action="goto" data-key="${k}"><span class="step">${i+1}</span>${label}</button>`).join('')}<div class="caption">Almacenamiento</div><div class="subtle" style="padding:6px 14px">${esc(CLOUD_ENABLED?cloudMessage:'Solo en este dispositivo. Sin nube conectada.')}</div></aside><nav class="bottomnav" aria-label="Navegación principal">${mobile.map(([k,label])=>`<button type="button" aria-label="Abrir ${k==='global'?'Proveedores':k==='reparto'?'Reparto':label}" aria-current="${tab===k?'page':'false'}" class="${tab===k?'active':''}" data-action="goto" data-key="${k}"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.85" aria-hidden="true">${icons[k]}</svg><span>${label}</span></button>`).join('')}</nav>`;
 }
-function home(){let x=summary(state),plan=deliveryPlan(state);return sectionTitle('Todo en orden.','Tus pedidos de San Lesmes y San Pablo, listos para revisar, enviar a proveedores y bajar de la furgoneta.')+`<div class="clear-day-home"><div class="clear-day-description"><strong>¿Empezar pedidos nuevos?</strong><span>Archiva la jornada actual y conserva catálogo, restaurantes, proveedores y precios.</span></div>${btn('clearday','Limpiar día','','red clear-day-button')}</div>`+`<div id="sync-panel">${cloudPanel()}</div>`+stats()+`<div class="spacer"></div><div class="card"><h2>Regla de reparto que estamos comprobando</h2><div class="notice"><b>No se reparte lo que no se ha gestionado.</b> Un producto sólo aparece en «Por bajar» si hay un pedido marcado como enviado a proveedor o una compra manual confirmada. Asignarlo a un proveedor, sin enviarlo, no basta.</div><div class="tools">${btn('goto','Revisar pedidos','pedidos','dark')}${btn('goto','Asignar proveedores','global')}${btn('goto','Bajar mercancía','reparto')}</div></div><div class="twocol"><div class="card"><h2>Compras</h2><div class="subtle">${x.assignedDraft} asignaciones pendientes de enviar · ${x.assignedSent} enviadas · ${x.manualBought} compras manuales registradas.</div><div class="spacer"></div>${btn('goto','Abrir compras','compras','dark')}</div><div class="card"><h2>Reparto</h2><div class="subtle">${plan.eligible.filter(r=>r.remaining>0).length} líneas por bajar · ${plan.blocked.length} productos sin compra ni envío · ${plan.needsReview.length} compras parciales por distribuir.</div><div class="spacer"></div>${btn('goto','Abrir reparto','reparto','dark')}</div></div><div class="card"><h2>Destinos incluidos</h2><div class="summary-list">${state.destinations.map(d=>pill(d.name)).join('')}</div><p class="subtle">Los restaurantes están listos, pero sólo suman al Global cuando introduces sus pedidos. No se inventan cantidades.</p></div>`;}
+function home(){let x=summary(state),plan=deliveryPlan(state);return sectionTitle('Control de jornada','Pedidos, proveedores, compras y reparto de tiendas y restaurantes, en una sola pantalla.')+`<div class="clear-day-home"><div class="clear-day-description"><strong>¿Empezar pedidos nuevos?</strong><span>Archiva la jornada actual y conserva catálogo, restaurantes, proveedores y precios.</span></div>${btn('clearday','Limpiar día','','red clear-day-button')}</div>`+`<div id="sync-panel">${cloudPanel()}</div>`+stats()+`<div class="spacer"></div><div class="card"><h2>Regla de reparto que estamos comprobando</h2><div class="notice"><b>No se reparte lo que no se ha gestionado.</b> Un producto sólo aparece en «Por bajar» si hay un pedido marcado como enviado a proveedor o una compra manual confirmada. Asignarlo a un proveedor, sin enviarlo, no basta.</div><div class="tools">${btn('goto','Revisar pedidos','pedidos','dark')}${btn('goto','Asignar proveedores','global')}${btn('goto','Bajar mercancía','reparto')}</div></div><div class="twocol"><div class="card"><h2>Compras</h2><div class="subtle">${x.assignedDraft} asignaciones pendientes de enviar · ${x.assignedSent} enviadas · ${x.manualBought} compras manuales registradas.</div><div class="spacer"></div>${btn('goto','Abrir compras','compras','dark')}</div><div class="card"><h2>Reparto</h2><div class="subtle">${plan.eligible.filter(r=>r.remaining>0).length} líneas por bajar · ${plan.blocked.length} productos sin compra ni envío · ${plan.needsReview.length} compras parciales por distribuir.</div><div class="spacer"></div>${btn('goto','Abrir reparto','reparto','dark')}</div></div><div class="card"><h2>Destinos incluidos</h2><div class="summary-list">${state.destinations.map(d=>pill(d.name)).join('')}</div><p class="subtle">Los restaurantes están listos, pero sólo suman al Global cuando introduces sus pedidos. No se inventan cantidades.</p></div>`;}
 function orderCard(d){
  const lines=state.orders.filter(l=>l.dest===d.id).sort((a,b)=>a.product.localeCompare(b.product,'es',{numeric:true}));
  const isEditing=editingDestination===d.id;
@@ -879,8 +1589,8 @@ function pedidos(){
  return sectionTitle('Pedidos','Tiendas y restaurantes separados. Pega varios encabezados o escribe cada lista desde el móvil.')+
  `<div class="card"><div class="sectionline"><h2>Pegar varias listas juntas</h2>${pill('SP / SL / ST / BRASEROS / RIVIERA')}</div><label for="paste">Pedidos de WhatsApp con encabezados</label><textarea id="paste" placeholder="PEDIDO SP&#10;3 MANZANA GOLDEN 28&#10;PEDIDO SL&#10;2 TOMATE RAMA&#10;PEDIDO BRASEROS CENTRO&#10;1 BROCOLI"></textarea><div class="tools"><button class="btn dark" data-action="import">Añadir pedidos</button><button class="btn" data-action="replace">Sustituir listas del destino</button>${btn('goto','Ver Global','global')}</div></div>`+
  (candidates.length?`<div class="notice"><b>${candidates.length} nombres por confirmar</b> Elige una sugerencia o crea producto nuevo y se recordará.</div>`:'<div class="notice green"><b>Nombres confirmados</b> Puedes organizar las compras.</div>')+
- `<h2>Tiendas</h2>`+stores.map(orderCard).join('')+`<div class="sectionline"><h2>Pedidos de restaurantes</h2><div class="tools">${pill(restaurants.filter(d=>state.orders.some(o=>o.dest===d.id)).length+' con pedido','ok')}${btn('newdest','+ Nuevo restaurante','','small dark')}</div></div>`+
- occupied.map(orderCard).join('')+
+ `<h2>Tiendas</h2><div class="orders-grid">`+stores.map(orderCard).join('')+`</div><div class="sectionline"><h2>Pedidos de restaurantes</h2><div class="tools">${pill(restaurants.filter(d=>state.orders.some(o=>o.dest===d.id)).length+' con pedido','ok')}${btn('newdest','+ Nuevo restaurante','','small dark')}</div></div>`+
+ `<div class="orders-grid">`+occupied.map(orderCard).join('')+`</div>`+
  `<div class="card"><h3>Restaurantes disponibles</h3><p class="subtle">Braseros Centro, Forum, Severo, Edificio, Tomillares y Riviera. Se suman al Global sólo si tienen pedido.</p><div class="tools">${empty.length?empty.map(d=>btn('destedit','+ '+esc(d.name),d.id,'small')).join(''):'<span class="subtle">Todos tienen pedido o están abiertos para editar.</span>'}</div></div>`;
 }
 function providerCard(p){
@@ -900,7 +1610,7 @@ function globalView(){
  `<div class="card"><div class="sectionline"><h2>Proveedor seleccionado</h2>${pill(supplier,'black')}</div><div class="supplier-pills">${selected.map(p=>`<button class="btn ${supplier===p?'on':''}" data-action="selprov" data-key="${enc(p)}">${esc(p)} (${supplierLines(state,p).length})</button>`).join('')}</div>`+
  `<div class="tools">${btn('filter',`Sin asignar (${unassigned.length})`,'pending','small '+(filter==='pending'?'dark':''))}${btn('filter','Global total','all','small '+(filter==='all'?'dark':''))}${btn('filter','Asignados sin enviar','draft','small')}${btn('filter','Enviados','sent','small')}</div></div>`+
  `<div class="card"><div class="sectionline"><h2>${filter==='pending'?'Sin asignar':filter==='all'?'Global · todas las cantidades':filter==='draft'?'Asignados sin enviar':'Ya enviados'} · ${visible.length}</h2><span class="subtle">Global conserva los totales de todos los destinos</span></div><label for="searchRows">Buscar producto</label><input id="searchRows" placeholder="Ej.: TOMATE RAMA, GOLDEN 28" autocomplete="off"/><div class="items">${visible.map(r=>{const active=state.allocations.filter(a=>a.key===r.key&&a.status!=='cancelled');const status=authorizedQty(state,r.key)>0?pill('Habilitado','ok'):active.length?pill('Asignado / sin enviar','warn'):pill('Sin asignar','err');return `<div class="item searchable ${r.unresolved?'err':''}" data-search="${esc(r.product)}" ${!active.length&&!r.unresolved?`data-action="assign" data-key="${enc(r.key)}" role="button" tabindex="0" aria-label="Asignar ${esc(r.product)} a ${esc(supplier)}"`:''}><div class="keynum">${esc(r.total)}</div><div class="grow"><div class="product">${esc(r.product)}</div><div class="details">${esc(r.unit)} · ${Object.entries(r.by).map(([d,n])=>esc(destName(d))+': '+n).join(' · ')}</div><div class="tools" style="margin-top:7px">${status} ${active.map(a=>pill(a.supplier+' '+a.q,a.status==='sent'?'ok':'warn')).join('')}</div></div><div class="mini-actions">${r.unresolved?pill('Revisar nombre','err'):!active.length?btn('assign','+ '+esc(supplier),r.key,'small dark'):active.some(a=>a.status==='draft')?btn('unassign','↩ Quitar borrador',r.key,'small'):''}</div></div>`;}).join('')||'<p class="subtle">Sin productos en esta lista. Cambia el filtro para ver el Global consolidado.</p>'}</div></div>`+
- `<div class="sectionline"><h2>Listas por proveedor</h2>${pill('TXT y WhatsApp independientes')}</div>`+selected.map(providerCard).join('');
+ `<div class="sectionline"><h2>Listas por proveedor</h2>${pill('TXT y WhatsApp independientes')}</div><div class="provider-grid">`+selected.map(providerCard).join('')+'</div>';
 }
 function getPurchaseDraft(row,mode){
  const key=mode+':'+row.key;
@@ -919,14 +1629,31 @@ function purchaseQuantityEditor(row,mode){
  return `<div class="purchase-controls"><label>${title}</label><div class="purchase-qty-controls"><button type="button" class="qty-step" data-action="purchase-step" data-key="${enc(row.key)}" data-target="${mode}:-1" aria-label="Restar una unidad de ${esc(row.product)}">−</button><input type="text" inputmode="decimal" autocomplete="off" data-purchase-qty data-purchase-key="${esc(row.key)}" data-purchase-mode="${mode}" value="${esc(getPurchaseDraft(row,mode))}" aria-label="Cantidad de ${esc(row.product)}"><button type="button" class="qty-step" data-action="purchase-step" data-key="${enc(row.key)}" data-target="${mode}:1" aria-label="Sumar una unidad de ${esc(row.product)}">+</button></div>${mode==='manual'?btn('purchase-save','Guardar cantidad',row.key,'small dark'):''}</div>`;
 }
 function purchaseItem(row,mode){
- const open=expandedPurchaseKey===row.key,checked=mode==='manual';
+ const checked=mode==='manual';
  const qty=checked?row.manuallyBought:mode==='pending'?row.remainingToBuy:row.total;
  const status=row.assignedSent>0?pill(row.assignedSent+' enviado proveedor','ok'):'';
  const drafted=row.assignedDraft>0?pill(row.assignedDraft+' asignado sin enviar','warn'):'';
  const bought=row.manuallyBought>0?pill(row.manuallyBought+' comprado manual','ok'):'';
  const checkbox=mode==='pending'||mode==='manual';
  const tick=checkbox?`<button type="button" class="purchase-tick ${checked?'checked':''}" role="checkbox" aria-checked="${checked}" ${row.unresolved?'disabled':''} data-action="purchase-toggle" data-key="${enc(row.key)}" data-target="${mode}" aria-label="${checked?'Desmarcar compra manual de':'Marcar como comprado'} ${esc(row.product)}">${checked?'✓':''}</button>`:'';
- return `<div class="item searchable purchase-item ${checked?'manual-complete':''} ${row.unresolved?'err':''}" data-search="${esc(row.product)}" data-purchase-type="${mode}" data-product-key="${esc(row.key)}">${tick}<div class="keynum">${qty}</div><div class="grow"><button type="button" class="product-disclosure" data-action="breakdown" data-key="${enc(row.key)}" aria-expanded="${open}"><span>${esc(row.product)}</span><span class="subtle">${open?'▲ Ocultar destinos':'▼ Quién lleva cuánto'}</span></button><div class="details">${esc(row.unit)} · Pedido total: ${row.total} · Falta: <b>${row.remainingToBuy}</b></div><div class="purchase-statuses">${status}${drafted}${bought}${row.unresolved?pill('Revisar nombre en Pedidos','err'):''}</div>${open?`<div class="purchase-breakdown"><h3>Quién lleva cuánto</h3>${Object.entries(row.by).sort((a,b)=>destName(a[0]).localeCompare(destName(b[0]),'es')).map(([d,q])=>`<div class="breakdown-line"><span>${esc(destName(d))}</span><strong>${q} ${esc(row.unit)}</strong></div>`).join('')}<div class="breakdown-line total"><span>TOTAL PEDIDO</span><strong>${row.total} ${esc(row.unit)}</strong></div><div class="breakdown-line"><span>A proveedores</span><strong>${row.supplierCovered}</strong></div><div class="breakdown-line"><span>Comprado manual</span><strong>${row.manuallyBought}</strong></div><div class="breakdown-line total"><span>FALTA COMPRAR</span><strong>${row.remainingToBuy}</strong></div></div>`:''}${checkbox&&!row.unresolved?purchaseQuantityEditor(row,mode):''}</div>${mode==='pending'&&!row.unresolved?btn('purchase-confirm','Confirmar compra',row.key,'small dark'):''}${checked?btn('purchase-undo','Deshacer',row.key,'small'):''}</div>`;
+ const detail=Object.entries(row.by).sort((a,b)=>destName(a[0]).localeCompare(destName(b[0]),'es'));
+ const destinations=detail.map(([dest,value])=>{
+  const step=Math.abs(value%1)>1e-8?0.5:1;
+  const disabled=deliveryBusy?'disabled aria-busy="true"':'';
+  return `<div class="breakdown-line editable-destination" data-destination="${esc(dest)}"><span class="breakdown-destination">${esc(destName(dest))}</span><div class="destination-qty-controls"><button type="button" class="destination-qty-step" data-action="destqty" data-key="${enc(row.key)}" data-dest="${enc(dest)}" data-target="${-step}" ${disabled} aria-label="Quitar ${step} a ${esc(destName(dest))} en ${esc(row.product)}">−</button><strong class="destination-qty-value" aria-label="Cantidad de ${esc(destName(dest))}">${esc(value)}</strong><button type="button" class="destination-qty-step" data-action="destqty" data-key="${enc(row.key)}" data-dest="${enc(dest)}" data-target="${step}" ${disabled} aria-label="Añadir ${step} a ${esc(destName(dest))} en ${esc(row.product)}">+</button></div></div>`;
+ }).join('');
+ return `<div class="item searchable purchase-item ${checked?'manual-complete':''} ${row.unresolved?'err':''}" data-search="${esc(row.product)}" data-purchase-type="${mode}" data-product-key="${esc(row.key)}">
+  ${tick}<div class="keynum">${qty}</div><div class="grow"><div class="product purchase-title">${esc(row.product)}</div>
+   <div class="details">${esc(row.unit)} · Pedido total: <b>${row.total}</b> · Falta comprar: <b>${row.remainingToBuy}</b></div>
+   <div class="purchase-statuses">${status}${drafted}${bought}${row.unresolved?pill('Revisar nombre en Pedidos','err'):''}</div>
+   <div class="purchase-breakdown purchase-inline"><div class="purchase-inline-label">CANTIDAD POR TIENDA · un toque para corregir</div>
+    ${destinations}
+    <div class="breakdown-line total"><span>TOTAL GLOBAL</span><strong>${row.total} ${esc(row.unit)}</strong></div>
+    ${row.remainingToBuy>0?`<div class="breakdown-line shortage-note"><span>Sin comprar ni enviar</span><strong>${row.remainingToBuy} ${esc(row.unit)}</strong></div>`:''}
+   </div>
+   ${checkbox&&!row.unresolved?purchaseQuantityEditor(row,mode):''}</div>
+   ${mode==='pending'&&!row.unresolved?btn('purchase-confirm','Confirmar compra',row.key,'small dark'):''}
+   ${checked?btn('purchase-undo','Deshacer',row.key,'small'):''}</div>`;
 }
 function compras(){
  const all=pendingPurchases(state);
@@ -954,26 +1681,122 @@ function reparto(){
  const dests=state.destinations.filter(d=>state.orders.some(o=>o.dest===d.id)).sort((a,b)=>a.kind==='tienda'&&b.kind!=='tienda'?-1:a.kind!=='tienda'&&b.kind==='tienda'?1:a.kind==='tienda'?STORE_ORDER.indexOf(a.id)-STORE_ORDER.indexOf(b.id):a.name.localeCompare(b.name,'es'));
  if(dests.length&&!dests.some(d=>d.id===selectedDeliveryDest))selectedDeliveryDest=dests[0].id;
  const dest=selectedDeliveryDest;
- const current=state.destinations.find(x=>x.id===dest),notDone=p.eligible.filter(x=>x.dest===dest&&x.remaining>0),done=p.eligible.filter(x=>x.dest===dest&&x.remaining===0),myReview=p.needsReview.filter(x=>(x.by?.[dest]||0)>0),short=p.short.filter(x=>x.dest===dest);
+ const progress=deliveryProgress(state,dest);
+ const current=state.destinations.find(x=>x.id===dest),notDone=p.eligible.filter(x=>x.dest===dest&&x.remaining>0),done=p.eligible.filter(x=>x.dest===dest&&x.remaining===0),myReview=p.needsReview.filter(x=>(x.by?.[dest]||0)>0),short=p.short.filter(x=>x.dest===dest),unready=p.blocked.filter(x=>(x.by?.[dest]||0)>0);
  return sectionTitle('Bajar mercancía','Selecciona ARRIBA una tienda o restaurante; sólo ves sus productos, sin mezclar listas.')+
  `<div class="card destination-picker"><label for="deliveryDestination">¿En qué tienda o restaurante estás bajando?</label><select id="deliveryDestination">${dests.map(d=>`<option value="${esc(d.id)}" ${dest===d.id?'selected':''}>${esc(d.name)} · ${p.eligible.filter(x=>x.dest===d.id&&x.remaining>0).length} pendientes</option>`).join('')||'<option value="">Todavía sin pedidos</option>'}</select><div class="tools" style="margin-top:10px">${current?btn('rider','Repartidor: '+esc(state.riderAssignments?.[dest]||'Sin asignar'),dest,'small'):''}${pill('Carga opcional','ok')}</div></div>`+
+ `<div class="card delivery-progress"><div class="progress-heading"><div><strong>Progreso · ${esc(current?.name||'destino')}</strong><span>${progress.completos} de ${progress.productos} productos completos</span></div><b>${progress.porcentaje}%</b></div><div class="progress-track" role="progressbar" aria-label="Bajadas de ${esc(current?.name||'destino')}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progress.porcentaje}"><div class="progress-fill" style="width:${progress.porcentaje}%"></div></div><div class="progress-caption">${progress.pendientes} pendientes · actualizada con las bajadas confirmadas</div></div>`+
  `<div class="grid"><div class="stat"><b>${notDone.length}</b><span>Por bajar en ${esc(current?.name||'destino')}</span></div><div class="stat"><b>${done.length}</b><span>Bajados en este destino</span></div></div><div class="spacer"></div>`+
  (myReview.length?`<div class="notice amber"><b>Compra parcial pendiente de distribuir</b> ${myReview.map(r=>btn('shortage','Distribuir '+esc(r.product),r.key,'small')).join('')}</div>`:'')+
- `<div class="card"><div class="sectionline"><h2>Por bajar · ${esc(current?.name||'Sin destino')}</h2>${pill(notDone.length+' pendientes')}</div><div class="items">${notDone.map(r=>`<div class="item"><button class="clickable" data-action="deliver" data-key="${enc(r.key)}" data-dest="${enc(dest)}"><span class="check"></span><div class="grow"><div class="product">${esc(r.remaining)} ${esc(r.product)}</div><div class="details">${esc(r.unit)} · ${r.delivered>0?`${r.delivered} ya bajado · `:''}Toca para marcar BAJADO</div></div></button><div class="mini-actions"><button class="btn small" data-action="deliverpartial" data-key="${enc(r.key)}" data-dest="${enc(dest)}">Parcial</button></div></div>`).join('')||'<p class="subtle">Este destino no tiene productos por bajar. Puede que aún no haya un proveedor enviado o una compra manual, o que ya esté todo bajado.</p>'}</div></div>`+
- `<div class="card"><div class="sectionline"><h2>Bajados en ${esc(current?.name||'este destino')} (${done.length})</h2>${pill('Deshacer disponible','ok')}</div>${done.length?`<div class="items">${done.map(r=>`<div class="item done"><div class="check">✓</div><div class="grow"><div class="product">${esc(r.allowed)} ${esc(r.product)}</div><div class="details">${esc(r.unit)}</div></div><button class="btn small" data-action="undodelivery" data-key="${enc(r.key)}" data-dest="${enc(dest)}">Deshacer</button></div>`).join('')}</div>`:'<p class="subtle">Aquí aparecen solo las bajadas completadas de este destino.</p>'}</div>`+
- (short.length?`<div class="notice amber"><b>Faltantes de ${esc(current?.name||'destino')}</b>${short.map(r=>`<div>Faltan ${r.missing} ${esc(r.product)}</div>`).join('')}</div>`:'');
+ `<div class="card"><div class="sectionline"><h2>Por bajar · ${esc(current?.name||'Sin destino')}</h2>${pill(notDone.length+' pendientes')}</div><div class="items">${notDone.map(r=>`<div class="item"><button class="clickable" data-action="deliver" data-key="${enc(r.key)}" data-dest="${enc(dest)}" ${deliveryBusy?'disabled aria-busy="true"':''}><span class="check"></span><div class="grow"><div class="product">${esc(r.remaining)} ${esc(r.product)}</div><div class="details">${esc(r.unit)} · ${r.delivered>0?`${r.delivered} ya bajado · `:''}Toca para marcar BAJADO</div></div></button><div class="mini-actions"><button class="btn small" data-action="deliverpartial" data-key="${enc(r.key)}" data-dest="${enc(dest)}" ${deliveryBusy?'disabled':''}>Parcial</button></div></div>`).join('')||'<p class="subtle">Este destino no tiene productos por bajar. Puede que aún no haya un proveedor enviado o una compra manual, o que ya esté todo bajado.</p>'}</div></div>`+
+ `<div class="card"><div class="sectionline"><h2>Bajados en ${esc(current?.name||'este destino')} (${done.length})</h2>${pill('Deshacer disponible','ok')}</div>${done.length?`<div class="items">${done.map(r=>`<div class="item done"><div class="check">✓</div><div class="grow"><div class="product">${esc(r.allowed)} ${esc(r.product)}</div><div class="details">${esc(r.unit)}</div></div><button class="btn small" data-action="undodelivery" data-key="${enc(r.key)}" data-dest="${enc(dest)}" ${deliveryBusy?'disabled':''}>Deshacer</button></div>`).join('')}</div>`:'<p class="subtle">Aquí aparecen solo las bajadas completadas de este destino.</p>'}</div>`+
+ (unready.length?`<div class="card delivery-unready"><div class="sectionline"><h2>Pendiente de comprar o enviar</h2>${pill(unready.length+' sin gestionar','err')}</div><p class="subtle">Estas cantidades forman parte del pedido de ${esc(current?.name||'la tienda')}, pero no están habilitadas para bajar.</p><div class="items">${unready.map(r=>`<div class="item err"><div class="keynum">${r.by[dest]}</div><div class="grow"><div class="product">${esc(r.product)}</div><div class="details">${esc(r.unit)} · Debe comprarse o enviarse al proveedor</div></div></div>`).join('')}</div></div>`:'')+
+  (short.length?`<div class="notice amber"><b>Faltantes de ${esc(current?.name||'destino')}</b>${short.map(r=>`<div>Faltan ${r.missing} ${esc(r.product)}</div>`).join('')}</div>`:'');
 }
-function mas(){return sectionTitle('Más opciones','La carga es opcional; la auditoría y los datos de prueba están separados de tus pedidos reales.')+`<div class="card"><h2>Acciones</h2><div class="tools">${btn('goto','Carga opcional','carga','dark')}${btn('goto','Ver auditoría','auditoria')}${btn('goto','Pegar listas','pedidos')}</div></div>`;}
-function auditoria(){const x=summary(state),p=deliveryPlan(state);return sectionTitle('Auditoría','Comprobaciones y seguridad del flujo en esta copia local, sin mensajes ni movimientos en tu aplicación real.')+stats()+`<div class="spacer"></div><div class="card"><h2>Condiciones de aceptación</h2><div class="items">${[
-['91 líneas originales de 2 tiendas',x.originalLines===91],['Calibre GOLDEN 28 separado de GOLDEN 24',!!trow('MANZANA GOLDEN 28|BULTO')&&!!trow('MANZANA GOLDEN 24|BULTO')],['Los no enviados y no comprados están bloqueados',p.blocked.every(r=>authorizedQty(state,r.key)===0)],['Carga no condiciona reparto',true],['Los restaurantes suman sin fusionar sus destinos',true],['Los nombres sin confirmar no se envían automáticamente',true],['Las bajadas sólo permiten cantidades habilitadas',true],['WhatsApp requiere envío manual',true]].map(([name,ok])=>`<div class="item"><span class="pill ${ok?'ok':'err'}">${ok?'OK':'REVISAR'}</span><div class="grow"><b>${esc(name)}</b></div></div>`).join('')}</div></div><div class="card"><h2>Empezar otra jornada</h2><p class="subtle">Conserva catálogo, nombres nuevos, restaurantes, proveedores e histórico, y limpia pedidos y marcas de compra, carga y reparto de esta demo.</p>${btn('newday','Limpiar todo y nueva jornada','', 'red small')}</div><div class="card"><h2>Esta prueba es independiente</h2><p class="subtle">La aplicación real es privada y no ha sido modificada. Aquí todos los movimientos son locales, y los «Envíos» se marcan como simulación. Ningún proveedor ha recibido WhatsApp.</p><div class="tools">${btn('export','Exportar estado JSON','','small')}${btn('resetdemo','Restaurar listas de ejemplo','','small dark')}</div></div>`;}
+function mas(){return sectionTitle('Más opciones','Herramientas de jornada, carga opcional, control y copia de seguridad.')+`<div class="card"><h2>Acciones</h2><div class="tools">${btn('goto','Carga opcional','carga','dark')}${btn('goto','Ver auditoría','auditoria')}${btn('goto','Pegar listas','pedidos')}</div></div>`;}
+function auditoria(){
+ const x=summary(state),p=deliveryPlan(state);
+ const noNames=state.orders.filter(l=>l.review).length;
+ const draft=state.allocations.filter(a=>a.status==='draft').length;
+ const sent=state.allocations.filter(a=>a.status==='sent').length;
+ const awaiting=pendingPurchases(state).filter(r=>r.remainingToBuy>0&&!r.unresolved).length;
+ const outstanding=p.eligible.filter(r=>r.remaining>0).length;
+ const done=p.eligible.filter(r=>r.remaining===0).length;
+ const warnings=[
+  [noNames,'Productos pendientes de confirmar nombre o cantidad'],
+  [draft,'Líneas asignadas a proveedores, todavía sin envío confirmado'],
+  [awaiting,'Productos pendientes de compra manual'],
+  [p.needsReview.length,'Compras insuficientes pendientes de distribuir'],
+  [p.blocked.length,'Productos bloqueados para reparto por falta de compra o envío']
+ ];
+ return sectionTitle('Control y seguridad','Resumen de los datos de la jornada. Ninguna acción de este panel cambia cantidades automáticamente.')+
+ stats()+
+ `<div class="card"><div class="sectionline"><h2>Estado de la jornada</h2>${pill(esc(state.day),'black')}</div><div class="grid"><div class="stat"><b>${sent}</b><span>Pedidos enviados a proveedor</span></div><div class="stat"><b>${done}</b><span>Productos bajados</span></div><div class="stat"><b>${outstanding}</b><span>Pendientes de bajar</span></div></div></div>`+
+ `<div class="card"><h2>Incidencias para revisar</h2><div class="items">${warnings.map(([qty,label])=>`<div class="item"><span class="pill ${qty?'err':'ok'}">${qty||'OK'}</span><div class="grow"><b>${esc(label)}</b></div></div>`).join('')}</div></div>`+
+ `<div class="card"><h2>Copias de seguridad</h2><p class="subtle">Descarga una copia JSON antes de cambiar de equipo o realizar correcciones importantes. Tus datos no se suben a GitHub.</p><div class="tools">${btn('export','Descargar copia de la jornada','','dark')}${btn('goto','Volver a pedidos','pedidos')}</div></div>`+
+ `<div class="card"><h2>Jornada nueva</h2><p class="subtle">Archiva movimientos y conserva el diccionario, proveedores y restaurantes. Antes de limpiar se descarga una copia.</p>${btn('newday','Archivar y comenzar otro día','','small red')}</div>`;
+}
 function render(){const drafts={};document.querySelectorAll('textarea').forEach(t=>{if(t.id&&t.value)drafts[t.id]=t.value;});const app=document.getElementById('app');if(!app)return;let screenHTML='';try{const view=({inicio:home,pedidos,global:globalView,compras,carga,reparto,mas,auditoria})[tab];if(!view)throw Error('Pantalla no disponible');screenHTML=view();}catch(error){console.error('Error al abrir sección de LISTAS:',tab,error);screenHTML=`<div class="card"><h2>No se pudo abrir ${esc(tab)}</h2><div class="notice red">${esc(error?.message||'Error de datos. No se ha borrado nada.')}</div><div class="tools">${btn('goto','Volver a Inicio','inicio','dark')}${btn('export','Descargar copia JSON','','small')}</div></div>`;}app.innerHTML=`<div class="top"><div class="top-inner"><div class="brand"><span class="logo">A</span><span>ARSLAN LISTAS <span style="font-weight:550">· REPARTO SEGURO</span><div class="subtitle">Compras · proveedores · reparto</div></span></div>${syncBadge()}<button type="button" class="top-more" data-action="goto" data-key="mas" aria-label="Más opciones" title="Más opciones">···</button></div></div><div class="shell">${nav()}<main>${toastMessage?`<div class="notice ${toastMessage.startsWith('ERROR')?'red':'green'}">${esc(toastMessage)}</div>`:''}${screenHTML}</main></div>`;Object.entries(drafts).forEach(([key,value])=>{const el=document.getElementById(key);if(el)el.value=value;});}
 function download(name,text,type='text/plain'){const a=document.createElement('a');const url=URL.createObjectURL(new Blob([text],{type}));a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 async function copyText(text){try{await navigator.clipboard.writeText(text);return true;}catch{return false;}}
+
+/** Bajadas de un toque con verificación atómica en la versión más reciente.
+ * Una operación concurrente sobre la misma fila no se aplica dos veces.
+ */
+/** Cada + / − guarda directamente: nunca marca como comprado el incremento. */
+async function changeDemandOneTap(key,dest,rawDelta){
+ if(deliveryBusy)throw Error('Ya hay un cambio en curso. Comprueba la lista.');
+ const row=totals(state).find(r=>r.key===key);
+ if(!row)throw Error('Producto no encontrado; actualiza Compras');
+ const delta=Number(String(rawDelta).replace(',','.'));
+ if(!Number.isFinite(delta)||delta===0)throw Error('Cantidad inválida');
+ const expected=row.by[dest]||0;
+ if(!CLOUD_ENABLED){
+  const result=adjustDestinationDemand(state,key,dest,delta,{expectedQuantity:expected,day:state.day,historyLength:state.history.length});
+  if(result.changed)commit(''); // El total visible cambia sin insertar avisos que muevan las filas del iPhone
+  else{toastMessage='Sin cambios';render();}
+  return;
+ }
+ if(!cloudAdapter||!cloudEngine||!cloudUser||cloudStatus!=='sincronizado'||cloudEngine.dirty||cloudEngine.conflict)
+  throw Error('La nube debe estar SINCRONIZADA para cambiar cantidades del equipo. No se ha alterado el pedido.');
+ if(typeof navigator!=='undefined'&&!navigator.onLine)
+  throw Error('Sin internet. No se ha actualizado el pedido compartido.');
+ const operation={key,dest,delta,expectedQuantity:expected,day:state.day,historyLength:(state.history||[]).length};
+ deliveryBusy=true;toastMessage='';render();
+ try{
+  const result=await cloudAdapter.mutateDemand(operation);
+  if(!result?.document)throw Error('Firebase no confirmó la cantidad; no se hizo ningún cambio local');
+  if(!cloudEngine.dirty&&!cloudEngine.conflict)cloudEngine.applyConfirmedDocument(result.document);
+  else await cloudEngine.refresh();
+  toastMessage=result.changed?'':
+   result.code==='MODIFICADO_POR_OTRO'?'Otra persona actualizó este producto. Ya ves la cantidad nueva.':
+   result.code==='JORNADA_CAMBIADA'?'La jornada ha cambiado. No se modificó la cantidad.':
+   'No se modificó el producto; revisa la cantidad actual.';
+ }finally{deliveryBusy=false;render();}
+}
+
+async function processDeliveryClick(action,key,dest,qty=null){
+ if(deliveryBusy){toastMessage='Ya se está guardando otra bajada. Comprueba su resultado.';render();return;}
+ const row=deliveryPlan(state).eligible.find(x=>x.key===key&&x.dest===dest);
+ if(!row)throw Error('Producto no disponible para bajar. Actualiza el reparto.');
+ if(!CLOUD_ENABLED){
+  if(action==='deshacer')undoDelivery(state,key,dest);
+  else deliver(state,key,dest,qty);
+  commit(action==='deshacer'?'Bajada deshecha':'Bajada guardada en este dispositivo');
+  return;
+ }
+ if(!cloudAdapter||!cloudEngine||!cloudUser||cloudStatus!=='sincronizado'||cloudEngine.dirty||cloudEngine.conflict)
+  throw Error('Conecta Firebase y espera a que el estado sea SINCRONIZADO antes de bajar. No se ha marcado nada.');
+ if(typeof navigator!=='undefined'&&!navigator.onLine)
+  throw Error('Sin conexión. Para evitar duplicados, las bajadas compartidas requieren confirmar Firebase.');
+ deliveryBusy=true;toastMessage='Confirmando bajada con Firebase…';render();
+ try{
+  const op={action,key,dest,quantity:qty,expectedDelivered:row.delivered,expectedAllowed:row.allowed,
+   day:state.day,historyLength:(state.history||[]).length};
+  const result=await cloudAdapter.mutateDelivery(op);
+  if(!result?.document)throw Error('Firebase no ha confirmado el estado actual');
+  if(!cloudEngine.dirty&&!cloudEngine.conflict)cloudEngine.applyConfirmedDocument(result.document);
+  else await cloudEngine.refresh();
+  const reason={MODIFICADO_POR_OTRO:'Ya lo cambió otra persona; lista actualizada sin duplicar la bajada.',
+   YA_BAJADO:'Ya estaba bajado. La lista se ha actualizado.',JORNADA_CAMBIADA:'Se ha cambiado de jornada; no se guardó esta bajada.',
+   CANTIDAD_ACTUALIZADA:'Otro usuario cambió la cantidad disponible; revisa la lista.',
+   NO_HABILITADO:'La mercancía ya no está habilitada para repartir.'};
+  toastMessage=result.changed?
+   (action==='deshacer'?'Bajada deshecha y sincronizada con el equipo':'Bajada confirmada en Firebase · progreso actualizado'):
+   (reason[result.code]||'Otro repartidor cambió esta línea. Comprueba la lista.');
+ }finally{deliveryBusy=false;render();}
+}
+
 async function handleAction(action,key,target,dest){
  try{
  const readonly=['goto','export','copy','copyall','provdownload','provdownloadall','whatsapp','destcopy','destdownload','destwa','purchasefilter','breakdown','filter','selprov','purchase-step','manual-copy-pending','manual-download-pending','manual-wa-pending'];
- if(CLOUD_ENABLED&&!action.startsWith('cloud-')&&!readonly.includes(action)&&!cloudCanEdit())throw Error('Para guardar cambios debes entrar y tener sincronización lista. Revisa el estado de la nube en Inicio.');
+ if(deliveryBusy&&!readonly.includes(action)&&!action.startsWith('cloud-')&&!action.startsWith('team-'))throw Error('Guardando el último cambio en Firebase.');
+ if(CLOUD_ENABLED&&!action.startsWith('cloud-')&&!action.startsWith('team-')&&!readonly.includes(action)&&!cloudCanEdit())throw Error('Para guardar cambios debes entrar y tener sincronización lista. Revisa el estado de la nube en Inicio.');
  switch(action){
+ case 'team-copy-id':{if(!cloudUser)throw Error('Inicia sesión primero');const ok=await copyText(cloudUser.id);toastMessage=ok?'ID copiado para autorizar el equipo':'No se pudo copiar el ID';render();return;}
+ case 'team-add':{if(!cloudUser)throw Error('Inicia sesión');const id=document.getElementById('team-member-id')?.value.trim();await cloudAdapter.addMember(id);teamMembers=await cloudAdapter.listMembers();toastMessage='Trabajador autorizado. Ya puede usar tu espacio de LISTAS.';render();return;}
+ case 'team-revoke':{if(!cloudUser)throw Error('Inicia sesión');if(!confirm('¿Retirar acceso a este trabajador? No se borrarán los pedidos ni las bajadas.'))return;await cloudAdapter.revokeMember(key);teamMembers=await cloudAdapter.listMembers();toastMessage='Acceso retirado, sin borrar la jornada';render();return;}
+ case 'team-join':{if(!cloudUser||!cloudAdapter)throw Error('Inicia sesión');const owner=document.getElementById('team-owner-id')?.value.trim();if(!/^[a-zA-Z0-9]{16,128}$/.test(owner))throw Error('ID de propietario inválido');if(owner===teamOwnerUid){toastMessage='Ya estás en este espacio de equipo';render();return;}if(cloudEngine?.dirty||cloudEngine?.conflict||cloudEngine?.running)throw Error('Hay cambios por guardar. No se cambia de equipo mientras haya modificaciones pendientes');if(!confirm('¿Cambiar de espacio? Se descargará antes una copia de esta jornada. Los datos existentes no se borrarán.'))return;download('ARSLAN_LISTAS_COPIA_ANTES_CAMBIAR_EQUIPO.json',JSON.stringify(state,null,2),'application/json');localStorage.setItem(KEY+':team:'+cloudUser.id,owner);const user={uid:cloudUser.id,email:cloudUser.email};if(cloudEngine)cloudEngine.stop();cloudEngine=null;cloudUser=null;await beginCloudUser(user);toastMessage='Espacio de equipo seleccionado. Solo verás datos si el propietario te ha autorizado.';render();return;}
  case 'cloud-login':case 'cloud-signup':case 'cloud-reset': {const email=document.getElementById('cloud-email')?.value?.trim(),password=document.getElementById('cloud-password')?.value||'';if(!email||!email.includes('@'))throw Error('Introduce un correo válido');if(action==='cloud-reset'){await cloudAdapter.resetPassword(email);toastMessage='Correo de recuperación solicitado; revisa tu buzón';}else if(action==='cloud-signup'){await cloudAdapter.signUp(email,password);toastMessage='Cuenta creada: confirma los permisos de Firebase';}else{await cloudAdapter.sendLogin(email,password);toastMessage='Sesión iniciada';}render();return;}
  case 'cloud-refresh': {if(!cloudEngine)throw Error('Sin sesión');await cloudEngine.refresh();toastMessage='Sincronización comprobada: '+cloudMessage;render();return;}
  case 'cloud-init': {if(!confirm('¿Subir los datos de este dispositivo a la nube nueva? Antes se descargará una copia JSON. Comprueba que estás en el ordenador que tiene los pedidos buenos.'))return;download('ARSLAN_LISTAS_COPIA_ANTES_DE_SUBIR.json',JSON.stringify(state,null,2),'application/json');await cloudEngine.initializeFromLocal();render();return;}
@@ -983,7 +1806,7 @@ async function handleAction(action,key,target,dest){
  case 'cloud-legacy-export': {const old=localStorage.getItem(KEY);if(!old)throw Error('No hay copia local antigua');download('ARSLAN_LISTAS_COPIA_NAVEGADOR.json',old,'application/json');return;}
  case 'cloud-backup': {download('ARSLAN_LISTAS_COPIA_'+state.day+'.json',JSON.stringify(state,null,2),'application/json');return;}
  case 'cloud-choose-import': {if(!cloudEngine||cloudStatus==='conectando'||cloudStatus==='error')throw Error('Primero conecta la cuenta Firebase');document.getElementById('cloud-import-file')?.click();return;}
- case 'cloud-import-demo': {if(!cloudEngine||!cloudCanEdit())throw Error('Primero conecta a la nube');const legacy=JSON.parse(localStorage.getItem(KEY)||'null');if(!legacy||!Array.isArray(legacy.orders))throw Error('No hay datos locales anteriores');if(state.orders.length||state.allocations.length||state.manual.length||Object.keys(state.delivery||{}).length)throw Error('Esta cuenta ya tiene una jornada con datos; exporta antes y no sobreescribas sin revisarlos');if(!confirm('¿Subir la copia LOCAL anterior a la nube? Puede contener productos de demostración.'))return;download('ARSLAN_COPIA_LOCAL_PREVIA.json',JSON.stringify(legacy,null,2),'application/json');state=normalizeRuntimeState(legacy);commit('Datos anteriores importados; sincronizando con la nube');return;}
+ case 'cloud-import-local': {if(!cloudEngine||!cloudCanEdit())throw Error('Primero conecta a la nube');const legacy=JSON.parse(localStorage.getItem(KEY)||'null');if(!legacy||!Array.isArray(legacy.orders))throw Error('No hay datos locales anteriores');if(state.orders.length||state.allocations.length||state.manual.length||Object.keys(state.delivery||{}).length)throw Error('Esta cuenta ya tiene una jornada con datos; exporta antes y no sobreescribas sin revisarlos');if(!confirm('¿Subir la copia LOCAL anterior a la nube? Puede contener productos de demostración.'))return;download('ARSLAN_COPIA_LOCAL_PREVIA.json',JSON.stringify(legacy,null,2),'application/json');state=normalizeRuntimeState(legacy);commit('Datos anteriores importados; sincronizando con la nube');return;}
 
  case 'goto':tab=key;toastMessage='';render();try{window.scrollTo({top:0,behavior:'instant'});}catch{}return;
  case 'purchasefilter':purchaseView=['pending','supplier','manual','all'].includes(key)?key:'pending';render();return;
@@ -1042,6 +1865,7 @@ async function handleAction(action,key,target,dest){
  
   case 'filter':filter=key;render();return;
  case 'selprov':supplier=key;render();return;
+ case 'destqty':{await changeDemandOneTap(key,dest,target);return;}
  case 'breakdown':expandedPurchaseKey=expandedPurchaseKey===key?'':key;render();return;
  case 'newdest':{const name=prompt('Nombre del nuevo restaurante:');if(name===null)return;const d=addDestination(state,name,'restaurante');editingDestination=d.id;commit('Restaurante '+d.name+' creado, sin pedido todavía');document.querySelector(`[data-destination=\"${d.id}\"]`)?.scrollIntoView({behavior:'smooth',block:'start'});return;}
  case 'destedit':editingDestination=editingDestination===key?'':key;render();if(editingDestination)document.querySelector(`[data-destination=\"${editingDestination}\"]`)?.scrollIntoView({behavior:'smooth',block:'start'});return;
@@ -1064,15 +1888,15 @@ async function handleAction(action,key,target,dest){
  case 'copy':case 'copyall':{const t=action==='copy'?supplierDraftTXT(state,key):supplierTXT(state,key);if(!t)throw Error('No hay productos para copiar');const ok=await copyText(t);toastMessage=ok?'TXT copiado':'No se pudo copiar. Descarga TXT';render();return;}
  case 'provdownload':case 'provdownloadall':{const t=action==='provdownload'?supplierDraftTXT(state,key):supplierTXT(state,key);if(!t)throw Error('No hay pedido para descargar');download('PEDIDO_'+canonical(key).replaceAll(' ','_')+'_'+(action==='provdownload'?'PENDIENTE_':'')+state.day+'.txt',t);return;}
  case 'whatsapp':{const t=supplierDraftWhatsApp(state,key);if(!t.text)throw Error('No hay líneas pendientes de envío');window.open(t.url,'_blank','noopener');toastMessage='WhatsApp preparado solo con lo no enviado. Confirma el envío al regresar.';render();return;}
- case 'sent':{const packet=markSupplierSent(state,key);commit(`Pedido a ${key} (${packet.text.split('\n').length} líneas) MARCADO enviado (simulación, no se envió WhatsApp)`);return;}
+ case 'sent':{if(!confirm('¿Confirmas que has enviado realmente el pedido a '+key+'? Abrir WhatsApp no cuenta como envío hasta que lo confirmes.'))return;const packet=markSupplierSent(state,key);commit(`Confirmado como ENVIADO a ${key}: ${packet.text.split('\n').length} líneas. No se envía automáticamente.`);return;}
  case 'reopensent':{if(!confirm('¿Reabrir como SIN ENVIAR las líneas marcadas enviadas a '+key+'? Si ya se bajó mercancía se bloqueará.'))return;reopenSupplierSent(state,key);commit('Marcado SIN ENVIAR de nuevo para '+key);return;}
  case 'buyall':{const rows=pendingPurchases(state).filter(r=>!r.unresolved&&r.remainingToBuy>0);if(!rows.length)throw Error('No quedan productos pendientes de compra manual');const keyword=prompt(`ATENCIÓN: vas a marcar ${rows.length} productos como COMPRADOS. Esto no envía mensajes. Escribe COMPRAR para confirmar:`);if(keyword!=='COMPRAR')return;const copy=structuredClone(state);for(const r of rows)manualBuySafe(copy,r.key,r.remainingToBuy);state.manual=copy.manual;state.allocations=copy.allocations;for(const k of Object.keys(purchaseDrafts))delete purchaseDrafts[k];commit(`${rows.length} productos comprados manualmente. Puedes deshacerlos abajo.`);return;}
  case 'buy':{const r=pendingPurchases(state).find(x=>x.key===key);if(!r)throw Error('Producto inexistente');const q=r.remainingToBuy;if(q<=0)throw Error('Ya cubierto por proveedor o compra manual; evita comprarlo otra vez');manualBuySafe(state,key,q);commit(`Comprado manualmente: solo ${q} ${r.product} que faltaban`);return;}
  case 'buyedit':{const r=pendingPurchases(state).find(x=>x.key===key);if(!r)throw Error('Producto inexistente');const val=prompt('Cantidad REAL de compra manual, evitando lo cubierto por proveedor:',String(r.remainingToBuy));if(val===null)return;const q=Number(val.replace(',','.'));if(!(q>0))throw Error('Introduce una cantidad positiva');const removeDraft=r.assignedDraft>0&&q>r.remainingToBuy&&confirm('¿Quieres reducir expresamente el borrador de proveedor en la cantidad adicional que compras?');if(r.assignedDraft>0&&q>r.remainingToBuy&&!removeDraft)return;const allowExtra=r.authorized+q>r.total+1e-8;if(allowExtra&&!confirm('Atención: esta compra excede lo pedido. ¿Confirmas una compra EXTRA real?'))return;manualBuySafe(state,key,q,{removeDraft,allowExtra});commit('Compra manual confirmada; sin duplicar proveedor');return;}
  case 'load':{const r=deliveryPlan(state).eligible.find(x=>x.key===key&&x.dest===dest);if(!r)throw Error('Producto no habilitado');loadItem(state,key,dest,r.allowed);commit('Marcado como cargado; el reparto sigue siendo independiente');return;}
- case 'deliver':{deliver(state,key,dest);commit('Bajado. Se retira de pendientes.');return;}
- case 'deliverpartial':{const r=deliveryPlan(state).eligible.find(x=>x.key===key&&x.dest===dest&&x.remaining>0);if(!r)throw Error('No está pendiente');const q=prompt(`Cantidad parcial a bajar de ${r.product}, máximo ${r.remaining}:`,String(r.remaining));if(q===null)return;deliver(state,key,r.dest,Number(q.replace(',','.')));commit('Bajada parcial registrada');return;}
- case 'undodelivery':{const rr=deliveryPlan(state).eligible.find(x=>x.key===key&&x.dest===dest&&x.delivered>0);if(!rr)return;undoDelivery(state,key,rr.dest);commit('Bajada deshecha; vuelve a pendientes');return;}
+ case 'deliver':{await processDeliveryClick('bajar',key,dest);return;}
+ case 'deliverpartial':{const r=deliveryPlan(state).eligible.find(x=>x.key===key&&x.dest===dest&&x.remaining>0);if(!r)throw Error('No está pendiente');const q=prompt(`Cantidad parcial a bajar de ${r.product}, máximo ${r.remaining}:`,String(r.remaining));if(q===null)return;await processDeliveryClick('bajar',key,r.dest,Number(q.replace(',','.')));return;}
+ case 'undodelivery':{const rr=deliveryPlan(state).eligible.find(x=>x.key===key&&x.dest===dest&&x.delivered>0);if(!rr)return;await processDeliveryClick('deshacer',key,rr.dest);return;}
  case 'shortage':{const r=deliveryPlan(state).needsReview.find(x=>x.key===key);if(!r)return;const inputs={};let available=r.authorized;for(const [d,need] of Object.entries(r.by)){
    const v=prompt(`${r.product}: hay ${available} para repartir. ¿Cuánto reservar para ${destName(d)}? (pidió ${need})`,String(Math.min(need,available)));
    if(v===null)return;const n=Number(v.replace(',','.'));inputs[d]=n;available=fix(available-n);
@@ -1080,10 +1904,9 @@ async function handleAction(action,key,target,dest){
   planShortage(state,key,inputs);commit('Reparto de compra parcial confirmado');return;}
  case 'extra':{const r=surplus(state).find(x=>x.key===key);if(!r)return;const q=distributeSurplus(r.extra);alert(`Propuesta sobre el EXTRA de ${r.extra} ${r.unit}:\nSAN PABLO ${q.SP}\nSAN LESMES ${q.SL}\nSANTIAGO ${q.ST}\nEsta vista sólo audita el reparto; no añade líneas extra automáticamente.`);return;}
  case 'rider':{const n=prompt(`Repartidor de ${destName(key)}:`,state.riderAssignments?.[key]||'');if(n===null||!n.trim())return;assignRider(state,key,n);commit('Repartidor asignado');return;}
- case 'clearday':{const hasActivity=Boolean(state.orders.length||state.allocations.length||state.manual.length||state.receipts.length||Object.keys(state.delivery||{}).length||Object.keys(state.load||{}).length||Object.keys(state.shortageAllocation||{}).length||Object.keys(state.riderAssignments||{}).length||(state.sentMessages||[]).length);if(!hasActivity){toastMessage='Esta jornada ya está vacía. Puedes pegar pedidos nuevos.';render();return;}const confirmed=confirm('LIMPIAR DÍA — DEMOSTRACIÓN\n\nSe archivarán y quitarán de la jornada actual todos los pedidos, asignaciones, compras, envíos simulados, carga y bajadas.\n\nSE CONSERVAN: catálogo y productos nuevos, alias, tiendas, restaurantes, proveedores e histórico.\n\n¿Crear una jornada vacía para empezar otra vez?');if(!confirmed)return;const today=new Date();const d=[today.getFullYear(),String(today.getMonth()+1).padStart(2,'0'),String(today.getDate()).padStart(2,'0')].join('-');newDay(state,d);tab='inicio';commit('Día limpiado y archivado. Ya puedes introducir pedidos nuevos; los productos y restaurantes siguen guardados.');return;}
- case 'newday':{if(!confirm('¿Archivar la jornada y empezar otra? Se conservan catálogo, restaurantes y proveedores.'))return;const today=new Date();const d=prompt('Fecha de la nueva jornada (AAAA-MM-DD):',[today.getFullYear(),String(today.getMonth()+1).padStart(2,'0'),String(today.getDate()).padStart(2,'0')].join('-'));if(!d)return;newDay(state,d);tab='inicio';commit('Jornada nueva creada; catálogo y restaurantes conservados');return;}
- case 'export':download('auditoria_arslan_demo_'+state.day+'.json',JSON.stringify(state,null,2),'application/json');return;
- case 'resetdemo':if(!confirm('¿Volver a cargar los dos pedidos de ejemplo en esta demo? Se sustituye el estado local de la demo.'))return;state=createState();importBlocks(state,FIXTURE);tab='inicio';commit('Demostración restaurada, sin modificar la aplicación publicada');return;
+ case 'clearday':{const hasActivity=Boolean(state.orders.length||state.allocations.length||state.manual.length||state.receipts.length||Object.keys(state.delivery||{}).length||Object.keys(state.load||{}).length||Object.keys(state.shortageAllocation||{}).length||Object.keys(state.riderAssignments||{}).length||(state.sentMessages||[]).length);if(!hasActivity){toastMessage='Esta jornada ya está vacía. Puedes pegar pedidos nuevos.';render();return;}const confirmed=confirm('LIMPIAR DÍA\n\nSe archivarán los pedidos actuales, asignaciones, compras, envíos, carga y bajadas.\n\nSe conservan productos, restaurantes, proveedores, nombres aprendidos e historial.\n\nSe descargará primero una copia de esta jornada. ¿Continuar?');if(!confirmed)return;const token=prompt('Para evitar un borrado accidental escribe LIMPIAR:','');if(token!=='LIMPIAR')return;download('ARSLAN_LISTAS_ANTES_LIMPIAR_'+state.day+'.json',JSON.stringify(state,null,2),'application/json');const today=new Date();const d=[today.getFullYear(),String(today.getMonth()+1).padStart(2,'0'),String(today.getDate()).padStart(2,'0')].join('-');newDay(state,d);tab='inicio';commit('Día limpiado y archivado. Ya puedes introducir pedidos nuevos; los productos y restaurantes siguen guardados.');return;}
+ case 'newday':{if(!confirm('¿Archivar la jornada actual y empezar otra? Se descargará una copia antes de cambiar.'))return;download('ARSLAN_LISTAS_ANTES_NUEVO_DIA_'+state.day+'.json',JSON.stringify(state,null,2),'application/json');const today=new Date();const d=prompt('Fecha de la nueva jornada (AAAA-MM-DD):',[today.getFullYear(),String(today.getMonth()+1).padStart(2,'0'),String(today.getDate()).padStart(2,'0')].join('-'));if(!d)return;newDay(state,d);tab='inicio';commit('Jornada nueva creada; catálogo y restaurantes conservados');return;}
+ case 'export':download('ARSLAN_LISTAS_JORNADA_'+state.day+'.json',JSON.stringify(state,null,2),'application/json');return;
  default:return;}
  }catch(e){toastMessage='ERROR: '+(e?.message||String(e));render();}
 }
@@ -1109,5 +1932,4 @@ document.addEventListener('change',async e=>{
 });
 document.addEventListener('input',e=>{if(e.target.matches('[data-purchase-qty]'))purchaseDrafts[e.target.dataset.purchaseMode+':'+e.target.dataset.purchaseKey]=e.target.value;if(e.target.id==='searchRows'){const word=canonical(e.target.value);document.querySelectorAll('.searchable').forEach(el=>{el.hidden=!canonical(el.dataset.search).includes(word);});}});
 document.addEventListener('click',e=>{const b=e.target.closest('[data-action]');if(b){e.preventDefault();handleAction(b.dataset.action,dec(b.dataset.key||''),b.dataset.target?dec(b.dataset.target):'',b.dataset.dest?dec(b.dataset.dest):'');}});
-void bootCloud();
-</script></body></html>
+void bootCloud();</script></body></html>
