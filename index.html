@@ -1096,6 +1096,31 @@ function applyDeliveryMutation(state,{action,key,dest,quantity=null,expectedDeli
   undoDelivery(state,key,dest);
   return {changed:true,code:'DESHECHO',cantidad:fix(row.delivered)};
  }
+ // Ajuste individual, atómico y reversible en el mismo destino.
+ if(action==='ajustar'){
+  const delta=fix(Number(String(quantity).replace(',','.')));
+  if(!Number.isFinite(delta)||Math.abs(delta)<1e-8)return {changed:false,code:'CANTIDAD_INVALIDA'};
+  if(delta>row.remaining+1e-8)return {changed:false,code:'CANTIDAD_INSUFICIENTE'};
+  if(-delta>row.delivered+1e-8)return {changed:false,code:'CANTIDAD_INSUFICIENTE'};
+  if(delta>0)deliver(state,key,dest,delta);
+  else{
+   // Respetar claves antiguas del mismo producto para no perder bajadas.
+   let left=fix(-delta);
+   for(const location of Object.keys(state.delivery||{}).reverse()){
+    const at=location.lastIndexOf('@');
+    if(at<0||location.slice(at+1)!==dest||!sameProductKey(state,location.slice(0,at),key))continue;
+    const take=fix(Math.min(left,Number(state.delivery[location])||0));
+    if(take<=0)continue;
+    const next=fix(Number(state.delivery[location])-take);
+    if(next>0)state.delivery[location]=next;
+    else delete state.delivery[location];
+    left=fix(left-take);
+    if(left<=1e-8)break;
+   }
+   if(left>1e-8)throw Error('No se pudo encontrar la bajada anterior; no se guardó el ajuste');
+  }
+  return {changed:true,code:'AJUSTADO',cantidad:delta};
+ }
  return {changed:false,code:'ACCION_DESCONOCIDA'};
 }
 
@@ -1666,7 +1691,9 @@ function purchaseItem(row,mode){
  const bought=row.manuallyBought>0?pill(row.manuallyBought+' comprado manual','ok'):'';
  const checkbox=mode==='pending'||mode==='manual';
  const tick=checkbox?`<button type="button" class="purchase-tick ${checked?'checked':''}" role="checkbox" aria-checked="${checked}" ${row.unresolved?'disabled':''} data-action="purchase-toggle" data-key="${enc(row.key)}" data-target="${mode}" aria-label="${checked?'Desmarcar compra manual de':'Marcar como comprado'} ${esc(row.product)}">${checked?'✓':''}</button>`:'';
- const detail=Object.entries(row.by).sort((a,b)=>destName(a[0]).localeCompare(destName(b[0]),'es'));
+ // Mostrar también las otras tiendas para poder sumar un producto que hoy está a cero.
+ const detail=Object.entries({...Object.fromEntries(state.destinations.filter(d=>d.kind==='tienda').map(d=>[d.id,0])),...row.by})
+  .sort((a,b)=>destName(a[0]).localeCompare(destName(b[0]),'es'));
  const destinations=detail.map(([dest,value])=>{
   const step=Math.abs(value%1)>1e-8?0.5:1;
   const disabled=deliveryBusy?'disabled aria-busy="true"':'';
@@ -1718,8 +1745,8 @@ function reparto(){
  `<div class="card delivery-progress"><div class="progress-heading"><div><strong>Progreso · ${esc(current?.name||'destino')}</strong><span>${progress.completos} de ${progress.productos} productos completos</span></div><b>${progress.porcentaje}%</b></div><div class="progress-track" role="progressbar" aria-label="Bajadas de ${esc(current?.name||'destino')}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progress.porcentaje}"><div class="progress-fill" style="width:${progress.porcentaje}%"></div></div><div class="progress-caption">${progress.pendientes} pendientes · actualizada con las bajadas confirmadas</div></div>`+
  `<div class="grid"><div class="stat"><b>${notDone.length}</b><span>Por bajar en ${esc(current?.name||'destino')}</span></div><div class="stat"><b>${done.length}</b><span>Bajados en este destino</span></div></div><div class="spacer"></div>`+
  (myReview.length?`<div class="notice amber"><b>Compra parcial pendiente de distribuir</b> ${myReview.map(r=>btn('shortage','Distribuir '+esc(r.product),r.key,'small')).join('')}</div>`:'')+
- `<div class="card"><div class="sectionline"><h2>Por bajar · ${esc(current?.name||'Sin destino')}</h2>${pill(notDone.length+' pendientes')}</div><div class="items">${notDone.map(r=>`<div class="item"><button class="clickable" data-action="deliver" data-key="${enc(r.key)}" data-dest="${enc(dest)}" ${deliveryBusy?'disabled aria-busy="true"':''}><span class="check"></span><div class="grow"><div class="product">${esc(r.remaining)} ${esc(r.product)}</div><div class="details">${esc(r.unit)} · ${r.delivered>0?`${r.delivered} ya bajado · `:''}Toca para marcar BAJADO</div></div></button><div class="mini-actions"><button class="btn small" data-action="deliverpartial" data-key="${enc(r.key)}" data-dest="${enc(dest)}" ${deliveryBusy?'disabled':''}>Parcial</button></div></div>`).join('')||'<p class="subtle">Este destino no tiene productos por bajar. Puede que aún no haya un proveedor enviado o una compra manual, o que ya esté todo bajado.</p>'}</div></div>`+
- `<div class="card"><div class="sectionline"><h2>Bajados en ${esc(current?.name||'este destino')} (${done.length})</h2>${pill('Deshacer disponible','ok')}</div>${done.length?`<div class="items">${done.map(r=>`<div class="item done"><div class="check">✓</div><div class="grow"><div class="product">${esc(r.allowed)} ${esc(r.product)}</div><div class="details">${esc(r.unit)}</div></div><button class="btn small" data-action="undodelivery" data-key="${enc(r.key)}" data-dest="${enc(dest)}" ${deliveryBusy?'disabled':''}>Deshacer</button></div>`).join('')}</div>`:'<p class="subtle">Aquí aparecen solo las bajadas completadas de este destino.</p>'}</div>`+
+ `<div class="card"><div class="sectionline"><h2>Por bajar · ${esc(current?.name||'Sin destino')}</h2>${pill(notDone.length+' pendientes')}</div><div class="items">${notDone.map(r=>`<div class="item"><button class="clickable" data-action="deliver" data-key="${enc(r.key)}" data-dest="${enc(dest)}" ${deliveryBusy?'disabled aria-busy="true"':''}><span class="check"></span><div class="grow"><div class="product">${esc(r.remaining)} ${esc(r.product)}</div><div class="details">${esc(r.unit)} · ${r.delivered>0?`${r.delivered} ya bajado · `:''}Toca para marcar BAJADO</div></div></button><div class="mini-actions"><button type="button" class="btn small" data-action="deliver-step" data-key="${enc(r.key)}" data-dest="${enc(dest)}" data-target="-1" ${r.delivered<=0||deliveryBusy?'disabled':''} aria-label="Quitar una unidad bajada de ${esc(r.product)}">−</button><strong class="delivery-count">${esc(r.delivered)} / ${esc(r.allowed)}</strong><button type="button" class="btn small" data-action="deliver-step" data-key="${enc(r.key)}" data-dest="${enc(dest)}" data-target="${Math.min(1,r.remaining)}" ${deliveryBusy?'disabled':''} aria-label="Bajar una unidad de ${esc(r.product)}">+</button><button class="btn small" data-action="deliverpartial" data-key="${enc(r.key)}" data-dest="${enc(dest)}" ${deliveryBusy?'disabled':''}>Parcial</button></div></div>`).join('')||'<p class="subtle">Este destino no tiene productos por bajar. Puede que aún no haya un proveedor enviado o una compra manual, o que ya esté todo bajado.</p>'}</div></div>`+
+ `<div class="card"><div class="sectionline"><h2>Bajados en ${esc(current?.name||'este destino')} (${done.length})</h2>${pill('Deshacer disponible','ok')}</div>${done.length?`<div class="items">${done.map(r=>`<div class="item done"><div class="check">✓</div><div class="grow"><div class="product">${esc(r.allowed)} ${esc(r.product)}</div><div class="details">${esc(r.unit)}</div></div><div class="mini-actions"><button type="button" class="btn small" data-action="deliver-step" data-key="${enc(r.key)}" data-dest="${enc(dest)}" data-target="${-Math.min(1,r.delivered)}" ${deliveryBusy?'disabled':''} aria-label="Quitar una unidad bajada de ${esc(r.product)}">−</button><strong class="delivery-count">${esc(r.delivered)} / ${esc(r.allowed)}</strong><button class="btn small" data-action="undodelivery" data-key="${enc(r.key)}" data-dest="${enc(dest)}" ${deliveryBusy?'disabled':''}>Deshacer todo</button></div></div>`).join('')}</div>`:'<p class="subtle">Aquí aparecen solo las bajadas completadas de este destino.</p>'}</div>`+
  (unready.length?`<div class="card delivery-unready"><div class="sectionline"><h2>Pendiente de comprar o enviar</h2>${pill(unready.length+' sin gestionar','err')}</div><p class="subtle">Estas cantidades forman parte del pedido de ${esc(current?.name||'la tienda')}, pero no están habilitadas para bajar.</p><div class="items">${unready.map(r=>`<div class="item err"><div class="keynum">${r.by[dest]}</div><div class="grow"><div class="product">${esc(r.product)}</div><div class="details">${esc(r.unit)} · Debe comprarse o enviarse al proveedor</div></div></div>`).join('')}</div></div>`:'')+
   (short.length?`<div class="notice amber"><b>Faltantes de ${esc(current?.name||'destino')}</b>${short.map(r=>`<div>Faltan ${r.missing} ${esc(r.product)}</div>`).join('')}</div>`:'');
 }
@@ -1791,8 +1818,24 @@ async function processDeliveryClick(action,key,dest,qty=null){
  if(!row)throw Error('Producto no disponible para bajar. Actualiza el reparto.');
  if(!CLOUD_ENABLED){
   if(action==='deshacer')undoDelivery(state,key,dest);
-  else deliver(state,key,dest,qty);
-  commit(action==='deshacer'?'Bajada deshecha':'Bajada guardada en este dispositivo');
+  else if(action==='ajustar'){
+   const current=deliveredFor(state,key,dest);
+   const delta=Number(qty);
+   if(!Number.isFinite(delta)||!delta||current+delta<0||current+delta>row.allowed)throw Error('Cantidad de bajada fuera de rango');
+   if(delta>0)deliver(state,key,dest,delta);
+   else{
+    let left=fix(-delta);
+    for(const location of Object.keys(state.delivery||{}).reverse()){
+     const at=location.lastIndexOf('@');
+     if(at<0||location.slice(at+1)!==dest||!sameProductKey(state,location.slice(0,at),key))continue;
+     const take=Math.min(left,Number(state.delivery[location])||0);
+     const next=fix((Number(state.delivery[location])||0)-take);
+     if(next>0)state.delivery[location]=next;else delete state.delivery[location];
+     left=fix(left-take);if(left<=0)break;
+    }
+   }
+  }else deliver(state,key,dest,qty);
+  commit(action==='deshacer'?'Bajada deshecha':action==='ajustar'?'Cantidad bajada ajustada':'Bajada guardada en este dispositivo');
   return;
  }
  if(!cloudAdapter||!cloudEngine||!cloudUser||cloudStatus!=='sincronizado'||cloudEngine.dirty||cloudEngine.conflict)
@@ -1807,12 +1850,12 @@ async function processDeliveryClick(action,key,dest,qty=null){
   if(!result?.document)throw Error('Firebase no ha confirmado el estado actual');
   if(!cloudEngine.dirty&&!cloudEngine.conflict)cloudEngine.applyConfirmedDocument(result.document);
   else await cloudEngine.refresh();
-  const reason={MODIFICADO_POR_OTRO:'Ya lo cambió otra persona; lista actualizada sin duplicar la bajada.',
+  const reason={CANTIDAD_INSUFICIENTE:'Cantidad insuficiente. Comprueba la bajada actual.',CANTIDAD_INVALIDA:'Cantidad de bajada inválida.',MODIFICADO_POR_OTRO:'Ya lo cambió otra persona; lista actualizada sin duplicar la bajada.',
    YA_BAJADO:'Ya estaba bajado. La lista se ha actualizado.',JORNADA_CAMBIADA:'Se ha cambiado de jornada; no se guardó esta bajada.',
    CANTIDAD_ACTUALIZADA:'Otro usuario cambió la cantidad disponible; revisa la lista.',
    NO_HABILITADO:'La mercancía ya no está habilitada para repartir.'};
   toastMessage=result.changed?
-   (action==='deshacer'?'Bajada deshecha y sincronizada con el equipo':'Bajada confirmada en Firebase · progreso actualizado'):
+   (action==='deshacer'?'Bajada deshecha y sincronizada con el equipo':action==='ajustar'?'Cantidad bajada ajustada en Firebase':'Bajada confirmada en Firebase · progreso actualizado'):
    (reason[result.code]||'Otro repartidor cambió esta línea. Comprueba la lista.');
  }finally{deliveryBusy=false;render();}
 }
@@ -1925,6 +1968,12 @@ async function handleAction(action,key,target,dest){
  case 'buyedit':{const r=pendingPurchases(state).find(x=>x.key===key);if(!r)throw Error('Producto inexistente');const val=prompt('Cantidad REAL de compra manual, evitando lo cubierto por proveedor:',String(r.remainingToBuy));if(val===null)return;const q=Number(val.replace(',','.'));if(!(q>0))throw Error('Introduce una cantidad positiva');const removeDraft=r.assignedDraft>0&&q>r.remainingToBuy&&confirm('¿Quieres reducir expresamente el borrador de proveedor en la cantidad adicional que compras?');if(r.assignedDraft>0&&q>r.remainingToBuy&&!removeDraft)return;const allowExtra=r.authorized+q>r.total+1e-8;if(allowExtra&&!confirm('Atención: esta compra excede lo pedido. ¿Confirmas una compra EXTRA real?'))return;manualBuySafe(state,key,q,{removeDraft,allowExtra});commit('Compra manual confirmada; sin duplicar proveedor');return;}
  case 'load':{const r=deliveryPlan(state).eligible.find(x=>x.key===key&&x.dest===dest);if(!r)throw Error('Producto no habilitado');loadItem(state,key,dest,r.allowed);commit('Marcado como cargado; el reparto sigue siendo independiente');return;}
  case 'deliver':{await processDeliveryClick('bajar',key,dest);return;}
+ case 'deliver-step':{
+  const delta=Number(String(target).replace(',','.'));
+  if(!Number.isFinite(delta)||!delta)throw Error('Ajuste de bajada inválido');
+  await processDeliveryClick('ajustar',key,dest,delta);
+  return;
+ }
  case 'deliverpartial':{const r=deliveryPlan(state).eligible.find(x=>x.key===key&&x.dest===dest&&x.remaining>0);if(!r)throw Error('No está pendiente');const q=prompt(`Cantidad parcial a bajar de ${r.product}, máximo ${r.remaining}:`,String(r.remaining));if(q===null)return;await processDeliveryClick('bajar',key,r.dest,Number(q.replace(',','.')));return;}
  case 'undodelivery':{const rr=deliveryPlan(state).eligible.find(x=>x.key===key&&x.dest===dest&&x.delivered>0);if(!rr)return;await processDeliveryClick('deshacer',key,rr.dest);return;}
  case 'shortage':{const r=deliveryPlan(state).needsReview.find(x=>x.key===key);if(!r)return;const inputs={};let available=r.authorized;for(const [d,need] of Object.entries(r.by)){
