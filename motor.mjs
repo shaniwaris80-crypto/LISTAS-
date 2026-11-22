@@ -333,8 +333,9 @@ export function undoDelivery(state,key,dest){delete state.delivery[key+'@'+dest]
  */
 export function deliveryProgress(state,dest){
  const rows=deliveryPlan(state).eligible.filter(x=>x.dest===dest);
- const total=fix(rows.reduce((sum,r)=>sum+r.allowed,0));
- const bajado=fix(rows.reduce((sum,r)=>sum+Math.min(r.allowed,Math.max(0,r.delivered)),0));
+ // Cada producto pesa una unidad de progreso: nunca sumamos cajas, kg y manojos.
+ const total=rows.length;
+ const bajado=fix(rows.reduce((sum,r)=>sum+(r.allowed>0?Math.min(1,Math.max(0,r.delivered)/r.allowed):0),0));
  const completos=rows.filter(r=>r.remaining<=1e-8).length;
  const pendientes=rows.length-completos;
  return {total,bajado,restante:fix(Math.max(0,total-bajado)),
