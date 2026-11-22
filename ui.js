@@ -19,6 +19,7 @@ let tab='inicio',supplier='ESMO',filter='pending',purchaseView='pending',toastMe
 let selectedDeliveryDest='SP',expandedPurchaseKey='',editingDestination='';
 const purchaseDrafts=Object.create(null); // Sólo controles temporales. Ninguna compra se guarda sin confirmar.
 let cloudAdapter=null,cloudEngine=null,cloudUser=null;
+let teamOwnerUid=null,teamMembers=[],deliveryBusy=false;
 let cloudStatus=CLOUD_ENABLED?'conectando':'sin_configurar';
 let cloudMessage=CLOUD_ENABLED?'Iniciando conexión…':'Guardado solo en este dispositivo';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -37,13 +38,30 @@ function normalizeRuntimeState(value){
 
 function freshCloudState(){const s=createState(),d=new Date();s.day=[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');return s;}
 function cloudCanEdit(){return !CLOUD_ENABLED||(cloudUser&&cloudEngine&&['sincronizado','pendiente','sin_conexion'].includes(cloudStatus)&&cloudEngine.revision!==null&&!cloudEngine.conflict);}
-function persistCloudUser(next,meta){if(!cloudUser)return;try{localStorage.setItem(KEY+':user:'+cloudUser.id,JSON.stringify({state:next,meta}));}catch(e){cloudStatus='error';cloudMessage='El navegador no permite guardar el trabajo: '+(e?.message||e);updateSyncDisplay();}}
+function persistCloudUser(next,meta){if(!cloudUser)return;try{localStorage.setItem(KEY+':user:'+cloudUser.id+':team:'+(teamOwnerUid||cloudUser.id),JSON.stringify({state:next,meta}));}catch(e){cloudStatus='error';cloudMessage='El navegador no permite guardar el trabajo: '+(e?.message||e);updateSyncDisplay();}}
 function syncBadge(withId=true){
  const titles={sin_configurar:'SOLO EN ESTE DISPOSITIVO',conectando:'CONECTANDO',sin_sesion:'ENTRA PARA SINCRONIZAR',sincronizado:'SINCRONIZADO',pendiente:'GUARDANDO…',sin_conexion:'SIN CONEXIÓN',conflicto:'REVISAR CONFLICTO',importar:'IMPORTAR A NUBE',esperando_origen:'ESPERANDO LISTAS DEL ORDENADOR',error:'ERROR DE SINCRONIZACIÓN'};
  const tone=cloudStatus==='sincronizado'?'ok':cloudStatus==='conflicto'||cloudStatus==='error'?'err':'warn';
  return `<span class="sync-pill ${tone}" ${withId?'id="sync-badge"':''} title="${esc(cloudMessage)}">${esc(titles[cloudStatus]||cloudStatus)}</span>`;
 }
 function legacyBackupButtons(){let saved=null;try{saved=JSON.parse(localStorage.getItem(KEY)||'null');}catch{}return saved&&Array.isArray(saved.orders)?`<div class="notice"><b>Datos anteriores en este navegador:</b> ${saved.orders.length} líneas. Descarga una copia antes de conectar la nube. ${btn('cloud-legacy-export','Descargar copia JSON','','small')}</div>`:'';}
+
+function teamPanel(){
+ if(!CLOUD_ENABLED||!cloudUser)return '';
+ const owner=teamOwnerUid||cloudUser.id,isOwner=owner===cloudUser.id;
+ return `<details class="card team-panel"><summary><strong>Equipo · acceso de repartidores</strong></summary>
+ <p class="subtle">Cada persona utiliza su cuenta propia de Firebase. El propietario autoriza las cuentas del equipo.</p>
+ <label>Mi ID de Firebase</label><div class="team-member"><code>${esc(cloudUser.id)}</code>${btn('team-copy-id','Copiar','','small')}</div>
+ <label for="team-owner-id">ID del propietario</label><input id="team-owner-id" value="${esc(owner)}" autocomplete="off" spellcheck="false">
+ <div class="tools">${btn('team-join','Conectar a este equipo','','small dark')}</div>
+ ${isOwner?`<div class="team-owner"><h3>Dar acceso a un trabajador</h3><p class="subtle">El trabajador crea su cuenta y te pasa su ID. No compartas tu contraseña.</p>
+ <label for="team-member-id">ID del trabajador</label><input id="team-member-id" placeholder="ID de Firebase" autocomplete="off" spellcheck="false">
+ <div class="tools">${btn('team-add','Autorizar acceso','','small dark')}</div>
+ ${teamMembers.map(id=>`<div class="team-member"><code>${esc(id)}</code>${btn('team-revoke','Revocar',id,'small red')}</div>`).join('')}</div>`:
+ `<p class="subtle">El propietario debe autorizar tu ID para ver la jornada.</p>`}
+ </details>`;
+}
+
 function cloudPanel(){
  if(!CLOUD_ENABLED)return `<div class="card sync-panel"><h2>Sincronización entre dispositivos</h2><div class="notice red"><b>No activada.</b> Estos pedidos se guardan solamente en este navegador. Abrir la página en otro móvil no los copia.</div>${legacyBackupButtons()}<p class="subtle">La conexión requiere un proyecto Firebase independiente de Ruta Madrid. Consulta docs/FIREBASE_CONFIGURACION.md.</p></div>`;
  if(!cloudUser)return `<div class="card sync-panel"><h2>Conectar mis dispositivos</h2>${state.orders.length?`<div class="notice amber"><b>Copia local detectada: ${state.orders.length} líneas.</b> La puedes consultar sin perderla, pero aún no está sincronizada. Descarga JSON y entra para subirla a Firebase. No pulses Limpiar día.</div>`:''}<p class="subtle">Usa el mismo correo y contraseña en móvil y ordenador. Se requiere una base propia de Firebase, nunca la de Ruta Madrid.</p><label for="cloud-email">Correo electrónico</label><input id="cloud-email" type="email" autocomplete="username" placeholder="tu-correo@ejemplo.es"><label for="cloud-password">Contraseña</label><input id="cloud-password" type="password" autocomplete="current-password" placeholder="Contraseña de Firebase"><div class="tools">${btn('cloud-login','Entrar','','dark')}${btn('cloud-signup','Crear cuenta','','small')}${btn('cloud-reset','Recuperar contraseña','','small')}</div><p class="subtle">${esc(cloudMessage)}</p>${legacyBackupButtons()}</div>`;
@@ -53,7 +71,7 @@ function cloudPanel(){
   else if(cloudStatus==='importar')actions=`<div class="notice"><b>Hay datos locales y la nube está vacía.</b> Para evitar pérdidas no subimos nada automáticamente.</div><div class="tools">${btn('cloud-init','Subir los datos de este dispositivo','','dark')}</div>`;
  else if(cloudStatus==='conflicto')actions=`<div class="notice red"><b>Dos dispositivos modificaron los datos.</b> Nada se sobrescribirá automáticamente. Al elegir una opción se descargará una copia de seguridad.</div><div class="tools">${btn('cloud-use-remote','Usar datos de la nube','','dark')}${btn('cloud-publish-local','Publicar mis datos locales','','red')}</div>`;
  else actions=`<div class="tools">${btn('cloud-refresh','Sincronizar ahora','','dark')}${localStorage.getItem(KEY)?btn('cloud-import-demo','Importar datos anteriores de este navegador','','small'):''}</div>`;
- return `<div class="card sync-panel"><div class="sectionline"><h2>Sincronización de LISTAS</h2>${syncBadge(false)}</div><p class="subtle">${user} · ${esc(cloudMessage)}</p>${actions}<div class="tools">${btn('cloud-backup','Descargar copia de esta jornada','','small')}${btn('cloud-choose-import','Importar copia JSON de otro dispositivo','','small')}${btn('cloud-logout','Cerrar sesión','','small')}</div><input id="cloud-import-file" type="file" accept="application/json,.json" hidden><p class="subtle">El trabajo sin conexión queda pendiente de subir; nunca se sustituyen cambios conflictivos sin revisión. Para mover tus pedidos desde otra URL, primero exporta allí el JSON.</p></div>`;
+ return `<div class="card sync-panel"><div class="sectionline"><h2>Sincronización de LISTAS</h2>${syncBadge(false)}</div><p class="subtle">${user} · ${esc(cloudMessage)}</p>${actions}<div class="tools">${btn('cloud-backup','Descargar copia de esta jornada','','small')}${btn('cloud-choose-import','Importar copia JSON de otro dispositivo','','small')}${btn('cloud-logout','Cerrar sesión','','small')}</div><input id="cloud-import-file" type="file" accept="application/json,.json" hidden><p class="subtle">El trabajo sin conexión queda pendiente de subir; nunca se sustituyen cambios conflictivos sin revisión. Para mover tus pedidos desde otra URL, primero exporta allí el JSON.</p></div>`+teamPanel();
 }
 function updateSyncDisplay(){
  const b=document.getElementById('sync-badge');if(b){const temp=document.createElement('div');temp.innerHTML=syncBadge();b.replaceWith(temp.firstElementChild);}
@@ -72,9 +90,14 @@ async function beginCloudUser(user){
  if(cloudUser?.id===userId&&cloudEngine)return;
  if(cloudEngine)cloudEngine.stop();
  cloudUser={id:userId,email:user.email||''};cloudAdapter.setUser(userId);
+ let owner=userId;
+ try{owner=localStorage.getItem(KEY+':team:'+userId)||userId;}catch{}
+ cloudAdapter.setWorkspaceOwner(owner);teamOwnerUid=owner;teamMembers=[];
+ if(owner===userId)void cloudAdapter.listMembers().then(list=>{teamMembers=list;updateSyncDisplay();}).catch(()=>{});
  let record=null;
- try{record=JSON.parse(localStorage.getItem(KEY+':user:'+userId)||'null');}catch{record=null;}
- let legacy=null;try{legacy=JSON.parse(localStorage.getItem(KEY)||'null');}catch{}
+ try{record=JSON.parse(localStorage.getItem(KEY+':user:'+userId+':team:'+owner)||'null');}catch{}
+ if(!record&&owner===userId)try{record=JSON.parse(localStorage.getItem(KEY+':user:'+userId)||'null');}catch{}
+ let legacy=null;if(owner===userId)try{legacy=JSON.parse(localStorage.getItem(KEY)||'null');}catch{}
  const hasRecord=!!(record?.state&&Array.isArray(record.state.orders));
  const hasLegacy=!!(!hasRecord&&legacy&&Array.isArray(legacy.orders));
  state=normalizeRuntimeState(hasRecord?record.state:hasLegacy?legacy:freshCloudState());
@@ -96,7 +119,7 @@ async function bootCloud(){
   cloudAdapter.onAuthChange((event,session)=>{
    if(session?.user&&cloudUser?.id!==(session.user.uid||session.user.id))void beginCloudUser(session.user);
    if(event==='SIGNED_OUT'){
-     if(cloudEngine)cloudEngine.stop();cloudEngine=null;cloudUser=null;let old=null;try{old=JSON.parse(localStorage.getItem(KEY)||'null');}catch{}state=normalizeRuntimeState(old&&Array.isArray(old.orders)?old:createState());
+     if(cloudEngine)cloudEngine.stop();cloudEngine=null;cloudUser=null;teamOwnerUid=null;teamMembers=[];let old=null;try{old=JSON.parse(localStorage.getItem(KEY)||'null');}catch{}state=normalizeRuntimeState(old&&Array.isArray(old.orders)?old:createState());
      cloudStatus='sin_sesion';cloudMessage='Sesión cerrada; tus pedidos siguen en la nube';render();
    }
   });
