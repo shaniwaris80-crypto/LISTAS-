@@ -28,7 +28,10 @@ check('subir pedido NO compra automaticamente la caja nueva',()=>{
 check('reparto refleja falta y conserva tienda SP separada de SL',()=>{
  const s=fresh();M.assignSupplier(s,key,'ESMO',6);M.markSupplierSent(s,'ESMO');
  op(s,1);
- assert.equal(M.deliveryPlan(s).needsReview.find(x=>x.key===key).authorized,6);
+ assert.equal(M.deliveryPlan(s).needsReview.find(x=>x.key===key),undefined);
+ assert.equal(M.deliveryPlan(s).eligible.find(x=>x.key===key&&x.dest==='SP').allowed,3);
+ assert.equal(M.deliveryPlan(s).eligible.find(x=>x.key===key&&x.dest==='SL').allowed,3);
+ assert.equal(M.deliveryPlan(s).short.find(x=>x.key===key&&x.dest==='SP').missing,1);
  assert.equal(M.totals(s).find(x=>x.key===key).by.SP,4);
 });
 check('restar 1 en SP actualiza solo SP y total',()=>{
