@@ -13,8 +13,9 @@ check('Uses Firebase create account',code.includes('createUserWithEmailAndPasswo
 check('Does not auto upload over existing remote',code.includes('old==null?')&&code.includes('runTransaction('));
 check('Uses server-side CAS on revision',code.includes('old?.revision===expectedRevision'));
 check('Realtime subscription',code.includes('onValue('));
-check('Per-user database path',code.includes('/${authUser()}/document'));
-check('Realtime rules restrict read and write to matching auth UID',rules.rules.arslanListas['arslan-listas-next-v1'].$uid['.read'].includes("auth.uid === $uid")&&rules.rules.arslanListas['arslan-listas-next-v1'].$uid['.write'].includes("auth.uid === $uid"));
+check('Workspace Firebase path scoped to owner UID',code.includes('workspacePath()')&&code.includes('getWorkspaceOwner'));
+check('Realtime rules allow only owner or explicitly listed members',rules.rules.arslanListas['arslan-listas-next-v1'].$owner.document['.read'].includes('auth.uid === $owner')&&rules.rules.arslanListas['arslan-listas-next-v1'].$owner.document['.write'].includes('members')&&rules.rules.arslanListas['arslan-listas-next-v1'].$owner.members.$member['.write'].includes('auth.uid === $owner'));
+check('Atomic delivery transaction used',code.includes('async mutateDelivery(')&&code.includes('runTransaction(location')&&code.includes('applyDeliveryMutation('));
 check('Login UI asks for password not email link',ui.includes('id="cloud-password"')&&ui.includes("case 'cloud-login':case 'cloud-signup':case 'cloud-reset'"));
 check('Existing local storage key retained',ui.includes("const KEY='arslan_listas_reparto_seguro_v5_local_only'"));
 check('Firebase UID is used for cloud access',ui.includes('user?.uid||user?.id')&&ui.includes('cloudAdapter.setUser(userId)'));
