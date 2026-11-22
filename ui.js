@@ -204,14 +204,31 @@ function purchaseQuantityEditor(row,mode){
  return `<div class="purchase-controls"><label>${title}</label><div class="purchase-qty-controls"><button type="button" class="qty-step" data-action="purchase-step" data-key="${enc(row.key)}" data-target="${mode}:-1" aria-label="Restar una unidad de ${esc(row.product)}">−</button><input type="text" inputmode="decimal" autocomplete="off" data-purchase-qty data-purchase-key="${esc(row.key)}" data-purchase-mode="${mode}" value="${esc(getPurchaseDraft(row,mode))}" aria-label="Cantidad de ${esc(row.product)}"><button type="button" class="qty-step" data-action="purchase-step" data-key="${enc(row.key)}" data-target="${mode}:1" aria-label="Sumar una unidad de ${esc(row.product)}">+</button></div>${mode==='manual'?btn('purchase-save','Guardar cantidad',row.key,'small dark'):''}</div>`;
 }
 function purchaseItem(row,mode){
- const open=expandedPurchaseKey===row.key,checked=mode==='manual';
+ const checked=mode==='manual';
  const qty=checked?row.manuallyBought:mode==='pending'?row.remainingToBuy:row.total;
  const status=row.assignedSent>0?pill(row.assignedSent+' enviado proveedor','ok'):'';
  const drafted=row.assignedDraft>0?pill(row.assignedDraft+' asignado sin enviar','warn'):'';
  const bought=row.manuallyBought>0?pill(row.manuallyBought+' comprado manual','ok'):'';
  const checkbox=mode==='pending'||mode==='manual';
  const tick=checkbox?`<button type="button" class="purchase-tick ${checked?'checked':''}" role="checkbox" aria-checked="${checked}" ${row.unresolved?'disabled':''} data-action="purchase-toggle" data-key="${enc(row.key)}" data-target="${mode}" aria-label="${checked?'Desmarcar compra manual de':'Marcar como comprado'} ${esc(row.product)}">${checked?'✓':''}</button>`:'';
- return `<div class="item searchable purchase-item ${checked?'manual-complete':''} ${row.unresolved?'err':''}" data-search="${esc(row.product)}" data-purchase-type="${mode}" data-product-key="${esc(row.key)}">${tick}<div class="keynum">${qty}</div><div class="grow"><button type="button" class="product-disclosure" data-action="breakdown" data-key="${enc(row.key)}" aria-expanded="${open}"><span>${esc(row.product)}</span><span class="subtle">${open?'▲ Ocultar destinos':'▼ Quién lleva cuánto'}</span></button><div class="details">${esc(row.unit)} · Pedido total: ${row.total} · Falta: <b>${row.remainingToBuy}</b></div><div class="purchase-statuses">${status}${drafted}${bought}${row.unresolved?pill('Revisar nombre en Pedidos','err'):''}</div>${open?`<div class="purchase-breakdown"><h3>Quién lleva cuánto</h3>${Object.entries(row.by).sort((a,b)=>destName(a[0]).localeCompare(destName(b[0]),'es')).map(([d,q])=>`<div class="breakdown-line"><span>${esc(destName(d))}</span><strong>${q} ${esc(row.unit)}</strong></div>`).join('')}<div class="breakdown-line total"><span>TOTAL PEDIDO</span><strong>${row.total} ${esc(row.unit)}</strong></div><div class="breakdown-line"><span>A proveedores</span><strong>${row.supplierCovered}</strong></div><div class="breakdown-line"><span>Comprado manual</span><strong>${row.manuallyBought}</strong></div><div class="breakdown-line total"><span>FALTA COMPRAR</span><strong>${row.remainingToBuy}</strong></div></div>`:''}${checkbox&&!row.unresolved?purchaseQuantityEditor(row,mode):''}</div>${mode==='pending'&&!row.unresolved?btn('purchase-confirm','Confirmar compra',row.key,'small dark'):''}${checked?btn('purchase-undo','Deshacer',row.key,'small'):''}</div>`;
+ const detail=Object.entries(row.by).sort((a,b)=>destName(a[0]).localeCompare(destName(b[0]),'es'));
+ const destinations=detail.map(([dest,value])=>{
+  const step=Math.abs(value%1)>1e-8?0.5:1;
+  const disabled=deliveryBusy?'disabled aria-busy="true"':'';
+  return `<div class="breakdown-line editable-destination" data-destination="${esc(dest)}"><span class="breakdown-destination">${esc(destName(dest))}</span><div class="destination-qty-controls"><button type="button" class="destination-qty-step" data-action="destqty" data-key="${enc(row.key)}" data-dest="${enc(dest)}" data-target="${-step}" ${disabled} aria-label="Quitar ${step} a ${esc(destName(dest))} en ${esc(row.product)}">−</button><strong class="destination-qty-value" aria-label="Cantidad de ${esc(destName(dest))}">${esc(value)}</strong><button type="button" class="destination-qty-step" data-action="destqty" data-key="${enc(row.key)}" data-dest="${enc(dest)}" data-target="${step}" ${disabled} aria-label="Añadir ${step} a ${esc(destName(dest))} en ${esc(row.product)}">+</button></div></div>`;
+ }).join('');
+ return `<div class="item searchable purchase-item ${checked?'manual-complete':''} ${row.unresolved?'err':''}" data-search="${esc(row.product)}" data-purchase-type="${mode}" data-product-key="${esc(row.key)}">
+  ${tick}<div class="keynum">${qty}</div><div class="grow"><div class="product purchase-title">${esc(row.product)}</div>
+   <div class="details">${esc(row.unit)} · Pedido total: <b>${row.total}</b> · Falta comprar: <b>${row.remainingToBuy}</b></div>
+   <div class="purchase-statuses">${status}${drafted}${bought}${row.unresolved?pill('Revisar nombre en Pedidos','err'):''}</div>
+   <div class="purchase-breakdown purchase-inline"><div class="purchase-inline-label">CANTIDAD POR TIENDA · un toque para corregir</div>
+    ${destinations}
+    <div class="breakdown-line total"><span>TOTAL GLOBAL</span><strong>${row.total} ${esc(row.unit)}</strong></div>
+    ${row.remainingToBuy>0?`<div class="breakdown-line shortage-note"><span>Sin comprar ni enviar</span><strong>${row.remainingToBuy} ${esc(row.unit)}</strong></div>`:''}
+   </div>
+   ${checkbox&&!row.unresolved?purchaseQuantityEditor(row,mode):''}</div>
+   ${mode==='pending'&&!row.unresolved?btn('purchase-confirm','Confirmar compra',row.key,'small dark'):''}
+   ${checked?btn('purchase-undo','Deshacer',row.key,'small'):''}</div>`;
 }
 function compras(){
  const all=pendingPurchases(state);
@@ -260,6 +277,38 @@ async function copyText(text){try{await navigator.clipboard.writeText(text);retu
 /** Bajadas de un toque con verificación atómica en la versión más reciente.
  * Una operación concurrente sobre la misma fila no se aplica dos veces.
  */
+/** Cada + / − guarda directamente: nunca marca como comprado el incremento. */
+async function changeDemandOneTap(key,dest,rawDelta){
+ if(deliveryBusy)throw Error('Ya hay un cambio en curso. Comprueba la lista.');
+ const row=totals(state).find(r=>r.key===key);
+ if(!row)throw Error('Producto no encontrado; actualiza Compras');
+ const delta=Number(String(rawDelta).replace(',','.'));
+ if(!Number.isFinite(delta)||delta===0)throw Error('Cantidad inválida');
+ const expected=row.by[dest]||0;
+ if(!CLOUD_ENABLED){
+  const result=adjustDestinationDemand(state,key,dest,delta,{expectedQuantity:expected,day:state.day,historyLength:state.history.length});
+  if(result.changed)commit(destName(dest)+' · '+row.product+': '+result.cantidad+' · Global '+result.total);
+  else{toastMessage='Sin cambios';render();}
+  return;
+ }
+ if(!cloudAdapter||!cloudEngine||!cloudUser||cloudStatus!=='sincronizado'||cloudEngine.dirty||cloudEngine.conflict)
+  throw Error('La nube debe estar SINCRONIZADA para cambiar cantidades del equipo. No se ha alterado el pedido.');
+ if(typeof navigator!=='undefined'&&!navigator.onLine)
+  throw Error('Sin internet. No se ha actualizado el pedido compartido.');
+ const operation={key,dest,delta,expectedQuantity:expected,day:state.day,historyLength:(state.history||[]).length};
+ deliveryBusy=true;toastMessage='Guardando cantidad en Firebase…';render();
+ try{
+  const result=await cloudAdapter.mutateDemand(operation);
+  if(!result?.document)throw Error('Firebase no confirmó la cantidad; no se hizo ningún cambio local');
+  if(!cloudEngine.dirty&&!cloudEngine.conflict)cloudEngine.applyConfirmedDocument(result.document);
+  else await cloudEngine.refresh();
+  toastMessage=result.changed?'✓ '+destName(dest)+': '+result.cantidad+' · TOTAL '+result.total+'. Reparto actualizado.':
+   result.code==='MODIFICADO_POR_OTRO'?'Otra persona actualizó este producto. Ya ves la cantidad nueva.':
+   result.code==='JORNADA_CAMBIADA'?'La jornada ha cambiado. No se modificó la cantidad.':
+   'No se modificó el producto; revisa la cantidad actual.';
+ }finally{deliveryBusy=false;render();}
+}
+
 async function processDeliveryClick(action,key,dest,qty=null){
  if(deliveryBusy){toastMessage='Ya se está guardando otra bajada. Comprueba su resultado.';render();return;}
  const row=deliveryPlan(state).eligible.find(x=>x.key===key&&x.dest===dest);
@@ -295,6 +344,7 @@ async function processDeliveryClick(action,key,dest,qty=null){
 async function handleAction(action,key,target,dest){
  try{
  const readonly=['goto','export','copy','copyall','provdownload','provdownloadall','whatsapp','destcopy','destdownload','destwa','purchasefilter','breakdown','filter','selprov','purchase-step','manual-copy-pending','manual-download-pending','manual-wa-pending'];
+ if(deliveryBusy&&!readonly.includes(action)&&!action.startsWith('cloud-')&&!action.startsWith('team-'))throw Error('Guardando el último cambio en Firebase.');
  if(CLOUD_ENABLED&&!action.startsWith('cloud-')&&!action.startsWith('team-')&&!readonly.includes(action)&&!cloudCanEdit())throw Error('Para guardar cambios debes entrar y tener sincronización lista. Revisa el estado de la nube en Inicio.');
  switch(action){
  case 'team-copy-id':{if(!cloudUser)throw Error('Inicia sesión primero');const ok=await copyText(cloudUser.id);toastMessage=ok?'ID copiado para autorizar el equipo':'No se pudo copiar el ID';render();return;}
@@ -369,6 +419,7 @@ async function handleAction(action,key,target,dest){
  
   case 'filter':filter=key;render();return;
  case 'selprov':supplier=key;render();return;
+ case 'destqty':{await changeDemandOneTap(key,dest,target);return;}
  case 'breakdown':expandedPurchaseKey=expandedPurchaseKey===key?'':key;render();return;
  case 'newdest':{const name=prompt('Nombre del nuevo restaurante:');if(name===null)return;const d=addDestination(state,name,'restaurante');editingDestination=d.id;commit('Restaurante '+d.name+' creado, sin pedido todavía');document.querySelector(`[data-destination=\"${d.id}\"]`)?.scrollIntoView({behavior:'smooth',block:'start'});return;}
  case 'destedit':editingDestination=editingDestination===key?'':key;render();if(editingDestination)document.querySelector(`[data-destination=\"${editingDestination}\"]`)?.scrollIntoView({behavior:'smooth',block:'start'});return;
