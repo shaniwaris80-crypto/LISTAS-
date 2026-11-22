@@ -13,7 +13,7 @@ check('Tamaños táctiles de cantidades',css.includes('.destination-qty-step{wid
 check('Scroll horizontal desactivado en contenido principal',css.includes('overflow-x:clip')&&css.includes('.shell>main{min-width:0'));
 check('Formulario iPhone evita zoom al editar',css.includes('select,textarea{border-color:#cbd0d5')&&css.includes('font-size:16px'));
 check('Progreso de reparto verde legible',css.includes('.progress-fill{background:#138b48')&&ui.includes('deliveryProgress(state,dest)'));
-check('Botones de navegación móvil visibles',ui.includes("['reparto','Bajar']")&&ui.includes('class="bottomnav"'));
+check('Botones de navegación móvil visibles',ui.includes("['reparto','Reparto','delivery']")&&ui.includes('class="bottomnav"')&&css.includes('grid-template-columns:repeat(4,minmax(0,1fr))'));
 check('No cambia clave de almacenamiento local',ui.includes("arslan_listas_reparto_seguro_v5_local_only"));
 check('Vista compras directa sigue disponible',ui.includes('destination-qty-step')&&ui.includes('case \'destqty\''));
 check('Compilado contiene estilos nuevos y motor concurrente',html.includes('/* ARSLAN LISTAS · diseño operativo responsive 2026-11-22 */')&&html.includes('applyDeliveryMutation(')&&html.includes('changeDemandOneTap('));
@@ -21,4 +21,7 @@ check('Pedidos: columnas automáticas que no estrechan los nombres en PC',css.in
 check('Pedidos: número y nombre en primera fila; botones debajo',css.includes('.order-card .item{display:grid;grid-template-columns:max-content minmax(0,1fr)')&&css.includes('.order-card .item .mini-actions{grid-column:1/-1;grid-row:2;'));
 check('Pedidos: los nombres se parten por palabras, no letra a letra',css.includes('.order-card .item .product{overflow-wrap:break-word;word-break:normal;white-space:normal}'));
 check('Pedidos: ajuste de botones en iPhone y compilado actualizado',css.includes('.order-card .item .mini-actions .btn{flex:1 1 auto;min-width:0}')&&html.includes('tarjetas de pedidos legibles en PC e iPhone'));
+check('Estilo Shopify implementado sin reemplazar datos',css.includes('ARSLAN SHOPIFY REDESIGN 2026-11-23')&&ui.includes('ARSLAN LISTAS NEXT')&&ui.includes('auth-card'));
+check('Pedidos adicionales enlazados con Compras Manuales',ui.includes("purchaseView==='additional'")&&ui.includes("case 'additional-buy'"));
+check('Proveedores solo permiten WhatsApp para borradores',ui.includes("draft.length?btn('whatsapp'")&&ui.includes('supplierDraftWhatsApp(state,key)'));
 console.log('DISEÑO PC/IPHONE: '+checks+' comprobaciones');
