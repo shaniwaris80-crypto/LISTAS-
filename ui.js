@@ -250,7 +250,8 @@ function purchaseItem(row,mode){
  const status=row.assignedSent>0?pill(row.assignedSent+' enviado proveedor','ok'):'';
  const drafted=row.assignedDraft>0?pill(row.assignedDraft+' asignado sin enviar','warn'):'';
  const bought=row.manuallyBought>0?pill(row.manuallyBought+' comprado manual','ok'):'';
- const checkbox=mode==='pending'||mode==='manual';
+ const reserved=mode==='manual'&&additionalPurchaseRows(state).some(r=>r.key===row.key&&r.purchased>0);
+ const checkbox=(mode==='pending'||mode==='manual')&&!reserved;
  const tick=checkbox?`<button type="button" class="purchase-tick ${checked?'checked':''}" role="checkbox" aria-checked="${checked}" ${row.unresolved?'disabled':''} data-action="purchase-toggle" data-key="${enc(row.key)}" data-target="${mode}" aria-label="${checked?'Desmarcar compra manual de':'Marcar como comprado'} ${esc(row.product)}">${checked?'✓':''}</button>`:'';
  // Mostrar también las otras tiendas para poder sumar un producto que hoy está a cero.
  const detail=Object.entries({...Object.fromEntries(state.destinations.filter(d=>d.kind==='tienda').map(d=>[d.id,0])),...row.by})
@@ -264,14 +265,15 @@ function purchaseItem(row,mode){
   ${tick}<div class="keynum">${qty}</div><div class="grow"><div class="product purchase-title">${esc(row.product)}</div>
    <div class="details">${esc(row.unit)} · Pedido total: <b>${row.total}</b> · Falta comprar: <b>${row.remainingToBuy}</b></div>
    <div class="purchase-statuses">${status}${drafted}${bought}${row.unresolved?pill('Revisar nombre en Pedidos','err'):''}</div>
-   <div class="purchase-breakdown purchase-inline"><div class="purchase-inline-label">CANTIDAD POR TIENDA · un toque para corregir</div>
+   <details class="purchase-destination-details"><summary>Ver cantidades por tienda · Ajustar + / −</summary><div class="purchase-breakdown purchase-inline"><div class="purchase-inline-label">CANTIDAD POR TIENDA · un toque para corregir</div>
     ${destinations}
     <div class="breakdown-line total"><span>TOTAL GLOBAL</span><strong>${row.total} ${esc(row.unit)}</strong></div>
     ${row.remainingToBuy>0?`<div class="breakdown-line shortage-note"><span>Sin comprar ni enviar</span><strong>${row.remainingToBuy} ${esc(row.unit)}</strong></div>`:''}
-   </div>
+   </div></details>
+   ${reserved?'<p class="subtle">Parte de esta compra está reservada a un destino. Corrígela desde Pedidos adicionales.</p>':''}
    ${checkbox&&!row.unresolved?purchaseQuantityEditor(row,mode):''}</div>
    ${mode==='pending'&&!row.unresolved?btn('purchase-confirm','Confirmar compra',row.key,'small dark'):''}
-   ${checked?btn('purchase-undo','Deshacer',row.key,'small'):''}</div>`;
+   ${checked?(reserved?btn('goto-additional','Ver adicionales','','small'):btn('purchase-undo','Deshacer',row.key,'small')):''}</div>`;
 }
 
 /** Pedidos incorporados después de enviar a proveedores; no reenviar WhatsApp. */
@@ -329,9 +331,9 @@ function reparto(){
  const dest=selectedDeliveryDest;
  const progress=deliveryProgress(state,dest);
  const current=state.destinations.find(x=>x.id===dest),notDone=p.eligible.filter(x=>x.dest===dest&&x.remaining>0),done=p.eligible.filter(x=>x.dest===dest&&x.remaining===0),myReview=p.needsReview.filter(x=>(x.by?.[dest]||0)>0),short=p.short.filter(x=>x.dest===dest),unready=p.blocked.filter(x=>(x.by?.[dest]||0)>0);
- return sectionTitle('Bajar mercancía','Selecciona ARRIBA una tienda o restaurante; sólo ves sus productos, sin mezclar listas.')+
+ return sectionTitle('Reparto','Selecciona la tienda o restaurante y baja la mercancía con un toque.')+
  `<div class="card destination-picker"><label for="deliveryDestination">¿En qué tienda o restaurante estás bajando?</label><select id="deliveryDestination">${dests.map(d=>`<option value="${esc(d.id)}" ${dest===d.id?'selected':''}>${esc(d.name)} · ${p.eligible.filter(x=>x.dest===d.id&&x.remaining>0).length} pendientes</option>`).join('')||'<option value="">Todavía sin pedidos</option>'}</select><div class="tools" style="margin-top:10px">${current?btn('rider','Repartidor: '+esc(state.riderAssignments?.[dest]||'Sin asignar'),dest,'small'):''}${pill('Carga opcional','ok')}</div></div>`+
- `<div class="card delivery-progress"><div class="progress-heading"><div><strong>Progreso · ${esc(current?.name||'destino')}</strong><span>${progress.completos} de ${progress.productos} productos completos</span></div><b>${progress.porcentaje}%</b></div><div class="progress-track" role="progressbar" aria-label="Bajadas de ${esc(current?.name||'destino')}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progress.porcentaje}"><div class="progress-fill" style="width:${progress.porcentaje}%"></div></div><div class="progress-caption">${progress.pendientes} pendientes · actualizada con las bajadas confirmadas</div></div>`+
+ `<div class="delivery-dest-chips" role="group" aria-label="Elegir tienda o restaurante">${dests.map(d=>`<button type="button" class="${d.id===dest?'active':''}" data-action="delivery-select" data-key="${enc(d.id)}" aria-pressed="${d.id===dest}">${esc(d.name)}</button>`).join('')}</div><div class="card delivery-progress"><div class="progress-heading"><div><strong>Progreso · ${esc(current?.name||'destino')}</strong><span>${progress.completos} de ${progress.productos} productos completos</span></div><b>${progress.porcentaje}%</b></div><div class="progress-track" role="progressbar" aria-label="Bajadas de ${esc(current?.name||'destino')}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progress.porcentaje}"><div class="progress-fill" style="width:${progress.porcentaje}%"></div></div><div class="progress-caption">${progress.pendientes} pendientes · actualizada con las bajadas confirmadas</div></div>`+
  `<div class="grid"><div class="stat"><b>${notDone.length}</b><span>Por bajar en ${esc(current?.name||'destino')}</span></div><div class="stat"><b>${done.length}</b><span>Bajados en este destino</span></div></div><div class="spacer"></div>`+
  (myReview.length?`<div class="notice amber"><b>Compra parcial pendiente de distribuir</b> ${myReview.map(r=>btn('shortage','Distribuir '+esc(r.product),r.key,'small')).join('')}</div>`:'')+
  `<div class="card"><div class="sectionline"><h2>Por bajar · ${esc(current?.name||'Sin destino')}</h2>${pill(notDone.length+' pendientes')}</div><div class="items">${notDone.map(r=>`<div class="item"><button class="clickable" data-action="deliver" data-key="${enc(r.key)}" data-dest="${enc(dest)}" ${deliveryBusy?'disabled aria-busy="true"':''}><span class="check"></span><div class="grow"><div class="product">${esc(r.remaining)} ${esc(r.product)}</div><div class="details">${esc(r.unit)} · ${r.delivered>0?`${r.delivered} ya bajado · `:''}Toca para marcar BAJADO</div></div></button><div class="mini-actions"><button type="button" class="btn small" data-action="deliver-step" data-key="${enc(r.key)}" data-dest="${enc(dest)}" data-target="-1" ${r.delivered<=0||deliveryBusy?'disabled':''} aria-label="Quitar una unidad bajada de ${esc(r.product)}">−</button><strong class="delivery-count">${esc(r.delivered)} / ${esc(r.allowed)}</strong><button type="button" class="btn small" data-action="deliver-step" data-key="${enc(r.key)}" data-dest="${enc(dest)}" data-target="${Math.min(1,r.remaining)}" ${deliveryBusy?'disabled':''} aria-label="Bajar una unidad de ${esc(r.product)}">+</button><button class="btn small" data-action="deliverpartial" data-key="${enc(r.key)}" data-dest="${enc(dest)}" ${deliveryBusy?'disabled':''}>Parcial</button></div></div>`).join('')||'<p class="subtle">Este destino no tiene productos por bajar. Puede que aún no haya un proveedor enviado o una compra manual, o que ya esté todo bajado.</p>'}</div></div>`+
@@ -459,7 +461,7 @@ async function processDeliveryClick(action,key,dest,qty=null){
 
 async function handleAction(action,key,target,dest){
  try{
- const readonly=['goto','export','copy','copyall','provdownload','provdownloadall','whatsapp','destcopy','destdownload','destwa','purchasefilter','breakdown','filter','selprov','purchase-step','additional-step','order-open','order-filter','toggle-paste','goto-additional','manual-copy-pending','manual-download-pending','manual-wa-pending'];
+ const readonly=['goto','export','copy','copyall','provdownload','provdownloadall','whatsapp','destcopy','destdownload','destwa','purchasefilter','breakdown','filter','selprov','purchase-step','additional-step','order-open','order-filter','toggle-paste','goto-additional','delivery-select','manual-copy-pending','manual-download-pending','manual-wa-pending'];
  if(deliveryBusy&&!readonly.includes(action)&&!action.startsWith('cloud-')&&!action.startsWith('team-'))throw Error('Guardando el último cambio en Firebase.');
  if(CLOUD_ENABLED&&!action.startsWith('cloud-')&&!action.startsWith('team-')&&!readonly.includes(action)&&!cloudCanEdit())throw Error('Para guardar cambios debes entrar y tener sincronización lista. Revisa el estado de la nube en Inicio.');
  switch(action){
@@ -571,6 +573,7 @@ async function handleAction(action,key,target,dest){
  }
  
   case 'goto-additional':purchaseView='additional';tab='compras';toastMessage='';render();return;
+ case 'delivery-select':selectedDeliveryDest=key;render();return;
  case 'order-filter':orderView=key;render();return;
  case 'order-open':expandedOrderDest=expandedOrderDest===key?'':key;render();return;
  case 'toggle-paste':{const p=document.getElementById('bulkPaste');if(p){p.open=true;p.scrollIntoView({behavior:'smooth',block:'start'});}return;}
