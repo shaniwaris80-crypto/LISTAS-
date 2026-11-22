@@ -131,9 +131,17 @@ export class SyncEngine {
   }
   async acceptRemote(remote){
     if(!Number.isInteger(remote.revision)||!plain(remote.data)||!Array.isArray(remote.data.orders))throw Error('Datos de nube no válidos');
+    // Ya sincronizado y sin cambios pendientes: aceptar la última revisión
+    // de Firebase, sin provocar conflictos contra la copia del primer inicio.
+    if(this.revision!==null&&!this.dirty&&this.base&&same(this.local,this.base)){
+      if(remote.revision<this.revision)return;
+      this.revision=remote.revision;this.base=clone(remote.data);this.conflict=null;
+      this.apply(remote.data);this.setStatus('sincronizado','Cambios del equipo recibidos');
+      return;
+    }
     if(this.hasLocal&&!same(this.local,remote.data)){
-      if(this.meta?.base && Number.isInteger(this.meta.revision)){
-        const merged=mergeStates(this.meta.base,this.local,remote.data);
+      if(this.base||this.meta?.base){
+        const merged=mergeStates(this.base||this.meta.base,this.local,remote.data);
         if(merged.ok){this.revision=remote.revision;this.base=clone(remote.data);this.apply(merged.value);this.dirty=!same(this.local,remote.data);if(this.dirty){this.setStatus('pendiente','Se han combinado cambios independientes; guardando…');this.schedule();}else this.setStatus('sincronizado','Actualizado desde la nube');return;}
       }
       this.conflict={remote:clone(remote),local:clone(this.local)};this.revision=remote.revision;this.base=clone(remote.data);this.setStatus('conflicto','Hay datos diferentes en este dispositivo y en la nube. Elige una versión sin perder la copia local.');return;
@@ -169,6 +177,14 @@ export class SyncEngine {
       this.setStatus('pendiente','La nube cambió varias veces; reintenta sincronizar');
     }catch(err){this.setStatus('sin_conexion','No se pudo enviar a la nube; cambios guardados localmente: '+(err?.message||err));}
     finally{this.running=false;if(this.dirty&&!this.conflict&&this.status!=='sin_conexion')this.schedule();}
+  }
+  /** Incorporar una bajada confirmada atómicamente en Firebase. */
+  applyConfirmedDocument(remote){
+    if(!remote||!Number.isSafeInteger(remote.revision)||!remote.data)throw Error('Confirmación de Firebase inválida');
+    if(this.dirty||this.conflict||this.running)throw Error('Hay cambios locales sin guardar; no se sustituyeron tus datos');
+    if(this.revision!==null&&remote.revision<this.revision)return;
+    this.revision=remote.revision;this.base=clone(remote.data);this.meta=this.getMeta();
+    this.apply(remote.data);this.setStatus('sincronizado','Bajada confirmada en Firebase');
   }
   async useRemote(){
     if(!this.conflict)throw Error('No hay conflicto');
