@@ -26,4 +26,20 @@ check('JSON import for cross origin migration',ui.includes('cloud-import-file'))
 check('JSON import blocks overwrite of existing orders',ui.includes('Ya hay pedidos en la nube. No importamos encima'));
 check('First upload requires user approval',ui.includes("case 'cloud-init'")&&ui.includes('confirm('));
 check('Conflict requires explicit choice',ui.includes("case 'cloud-publish-local'")&&ui.includes('copia de la nube'));
+// RTDB elimina arrays vacíos: simular documento antiguo sin campos opcionales.
+const hydrate=new Function(code+'; return hydrateCloudDocumentState;')();
+const {createState,deliveryPlan,applyDeliveryMutation,adjustDestinationDemand,totals}=await import('../motor.mjs');
+const complete=createState();
+const legacy={day:complete.day,orders:[{id:'line-1',dest:'SP',q:2,product:'TOMATE RAMA',unit:'BULTO',review:false}],destinations:complete.destinations,
+ catalog:complete.catalog,allocations:[{id:'alloc-1',key:'TOMATE RAMA|BULTO',q:2,status:'sent',supplier:'ESMO'}],
+ history:[],customField:{important:'retain'},delivery:{}};
+const snapshot=structuredClone(legacy);
+const hydrated=hydrate(legacy);
+check('RTDB missing arrays restored for transactions',Array.isArray(hydrated.manual)&&Array.isArray(hydrated.receipts)&&Array.isArray(hydrated.sentMessages));
+check('Historical data and unknown fields preserved',JSON.stringify(legacy)===JSON.stringify(snapshot)&&JSON.stringify(hydrated.customField)===JSON.stringify(legacy.customField));
+const row=deliveryPlan(hydrated).eligible.find(x=>x.dest==='SP');
+check('Bajar +1 works with RTDB missing empty arrays',!!row&&applyDeliveryMutation(hydrated,{action:'ajustar',key:row.key,dest:'SP',quantity:1,expectedDelivered:0,expectedAllowed:2,day:hydrated.day,historyLength:0}).changed);
+const demanded=hydrate(snapshot);
+check('Subir cantidad +1 works with RTDB missing empty arrays',adjustDestinationDemand(demanded,'TOMATE RAMA|BULTO','SP',1,{expectedQuantity:2,day:demanded.day,historyLength:0}).changed&&totals(demanded)[0].total===3);
+check('Malformed arrays reject writes rather than deleting purchases',(()=>{try{hydrate({...legacy,manual:{bad:'value'}});return false}catch{return true}})());
 console.log('PRUEBAS FIREBASE: '+n+' correctas');
