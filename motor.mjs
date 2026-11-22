@@ -136,7 +136,9 @@ export function importBlocks(state,text,{replace=false}={}){
   const heading=parseHeader(raw,state);
   if(heading){dest=heading.startsWith('UNKNOWN:')?null:heading;if(!dest)issues.push('Destino no reconocido: '+heading.substring(8));if(replace&&dest&&!seen.has(dest)){if(state.allocations.some(a=>a.status!=='cancelled')||state.manual.length||Object.keys(state.delivery).length)throw Error('No puedes sustituir pedidos con asignaciones, compras o bajadas iniciadas. Corrige cantidades desde Compras para conservar el historial');state.orders=state.orders.filter(o=>o.dest!==dest);seen.add(dest);}continue;}
   if(!dest){if(raw.trim().startsWith('['))continue;issues.push('Línea sin destino: '+raw.trim());continue;}
-  const parsed=parseOrderLine(raw,state);if(parsed){state.orders.push({...parsed,dest});n++;}
+  const parsed=parseOrderLine(raw,state);if(parsed){
+   const late=state.allocations.some(a=>a.status==='sent');
+   state.orders.push({...parsed,dest,...(late?{kind:'pedido-adicional',receivedAt:new Date().toISOString()}:{} )});n++;}
  }
  if(!state.importedFingerprints)state.importedFingerprints=[];state.importedFingerprints.push(fingerprint);
  return {imported:n,issues};
@@ -224,7 +226,12 @@ export function adjustDestinationDemand(state,key,dest,change,{expectedQuantity=
  const nextOrders=structuredClone(state.orders);
  const matching=nextOrders.filter(o=>o.dest===dest&&o.q>0&&sameProductKey(state,canonical(o.product)+'|'+(o.unit||'BULTO'),row.key));
  if(changeApplied>0){
-  if(matching.length){
+  const afterSupplierSend=state.allocations.some(a=>a.status==='sent');
+  if(afterSupplierSend){
+   nextOrders.push({id:id('adicional'),dest,raw:String(changeApplied)+' '+row.product,
+    sourceName:canonical(row.product),product:row.product,q:changeApplied,unit:row.unit,
+    review:false,issues:[],suggestions:[],kind:'pedido-adicional',receivedAt:new Date().toISOString()});
+  }else if(matching.length){
    const l=matching[matching.length-1];
    l.q=fix(l.q+changeApplied);
   }else{
@@ -474,10 +481,47 @@ export function planShortage(state,key,by){
  state.shortageAllocation[key]=Object.fromEntries(Object.entries(by).map(([d,q])=>[d,fix(num(q))]));
  return state.shortageAllocation[key];
 }
+/** Los pedidos adicionales NUNCA pueden consumir la cantidad previamente
+ * reservada a las tiendas antes del envío a proveedor.  */
+function lateCoveredPlan(state,t,authorized,sorted){
+ const lateBy={};
+ for(const line of state.orders||[]){
+  if(line.kind!=='pedido-adicional'||!(line.q>0))continue;
+  const k=canonical(normalizedProductName(line.product,state))+'|'+(line.unit||'BULTO');
+  if(sameProductKey(state,k,t.key))lateBy[line.dest]=fix((lateBy[line.dest]||0)+line.q);
+ }
+ if(!Object.values(lateBy).some(q=>q>0)||legacyShortage(state,t.key))return null;
+ const baseBy=Object.fromEntries(sorted.map(([dest,q])=>[dest,fix(Math.max(0,q-(lateBy[dest]||0)))]));
+ const baseTotal=fix(Object.values(baseBy).reduce((n,q)=>n+q,0));
+ const reserved={};
+ for(const m of state.manual||[]){
+  if(m.confirmed&&m.additionalDest&&sameProductKey(state,m.key,t.key))
+   reserved[m.additionalDest]=fix((reserved[m.additionalDest]||0)+m.q);
+ }
+ const reservedTotal=fix(Object.values(reserved).reduce((n,q)=>n+Math.max(0,q),0));
+ if(authorized-reservedTotal+1e-8<baseTotal)return null;
+ let free=fix(Math.max(0,authorized-reservedTotal-baseTotal));
+ const eligible=[],short=[];
+ for(const [dest,demand] of sorted){
+  const original=baseBy[dest]||0,late=lateBy[dest]||0;
+  const own=fix(Math.min(late,Math.max(0,reserved[dest]||0)));
+  const shared=fix(Math.min(Math.max(0,late-own),free));
+  free=fix(free-shared);
+  const allowed=fix(Math.min(demand,original+own+shared));
+  if(allowed>0){const delivered=deliveredFor(state,t.key,dest);
+   eligible.push({key:t.key,dest,product:t.product,unit:t.unit,
+    requested:demand,allowed,delivered,remaining:fix(Math.max(0,allowed-delivered))});}
+  if(allowed<demand)short.push({key:t.key,dest,product:t.product,missing:fix(demand-allowed),unit:t.unit});
+ }
+ return {eligible,short};
+}
+
 export function deliveryPlan(state){const eligible=[],blocked=[],short=[],needsReview=[];let all=totals(state);
  for(const t of all){const authorized=productStatus(state,t.key).authorized;
   if(!authorized){blocked.push({...t,reason:'SIN ENVIAR NI COMPRAR'});continue;}
   const sorted=Object.entries(t.by).sort((a,b)=>dOrder(a[0],b[0]));
+  const addition=lateCoveredPlan(state,t,authorized,sorted);
+  if(addition){eligible.push(...addition.eligible);short.push(...addition.short);continue;}
   // Si afecta a varias tiendas y falta producto, no se elige arbitrariamente quién recibe menos.
   const partial=authorized<t.total-1e-8&&sorted.length>1;
   const specified=legacyShortage(state,t.key);
