@@ -66,4 +66,30 @@ check('sin compra ni proveedor enviado no hay reparto',()=>{
 check('Firebase tiene transacciones de entrega condicionadas',()=>{
  // Static check isolates the same code used in the browser; no live customer data.
 });
+check('bajar +1, -1 y deshacer sólo una unidad sin borrar el resto',()=>{
+ const s=make(),key='TOMATE RAMA|BULTO';
+ assert.equal(M.applyDeliveryMutation(s,op(s,key,'SP','ajustar',1)).changed,true);
+ assert.equal(s.delivery[key+'@SP'],1);
+ assert.equal(M.applyDeliveryMutation(s,op(s,key,'SP','ajustar',-1)).changed,true);
+ assert.equal(s.delivery[key+'@SP'],undefined);
+ assert.equal(M.applyDeliveryMutation(s,op(s,key,'SP','bajar')).changed,true);
+ assert.equal(s.delivery[key+'@SP'],2);
+ assert.equal(M.applyDeliveryMutation(s,op(s,key,'SP','ajustar',-1)).changed,true);
+ assert.equal(s.delivery[key+'@SP'],1);
+});
+check('un clic duplicado sobre + no duplica la bajada',()=>{
+ const s=make(),key='TOMATE RAMA|BULTO',a=op(s,key,'SP','ajustar',1);
+ assert.equal(M.applyDeliveryMutation(s,a).changed,true);
+ assert.equal(M.applyDeliveryMutation(s,a).code,'MODIFICADO_POR_OTRO');
+ assert.equal(s.delivery[key+'@SP'],1);
+});
+check('no bajar más que lo comprado ni borrar cantidades de otra tienda',()=>{
+ const s=make(),key='TOMATE RAMA|BULTO',a=op(s,key,'SP','ajustar',3);
+ const before=structuredClone(s);
+ assert.equal(M.applyDeliveryMutation(s,a).code,'CANTIDAD_INSUFICIENTE');
+ assert.deepEqual(s,before);
+ M.applyDeliveryMutation(s,op(s,key,'SL','ajustar',1));
+ assert.equal(M.applyDeliveryMutation(s,op(s,key,'SP','ajustar',1)).changed,true);
+ assert.equal(s.delivery[key+'@SL'],1);
+});
 console.log('REPARTO CONCURRENTE: '+passed+' pruebas correctas');
