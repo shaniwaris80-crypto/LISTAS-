@@ -419,3 +419,16 @@ test('56. La app no ofrece restaurar una demo ni importa muestras en la página 
  assert.ok(!ui.includes('LIMPIAR DÍA — DEMOSTRACIÓN'));
  assert.ok(ui.includes('ARSLAN_LISTAS_ANTES_LIMPIAR_'));
 });
+
+test('57. Reemplazar pedidos con proveedor asignado, aunque no enviado, queda bloqueado',()=>{
+ const s=sample();M.quickAssign(s,tomato,'ESMO');
+ assert.throws(()=>M.importBlocks(s,'PEDIDO SP\n8 TOMATE RAMA',{replace:true}),/asignaciones/i);
+ assert.equal(s.allocations.length,1);assert.equal(row(s,tomato).total,6);
+});
+
+test('58. No cambia el nombre de un producto ya asignado a proveedor',()=>{
+ const s=sample();M.quickAssign(s,tomato,'ESMO');
+ const line=s.orders.find(x=>x.dest==='SP'&&x.product==='TOMATE RAMA');
+ assert.throws(()=>M.confirmProduct(s,line.id,'TOMATE DANIELA',{remember:true}),/asignaciones/i);
+ assert.equal(row(s,tomato).total,6);
+});
