@@ -30,11 +30,12 @@ export function createState(){return {day:'2026-11-19',catalog:[...SEED_CATALOG]
  * automáticamente variedades, calibres ni denominaciones ambiguas. */
 export function normalizedProductName(name,state){
  const key=canonical(name);
- const exact=(state.catalog||[]).find(c=>canonical(c)===key);
- if(exact)return exact;
+ // BANAN es una errata inequívoca incluso si se guardó en catálogos antiguos.
+ if(key==='BANAN')return (state.catalog||[]).find(c=>canonical(c)==='BANANA')||'BANANA';
  const alias=(state.aliases||{})[key];
  if(alias)return alias;
- if(key==='BANAN')return (state.catalog||[]).find(c=>canonical(c)==='BANANA')||'BANANA';
+ const exact=(state.catalog||[]).find(c=>canonical(c)===key);
+ if(exact)return exact;
  return key;
 }
 export function matchCatalog(name,state){const k=canonical(name);const norm=normalizedProductName(k,state);return (state.catalog||[]).find(c=>canonical(c)===canonical(norm))||null;}
