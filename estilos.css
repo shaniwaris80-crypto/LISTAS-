@@ -754,3 +754,70 @@ input[type=search]{appearance:none}
  .shop-kpis span{font-size:8px}
  .order-store-stats strong{font-size:9px}
 }
+
+/* Pedidos tardíos, compras por destino y distribución rápida */
+.provider-heading{display:flex;align-items:center;gap:12px;min-width:0;margin-bottom:11px}
+.provider-name{flex:1;min-width:0}
+.provider-name h2{font-size:17px;letter-spacing:-.035em;margin:0 0 4px;color:#16221a}
+.provider-name small{font-size:11px;color:#7b887d}
+.provider-preview{background:#f5f8f6;border-radius:10px;padding:10px 12px;color:#5b6b60;font-size:12px;line-height:1.55;overflow-wrap:break-word;margin:11px 0}
+.provider-actions{gap:7px;flex-wrap:wrap;margin-top:12px}
+.provider-details{border-top:1px solid #e4eae5;margin-top:12px;padding-top:10px}
+.provider-details>summary{cursor:pointer;font-weight:700;font-size:12px;color:#3a6e4a;padding:8px 0}
+.provider-details .items{max-height:310px;overflow:auto;scrollbar-width:thin;margin:9px 0}
+.provider-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,365px),1fr));gap:12px}
+.assign-panel{margin-top:19px}
+.assign-items{max-height:570px;overflow-y:auto;scrollbar-width:thin;margin-top:13px}
+.purchase-destination-details{grid-column:1/-1;width:100%;margin:9px 0}
+.purchase-destination-details>summary{cursor:pointer;color:#196b3b;font-size:12px;font-weight:780;border:1px solid #e0e8e3;border-radius:10px;background:#f7faf8;padding:12px 13px}
+.purchase-destination-details[open]>summary{border-radius:10px 10px 0 0;border-bottom-color:#f7faf8}
+.purchase-destination-details .purchase-breakdown{border-radius:0 0 10px 10px;margin-top:0!important;border-top:0;padding:10px!important}
+.purchase-item .purchase-controls{margin-top:12px}
+.purchase-item .purchase-qty-controls{display:flex;align-items:center;flex-wrap:nowrap}
+.purchase-item .purchase-qty-controls input{text-align:center}
+.additional-item{display:grid;grid-template-columns:46px minmax(0,1fr);gap:12px;align-items:start;padding:15px 12px}
+.additional-item .icon-tile{grid-column:1;grid-row:1}
+.additional-item .grow{grid-column:2;grid-row:1;min-width:0}
+.additional-item .product{font-size:15px;letter-spacing:-.02em}
+.additional-item .details{margin-top:5px;line-height:1.5}
+.additional-item .pill{display:inline-flex;margin-top:7px}
+.additional-controls{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:14px}
+.additional-controls input{text-align:center;max-width:61px;height:43px;padding:6px;font-weight:830;font-size:17px}
+.additional-controls .qty-step{height:43px;min-width:43px;border-radius:10px;background:#eaf7ee;border-color:#d2edda;color:#087f3b;font-size:22px;font-weight:650}
+.additional-controls>.btn{flex:1 1 115px;height:43px;font-size:12px}
+.purchases-list>.items{gap:10px}
+.purchase-completed>summary{cursor:pointer;font-weight:800;color:#14743c;padding:5px 0}
+.delivery-dest-chips{display:flex;align-items:center;gap:8px;overflow-x:auto;scrollbar-width:thin;-webkit-overflow-scrolling:touch;padding:2px 1px 12px;margin:8px 0 15px}
+.delivery-dest-chips button{flex:0 0 auto;min-height:43px;border-radius:999px;border:1px solid #dfe8e1;background:#f5f7f6;color:#4b5a50;padding:9px 13px;white-space:nowrap;font-size:11px;font-weight:800;max-width:230px;text-overflow:ellipsis;overflow:hidden}
+.delivery-dest-chips button.active{background:#0b813b;color:#fff;border-color:#0b813b}
+.delivery-progress{padding:18px 17px;border-radius:15px}
+.progress-heading strong{font-size:16px;font-weight:850;color:#152219}
+.progress-heading>b{font-size:24px;color:#078137}
+.progress-track{height:12px;background:#e6ebe8;border-radius:999px}
+.delivery-progress .progress-caption{color:#718178;font-size:12px}
+.delivery-count{min-width:57px;text-align:center;color:#0b793a;background:#f2faf5;border-radius:8px;white-space:nowrap}
+.delivery-unready{border-color:#efdbc9}
+@media(min-width:851px){
+ .provider-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,370px),1fr))}
+ .delivery-dest-chips{flex-wrap:wrap;overflow:visible}
+ .purchase-item .purchase-destination-details .purchase-inline{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:850px){
+ .provider-grid{grid-template-columns:minmax(0,1fr)}
+ .provider-card{padding:14px}
+ .provider-actions .btn{flex:1 1 120px}
+ .provider-name h2{font-size:15px}
+ .provider-heading>.pill{font-size:10px}
+ .delivery-dest-chips{margin-top:7px;margin-bottom:9px;max-width:calc(100vw - 22px)}
+ .delivery-dest-chips button{min-height:43px;padding:8px 12px}
+ .destination-picker{position:relative;top:auto;box-shadow:none;padding:12px}
+ .destination-picker select{min-height:44px}
+ .delivery-progress{padding:14px}
+ .additional-item{padding:12px 10px;gap:9px;grid-template-columns:40px minmax(0,1fr)}
+ .additional-item .icon-tile{width:38px;height:38px}
+ .additional-controls{gap:5px}
+ .additional-controls .qty-step{min-width:39px;height:40px}
+ .additional-controls input{width:48px;height:40px}
+ .additional-controls .btn{min-height:42px}
+ .purchase-destination-details .purchase-inline{grid-template-columns:1fr}
+}
