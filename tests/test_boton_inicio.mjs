@@ -1,11 +1,16 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import * as M from '../motor.mjs';
 const src=fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const script=src.match(/<script>([\s\S]*?)<\/script>/)?.[1].replace('const ARSLAN_CLOUD_ACTIVE = Boolean(', 'const ARSLAN_CLOUD_ACTIVE = false && Boolean(');
 assert.ok(script, 'HTML con JS integrado');
 const html={innerHTML:''};
 const stored=new Map();
+const testState=M.createState();
+M.importBlocks(testState,fs.readFileSync(new URL('./pedidos_ejemplo_sinteticos.txt',import.meta.url),'utf8'));
+stored.set('arslan_listas_reparto_seguro_v5_local_only',JSON.stringify(testState));
+const downloaded=[];
 let allow=false;
 let pasteVal='';
 const ctx=vm.createContext({
@@ -16,13 +21,15 @@ const ctx=vm.createContext({
  navigator:{clipboard:{writeText:async()=>{}}},
  localStorage:{getItem:(k)=>stored.get(k)||null,setItem:(k,v)=>stored.set(k,v)},
  confirm:()=>allow,
- prompt:()=>null,
+ prompt:()=> 'LIMPIAR',
+ testDownload:(name)=>downloaded.push(name),
  alert:()=>{},
  window:{scrollTo(){},open(){}},
  document:{getElementById:(id)=>id==='app'?html:{value:pasteVal},addEventListener(){},querySelectorAll:()=>[]},
  setTimeout:()=>{},
 });
 vm.runInContext(script,ctx);
+vm.runInContext('download=testDownload',ctx); // Impide descargas reales durante esta prueba aislada.
 assert.match(html.innerHTML,/data-action="clearday"/);
 assert.match(html.innerHTML,/>Limpiar día<\/button>/);
 const before=vm.runInContext('structuredClone(state)',ctx);
@@ -38,8 +45,10 @@ for(const k of ['delivery','load','riderAssignments'])assert.deepEqual(after[k],
 for(const k of ['catalog','destinations','aliases','riders'])assert.deepEqual(after[k],before[k],`Conserva ${k}`);
 assert.equal(after.history.length,before.history.length+1,'Archiva anterior');
 assert.equal(after.history.at(-1).orders.length,91,'Historial conserva los pedidos');
-assert.equal(stored.size,1, 'La demo guarda sólo en su propia clave');
+assert.equal(stored.size,1, 'La jornada de ejemplo queda en una única clave local de QA');
 assert.match(html.innerHTML,/Día limpiado y archivado/);
+assert.equal(downloaded.length,1,'Antes de limpiar se descarga una copia');
+assert.match(downloaded[0],/ANTES_LIMPIAR/);
 assert.match(html.innerHTML,/data-action="clearday"/);
 await vm.runInContext("handleAction('clearday','','','')",ctx);
 assert.equal(vm.runInContext('state.history.length',ctx),1,'No archivar jornada vacía');
