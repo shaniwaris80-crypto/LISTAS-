@@ -28,29 +28,74 @@ let serial=0;const id=(p)=>`${p}_${typeof crypto!=='undefined' && crypto.randomU
 export function createState(){return {day:'2026-11-19',catalog:[...SEED_CATALOG],aliases:{},orders:[],allocations:[],manual:[],receipts:[],delivery:{},load:{},shortageAllocation:{},riderAssignments:{},riders:['REPARTIDOR 1','REPARTIDOR 2'],destinations:structuredClone(DESTINATIONS),history:[],sentMessages:[],importedFingerprints:[]};}
 /** Erratas seguras de productos: solo abreviaturas inequívocas. Nunca corregir
  * automáticamente variedades, calibres ni denominaciones ambiguas. */
+/** Reconocimiento seguro: alias explícitos y plurales de familias.
+ * Nunca se elimina un calibre, calidad u origen para forzar una coincidencia.
+ */
+const SAFE_EXACT_ALIASES=Object.freeze({
+ BANAN:'BANANA',BANANAS:'BANANA',
+ 'PINK LADY':'MANZANA PINK LADY',
+ 'GRANNY SMITH':'MANZANA GRANNY SMITH',
+ 'GOLDEN 20':'MANZANA GOLDEN 20','GOLDEN 24':'MANZANA GOLDEN 24','GOLDEN 28':'MANZANA GOLDEN 28'
+});
+const FAMILY_PLURALS=Object.freeze({
+ MANZANAS:'MANZANA',TOMATES:'TOMATE',BANANAS:'BANANA',
+ PERAS:'PERA',PATATAS:'PATATA',CEBOLLAS:'CEBOLLA',
+ NARANJAS:'NARANJA',LIMONES:'LIMON',MANDARINAS:'MANDARINA',
+ PIMIENTOS:'PIMIENTO',PLATANOS:'PLATANO',PEPINOS:'PEPINO',
+ AGUACATES:'AGUACATE',ZANAHORIAS:'ZANAHORIA',CHAMPINONES:'CHAMPINON',
+ KIWIS:'KIWI',CALABACINES:'CALABACIN',MELONES:'MELON'
+});
 export function normalizedProductName(name,state){
  const key=canonical(name);
- // BANAN es una errata inequívoca incluso si se guardó en catálogos antiguos.
- if(key==='BANAN')return (state.catalog||[]).find(c=>canonical(c)==='BANANA')||'BANANA';
- const alias=(state.aliases||{})[key];
- if(alias)return alias;
+ if(!key)return key;
+ const aliases=state.aliases||{};
+ // Una corrección confirmada por el usuario se recuerda para próximas listas.
+ if(aliases[key])return canonical(aliases[key]);
+ const fixed=SAFE_EXACT_ALIASES[key];
+ if(fixed)return (state.catalog||[]).find(c=>canonical(c)===fixed)||fixed;
  const exact=(state.catalog||[]).find(c=>canonical(c)===key);
  if(exact)return exact;
+ const words=key.split(' ');
+ if(FAMILY_PLURALS[words[0]]){
+  const singular=[FAMILY_PLURALS[words[0]],...words.slice(1)].join(' ');
+  const match=(state.catalog||[]).find(c=>canonical(c)===singular);
+  if(match)return match;
+ }
  return key;
 }
-export function matchCatalog(name,state){const k=canonical(name);const norm=normalizedProductName(k,state);return (state.catalog||[]).find(c=>canonical(c)===canonical(norm))||null;}
+export function matchCatalog(name,state){
+ const key=canonical(name),norm=normalizedProductName(key,state);
+ return (state.catalog||[]).find(c=>canonical(c)===canonical(norm))
+   ||(SAFE_EXACT_ALIASES[key]===norm ? norm:null);
+}
 const num=(x)=>Number(String(x).replace(',','.'));
+/** Quita el prefijo de WhatsApp [fecha, hora] remitente: sin alterar cantidades. */
+export function stripWhatsAppPrefix(line){
+ return String(line||'')
+  .replace(/^\s*\[\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4}[^\]]*\]\s*[^:]{1,100}:\s*/,'')
+  .replace(/^\s*[-•*]+\s*/,'').trim();
+}
 export function parseOrderLine(line,state){
- const text=String(line).replace(/^[-•*]\s*/,'').trim();if(!text)return null;
+ const text=stripWhatsAppPrefix(line);if(!text)return null;
  let name=text,q=null,unit='BULTO';
  // 3TOMATE RAMA; 1,5 KG TOMATE; 3 x MANZANA; 7 PATATA 5 KG
  const m=text.match(/^(\d+\/\d+|\d+(?:[,.]\d+)?)\s*(?:[xX*]\s*)?(KG|KGS|CAJAS?|MANOJOS?|SACOS?|UNDS?|UDS?)?\s*(.+)$/i);
  if(m){q=m[1].includes('/')?m[1].split('/').map(Number).reduce((a,b)=>a/b):num(m[1]);name=m[3];if(m[2]){const token=canonical(m[2]);unit=token.startsWith('KG')?'KG':token.startsWith('CAJA')?'CAJA':token.startsWith('SACO')?'SACO':token.startsWith('MANOJO')?'MANOJO':'UD';}}
  else {
    // Nombre terminado en cantidad: GOLDEN 28 3 y PATATA 5 KG 7.
-   const last=text.match(/^(.+?)\s+(\d+(?:[,.]\d+)?)$/);
-   if(last){const maybeFull=canonical(text);const end=last[2];const calibreLike=/\b(GOLDEN|REINETA|FUJI|ROYAL GALA|PATATA)\b/.test(canonical(last[1]))&&(/^\d{2}$/.test(end)||/\b\d+\s*KG$/i.test(text));
-     if(!matchCatalog(maybeFull,state)&&!calibreLike){name=last[1];q=num(end);}
+   // Nombre + cantidad (BANANA 0,5), incluyendo unidad final y fracciones.
+   // Si el texto completo ES un producto del catálogo, no confundir calibre
+   // GOLDEN 28 o formato PATATA 5 KG con una cantidad comprada.
+   const last=text.match(/^(.+?)(?:\s+|\s*[:=]\s*)(\d+(?:[,.]\d+)?|\d+\/\d+)(?:\s*(KG|KGS|CAJAS?|MANOJOS?|SACOS?|UNDS?|UDS?))?$/i);
+   if(last){
+    const maybeFull=canonical(text),end=last[2],prefix=canonical(last[1]);
+    const calibreLike=/\b(GOLDEN|REINETA|FUJI|ROYAL GALA)\b/.test(prefix)&&/^\d{2}$/.test(end);
+    const packWeight=/^PATATA\s+\d+(?:[,.]\d+)?\s*KG$/.test(maybeFull);
+    if(!matchCatalog(maybeFull,state)&&!calibreLike&&!packWeight){
+     name=last[1].trim();
+     q=end.includes('/')?end.split('/').map(Number).reduce((a,b)=>a/b):num(end);
+     if(last[3]){const token=canonical(last[3]);unit=token.startsWith('KG')?'KG':token.startsWith('CAJA')?'CAJA':token.startsWith('SACO')?'SACO':token.startsWith('MANOJO')?'MANOJO':'UD';}
+    }
    }
  }
  // GOLDEN 28 3 se interpreta como qty 3, calibre 28; nunca 28 cajas.
@@ -72,8 +117,9 @@ function parseHeader(line,state){
 export function importBlocks(state,text,{replace=false}={}){
  const fingerprint=canonical(text);if(!replace&&state.importedFingerprints?.includes(fingerprint))throw Error('Estas listas ya se han pegado en esta jornada. Evita duplicar pedidos.');
  let dest=null,n=0;const issues=[];const seen=new Set();
- for(const raw of String(text).split(/\r?\n/)){
-  if(!raw.trim())continue;
+ for(const original of String(text).split(/\r?\n/)){
+  const raw=stripWhatsAppPrefix(original);
+  if(!raw)continue;
   const heading=parseHeader(raw,state);
   if(heading){dest=heading.startsWith('UNKNOWN:')?null:heading;if(!dest)issues.push('Destino no reconocido: '+heading.substring(8));if(replace&&dest&&!seen.has(dest)){if(state.allocations.some(a=>a.status==='sent')||state.manual.length||Object.keys(state.delivery).length)throw Error('No se pueden sustituir pedidos con compras o bajadas ya iniciadas; importa una corrección aparte');state.orders=state.orders.filter(o=>o.dest!==dest);seen.add(dest);}continue;}
   if(!dest){if(raw.trim().startsWith('['))continue;issues.push('Línea sin destino: '+raw.trim());continue;}
