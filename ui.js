@@ -287,7 +287,7 @@ async function changeDemandOneTap(key,dest,rawDelta){
  const expected=row.by[dest]||0;
  if(!CLOUD_ENABLED){
   const result=adjustDestinationDemand(state,key,dest,delta,{expectedQuantity:expected,day:state.day,historyLength:state.history.length});
-  if(result.changed)commit(destName(dest)+' · '+row.product+': '+result.cantidad+' · Global '+result.total);
+  if(result.changed)commit(''); // El total visible cambia sin insertar avisos que muevan las filas del iPhone
   else{toastMessage='Sin cambios';render();}
   return;
  }
@@ -296,13 +296,13 @@ async function changeDemandOneTap(key,dest,rawDelta){
  if(typeof navigator!=='undefined'&&!navigator.onLine)
   throw Error('Sin internet. No se ha actualizado el pedido compartido.');
  const operation={key,dest,delta,expectedQuantity:expected,day:state.day,historyLength:(state.history||[]).length};
- deliveryBusy=true;toastMessage='Guardando cantidad en Firebase…';render();
+ deliveryBusy=true;toastMessage='';render();
  try{
   const result=await cloudAdapter.mutateDemand(operation);
   if(!result?.document)throw Error('Firebase no confirmó la cantidad; no se hizo ningún cambio local');
   if(!cloudEngine.dirty&&!cloudEngine.conflict)cloudEngine.applyConfirmedDocument(result.document);
   else await cloudEngine.refresh();
-  toastMessage=result.changed?'✓ '+destName(dest)+': '+result.cantidad+' · TOTAL '+result.total+'. Reparto actualizado.':
+  toastMessage=result.changed?'':
    result.code==='MODIFICADO_POR_OTRO'?'Otra persona actualizó este producto. Ya ves la cantidad nueva.':
    result.code==='JORNADA_CAMBIADA'?'La jornada ha cambiado. No se modificó la cantidad.':
    'No se modificó el producto; revisa la cantidad actual.';
