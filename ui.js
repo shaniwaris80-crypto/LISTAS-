@@ -256,6 +256,42 @@ function auditoria(){const x=summary(state),p=deliveryPlan(state);return section
 function render(){const drafts={};document.querySelectorAll('textarea').forEach(t=>{if(t.id&&t.value)drafts[t.id]=t.value;});const app=document.getElementById('app');if(!app)return;let screenHTML='';try{const view=({inicio:home,pedidos,global:globalView,compras,carga,reparto,mas,auditoria})[tab];if(!view)throw Error('Pantalla no disponible');screenHTML=view();}catch(error){console.error('Error al abrir sección de LISTAS:',tab,error);screenHTML=`<div class="card"><h2>No se pudo abrir ${esc(tab)}</h2><div class="notice red">${esc(error?.message||'Error de datos. No se ha borrado nada.')}</div><div class="tools">${btn('goto','Volver a Inicio','inicio','dark')}${btn('export','Descargar copia JSON','','small')}</div></div>`;}app.innerHTML=`<div class="top"><div class="top-inner"><div class="brand"><span class="logo">A</span><span>ARSLAN LISTAS <span style="font-weight:550">· REPARTO SEGURO</span><div class="subtitle">Compras · proveedores · reparto</div></span></div>${syncBadge()}<button type="button" class="top-more" data-action="goto" data-key="mas" aria-label="Más opciones" title="Más opciones">···</button></div></div><div class="shell">${nav()}<main>${toastMessage?`<div class="notice ${toastMessage.startsWith('ERROR')?'red':'green'}">${esc(toastMessage)}</div>`:''}${screenHTML}</main></div>`;Object.entries(drafts).forEach(([key,value])=>{const el=document.getElementById(key);if(el)el.value=value;});}
 function download(name,text,type='text/plain'){const a=document.createElement('a');const url=URL.createObjectURL(new Blob([text],{type}));a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 async function copyText(text){try{await navigator.clipboard.writeText(text);return true;}catch{return false;}}
+
+/** Bajadas de un toque con verificación atómica en la versión más reciente.
+ * Una operación concurrente sobre la misma fila no se aplica dos veces.
+ */
+async function processDeliveryClick(action,key,dest,qty=null){
+ if(deliveryBusy){toastMessage='Ya se está guardando otra bajada. Comprueba su resultado.';render();return;}
+ const row=deliveryPlan(state).eligible.find(x=>x.key===key&&x.dest===dest);
+ if(!row)throw Error('Producto no disponible para bajar. Actualiza el reparto.');
+ if(!CLOUD_ENABLED){
+  if(action==='deshacer')undoDelivery(state,key,dest);
+  else deliver(state,key,dest,qty);
+  commit(action==='deshacer'?'Bajada deshecha':'Bajada guardada en este dispositivo');
+  return;
+ }
+ if(!cloudAdapter||!cloudEngine||!cloudUser||cloudStatus!=='sincronizado'||cloudEngine.dirty||cloudEngine.conflict)
+  throw Error('Conecta Firebase y espera a que el estado sea SINCRONIZADO antes de bajar. No se ha marcado nada.');
+ if(typeof navigator!=='undefined'&&!navigator.onLine)
+  throw Error('Sin conexión. Para evitar duplicados, las bajadas compartidas requieren confirmar Firebase.');
+ deliveryBusy=true;toastMessage='Confirmando bajada con Firebase…';render();
+ try{
+  const op={action,key,dest,quantity:qty,expectedDelivered:row.delivered,expectedAllowed:row.allowed,
+   day:state.day,historyLength:(state.history||[]).length};
+  const result=await cloudAdapter.mutateDelivery(op);
+  if(!result?.document)throw Error('Firebase no ha confirmado el estado actual');
+  if(!cloudEngine.dirty&&!cloudEngine.conflict)cloudEngine.applyConfirmedDocument(result.document);
+  else await cloudEngine.refresh();
+  const reason={MODIFICADO_POR_OTRO:'Ya lo cambió otra persona; lista actualizada sin duplicar la bajada.',
+   YA_BAJADO:'Ya estaba bajado. La lista se ha actualizado.',JORNADA_CAMBIADA:'Se ha cambiado de jornada; no se guardó esta bajada.',
+   CANTIDAD_ACTUALIZADA:'Otro usuario cambió la cantidad disponible; revisa la lista.',
+   NO_HABILITADO:'La mercancía ya no está habilitada para repartir.'};
+  toastMessage=result.changed?
+   (action==='deshacer'?'Bajada deshecha y sincronizada con el equipo':'Bajada confirmada en Firebase · progreso actualizado'):
+   (reason[result.code]||'Otro repartidor cambió esta línea. Comprueba la lista.');
+ }finally{deliveryBusy=false;render();}
+}
+
 async function handleAction(action,key,target,dest){
  try{
  const readonly=['goto','export','copy','copyall','provdownload','provdownloadall','whatsapp','destcopy','destdownload','destwa','purchasefilter','breakdown','filter','selprov','purchase-step','manual-copy-pending','manual-download-pending','manual-wa-pending'];
@@ -361,9 +397,9 @@ async function handleAction(action,key,target,dest){
  case 'buy':{const r=pendingPurchases(state).find(x=>x.key===key);if(!r)throw Error('Producto inexistente');const q=r.remainingToBuy;if(q<=0)throw Error('Ya cubierto por proveedor o compra manual; evita comprarlo otra vez');manualBuySafe(state,key,q);commit(`Comprado manualmente: solo ${q} ${r.product} que faltaban`);return;}
  case 'buyedit':{const r=pendingPurchases(state).find(x=>x.key===key);if(!r)throw Error('Producto inexistente');const val=prompt('Cantidad REAL de compra manual, evitando lo cubierto por proveedor:',String(r.remainingToBuy));if(val===null)return;const q=Number(val.replace(',','.'));if(!(q>0))throw Error('Introduce una cantidad positiva');const removeDraft=r.assignedDraft>0&&q>r.remainingToBuy&&confirm('¿Quieres reducir expresamente el borrador de proveedor en la cantidad adicional que compras?');if(r.assignedDraft>0&&q>r.remainingToBuy&&!removeDraft)return;const allowExtra=r.authorized+q>r.total+1e-8;if(allowExtra&&!confirm('Atención: esta compra excede lo pedido. ¿Confirmas una compra EXTRA real?'))return;manualBuySafe(state,key,q,{removeDraft,allowExtra});commit('Compra manual confirmada; sin duplicar proveedor');return;}
  case 'load':{const r=deliveryPlan(state).eligible.find(x=>x.key===key&&x.dest===dest);if(!r)throw Error('Producto no habilitado');loadItem(state,key,dest,r.allowed);commit('Marcado como cargado; el reparto sigue siendo independiente');return;}
- case 'deliver':{deliver(state,key,dest);commit('Bajado. Se retira de pendientes.');return;}
- case 'deliverpartial':{const r=deliveryPlan(state).eligible.find(x=>x.key===key&&x.dest===dest&&x.remaining>0);if(!r)throw Error('No está pendiente');const q=prompt(`Cantidad parcial a bajar de ${r.product}, máximo ${r.remaining}:`,String(r.remaining));if(q===null)return;deliver(state,key,r.dest,Number(q.replace(',','.')));commit('Bajada parcial registrada');return;}
- case 'undodelivery':{const rr=deliveryPlan(state).eligible.find(x=>x.key===key&&x.dest===dest&&x.delivered>0);if(!rr)return;undoDelivery(state,key,rr.dest);commit('Bajada deshecha; vuelve a pendientes');return;}
+ case 'deliver':{await processDeliveryClick('bajar',key,dest);return;}
+ case 'deliverpartial':{const r=deliveryPlan(state).eligible.find(x=>x.key===key&&x.dest===dest&&x.remaining>0);if(!r)throw Error('No está pendiente');const q=prompt(`Cantidad parcial a bajar de ${r.product}, máximo ${r.remaining}:`,String(r.remaining));if(q===null)return;await processDeliveryClick('bajar',key,r.dest,Number(q.replace(',','.')));return;}
+ case 'undodelivery':{const rr=deliveryPlan(state).eligible.find(x=>x.key===key&&x.dest===dest&&x.delivered>0);if(!rr)return;await processDeliveryClick('deshacer',key,rr.dest);return;}
  case 'shortage':{const r=deliveryPlan(state).needsReview.find(x=>x.key===key);if(!r)return;const inputs={};let available=r.authorized;for(const [d,need] of Object.entries(r.by)){
    const v=prompt(`${r.product}: hay ${available} para repartir. ¿Cuánto reservar para ${destName(d)}? (pidió ${need})`,String(Math.min(need,available)));
    if(v===null)return;const n=Number(v.replace(',','.'));inputs[d]=n;available=fix(available-n);
