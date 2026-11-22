@@ -181,7 +181,7 @@ export class SyncEngine {
   /** Incorporar una bajada confirmada atómicamente en Firebase. */
   applyConfirmedDocument(remote){
     if(!remote||!Number.isSafeInteger(remote.revision)||!remote.data)throw Error('Confirmación de Firebase inválida');
-    if(this.dirty||this.conflict||this.running)throw Error('Hay cambios locales sin guardar; no se sustituyeron tus datos');
+    if(this.dirty||this.conflict)throw Error('Hay cambios locales sin guardar; no se sustituyeron tus datos');
     if(this.revision!==null&&remote.revision<this.revision)return;
     this.revision=remote.revision;this.base=clone(remote.data);this.meta=this.getMeta();
     this.apply(remote.data);this.setStatus('sincronizado','Bajada confirmada en Firebase');
