@@ -290,14 +290,14 @@ function additionalPurchaseRows(snapshot){
   const original=fix(Math.max(0,(ordered?.by?.[r.dest]||0)-r.qty));
   const allowed=plan.eligible.find(x=>sameProductKey(snapshot,x.key,r.key)&&x.dest===r.dest)?.allowed||0;
   const purchased=fix(Math.max(0,(snapshot.manual||[]).filter(m=>m.confirmed&&m.additionalDest===r.dest&&sameProductKey(snapshot,m.key,r.key)).reduce((n,m)=>n+(Number(m.q)||0),0)));
-  return {...r,purchased,original,pending:fix(Math.max(0,r.qty-Math.max(0,allowed-original)))};
+  return {...r,purchased,original,pending:fix(Math.max(0,r.qty-Math.max(purchased,Math.max(0,allowed-original)))),ready:allowed>=original+r.qty-1e-8};
  }).sort((a,b)=>a.dest.localeCompare(b.dest)||a.product.localeCompare(b.product,'es'));
 }
 function additionalPurchaseItem(row){
  const id=row.key+'@'+row.dest,inputId='additional-'+encodeURIComponent(id),value=purchaseDrafts['additional:'+id]??String(row.pending).replace('.',',');
  return `<div class="item searchable additional-item" data-search="${esc(row.product+' '+destName(row.dest))}"><div class="icon-tile">${uiIcon('package',23)}</div><div class="grow"><div class="product">${esc(row.product)}</div><div class="details">${esc(destName(row.dest))} · ${esc(row.unit)} · Pedido adicional: <b>${row.qty}</b></div>
  ${row.purchased>0?pill(row.purchased+' compra manual confirmada','ok'):''}
- ${row.pending>0?`<div class="additional-controls"><button type="button" class="qty-step" data-action="additional-step" data-key="${enc(id)}" data-target="-1">−</button><input id="${esc(inputId)}" data-additional-qty data-additional-key="${esc(id)}" type="text" inputmode="decimal" autocomplete="off" value="${esc(value)}" aria-label="Cantidad de compra adicional de ${esc(row.product)}"><button type="button" class="qty-step" data-action="additional-step" data-key="${enc(id)}" data-target="1">+</button>${btn('additional-buy','✓ Comprado',id,'small dark')}</div>`:pill('Cubierto · listo para reparto','ok')}
+ ${row.pending>0?`<div class="additional-controls"><button type="button" class="qty-step" data-action="additional-step" data-key="${enc(id)}" data-target="-1">−</button><input id="${esc(inputId)}" data-additional-qty data-additional-key="${esc(id)}" type="text" inputmode="decimal" autocomplete="off" value="${esc(value)}" aria-label="Cantidad de compra adicional de ${esc(row.product)}"><button type="button" class="qty-step" data-action="additional-step" data-key="${enc(id)}" data-target="1">+</button>${btn('additional-buy','✓ Comprado',id,'small dark')}</div>`:row.ready?pill('Cubierto · listo para reparto','ok'):pill('Comprado · revisa distribución de faltantes','warn')}
  ${row.purchased>0?btn('additional-undo','Deshacer compra adicional',id,'small'):''}</div></div>`;
 }
 
