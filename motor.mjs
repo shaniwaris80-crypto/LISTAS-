@@ -20,9 +20,22 @@ export function suggest(name,catalog){
  const t=canonical(name), c=catalog.map(x=>canonical(x));
  // Los términos varietales/numéricos tienen preferencia sobre coincidencias de otras familias.
  const words=t.split(' '),family=words[0];
- const candidates=c.filter(v=>v.split(' ')[0]===family || (family==='GOLDEN'&&v.includes('GOLDEN')) || (family==='GRNNY'&&v.includes('GRANNY')) || (t.includes('GRNNY')&&v.includes('GRANNY')));
+ // Nunca sugerir calibre distinto por una errata numérica: GOLDEN 29 no es GOLDEN 28.
+ const numericTokens=t.split(' ').filter(w=>/^\d+$/.test(w));
+ const compatible=v=>numericTokens.every(n=>v.split(' ').includes(n));
+ const candidates=c.filter(v=>compatible(v)&&(v.split(' ')[0]===family || (family==='GOLDEN'&&v.includes('GOLDEN')) || (family==='GRNNY'&&v.includes('GRANNY')) || (t.includes('GRNNY')&&v.includes('GRANNY'))));
  const lev=(a,b)=>{const m=a.length,n=b.length,dp=Array.from({length:m+1},()=>Array(n+1).fill(0));for(let i=0;i<=m;i++)dp[i][0]=i;for(let j=0;j<=n;j++)dp[0][j]=j;for(let i=1;i<=m;i++)for(let j=1;j<=n;j++)dp[i][j]=Math.min(dp[i-1][j]+1,dp[i][j-1]+1,dp[i-1][j-1]+(a[i-1]===b[j-1]?0:1));return dp[m][n];};
- return (candidates.length?candidates:c).map(x=>({x,score:lev(t,x)})).filter(v=>v.score<=Math.max(2,Math.ceil(t.length*.32))).sort((a,b)=>a.score-b.score).slice(0,3).map(v=>v.x);
+ const compare=x=>{
+  // Una abreviatura conocida puede omitir la familia, pero no variedad ni calibre.
+  const forms=[x];
+  if(x.startsWith('MANZANA '))forms.push(x.slice(8));
+  if(x.startsWith('PERA '))forms.push(x.slice(5));
+  return Math.min(...forms.map(form=>lev(t,form)));
+ };
+ return (candidates.length?candidates:c.filter(compatible))
+  .map(x=>({x,score:compare(x)}))
+  .filter(v=>v.score<=Math.max(2,Math.ceil(t.length*.32)))
+  .sort((a,b)=>a.score-b.score||a.x.localeCompare(b.x,'es')).slice(0,3).map(v=>v.x);
 }
 let serial=0;const id=(p)=>`${p}_${typeof crypto!=='undefined' && crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+'_'+(++serial)+'_'+Math.random().toString(36).slice(2)}`;
 export function createState(){return {day:'2026-11-19',catalog:[...SEED_CATALOG],aliases:{},orders:[],allocations:[],manual:[],receipts:[],delivery:{},load:{},shortageAllocation:{},riderAssignments:{},riders:['REPARTIDOR 1','REPARTIDOR 2'],destinations:structuredClone(DESTINATIONS),history:[],sentMessages:[],importedFingerprints:[]};}
@@ -140,7 +153,12 @@ export function confirmProduct(state,lineId,target,{create=false,remember=true}=
  const targetName=existing||clean;
  const original=canonical(line.sourceName);
  if(remember&&original!==canonical(targetName)){
-   const prior=matchCatalog(original,state);if(!prior||canonical(prior)===canonical(targetName))state.aliases[original]=targetName;
+   const signature=x=>canonical(x).split(' ').filter(w=>/^\d+$/.test(w)||['PRIMERA','SEGUNDA','TERCERA'].includes(w)).join('|');
+   // Una corrección puntual NO debe enseñar a cambiar calibre o calidad
+   // de todos los pedidos futuros (GOLDEN 24 nunca se aprende como GOLDEN 28).
+   const safeSignature=signature(original)===signature(targetName);
+   const prior=matchCatalog(original,state);
+   if(safeSignature&&(!prior||canonical(prior)===canonical(targetName)))state.aliases[original]=targetName;
  }
  line.product=targetName;line.review=false;line.issues=line.q==null?['CANTIDAD_SIN_CONFIRMAR']:[];line.suggestions=[];
  if(line.issues.length)line.review=true;
