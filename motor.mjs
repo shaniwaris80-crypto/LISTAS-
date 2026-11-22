@@ -172,28 +172,50 @@ export function totals(state){
  }
  return [...map.values()].sort((a,b)=>a.product.localeCompare(b.product,'es',{numeric:true}));
 }
-export function qtyRequested(state,key){return totals(state).find(t=>t.key===key)?.total||0;}
+/** Compatibilidad sin borrar registros antiguos: las compras y bajadas
+ * guardadas como BANAN se asocian al nuevo total BANANA. */
+export function normalizedProductKey(state,key){
+ const raw=String(key||''),split=raw.lastIndexOf('|');
+ if(split<0)return canonical(normalizedProductName(raw,state));
+ return canonical(normalizedProductName(raw.slice(0,split),state))+'|'+canonical(raw.slice(split+1));
+}
+export function sameProductKey(state,a,b){return normalizedProductKey(state,a)===normalizedProductKey(state,b);}
+export function deliveredFor(state,key,dest){
+ return fix(Object.entries(state.delivery||{}).reduce((sum,[location,qty])=>{
+  const i=location.lastIndexOf('@');
+  return i>=0&&location.slice(i+1)===dest&&sameProductKey(state,location.slice(0,i),key)?sum+(Number(qty)||0):sum;
+ },0));
+}
+function legacyShortage(state,key){
+ return state.shortageAllocation[key]||Object.entries(state.shortageAllocation||{}).find(([k])=>sameProductKey(state,k,key))?.[1]||null;
+}
+export function qtyRequested(state,key){return totals(state).find(t=>sameProductKey(state,t.key,key))?.total||0;}
 export function fix(n){return Math.round((Number(n)||0)*1000)/1000;}
 export function assignSupplier(state,key,supplier,quantity){if(!SUPPLIERS.includes(supplier))throw Error('Proveedor desconocido');const row=totals(state).find(t=>t.key===key);if(!row)throw Error('Producto inexistente');if(row.unresolved)throw Error('Revisa el nombre en rojo antes de asignar');
  const q=quantity??row.total; if(!(q>0))throw Error('Cantidad no válida');
  // Prevent multiple draft assignments that exceed requested qty (extra requires separate manual purchase).
- const active=state.allocations.filter(a=>a.key===key&&a.status!=='cancelled');const existing=active.find(a=>a.supplier===supplier&&a.status==='draft');
+ const active=state.allocations.filter(a=>sameProductKey(state,a.key,key)&&a.status!=='cancelled');const existing=active.find(a=>a.supplier===supplier&&a.status==='draft');
  const others=active.reduce((s,a)=>s+a.q,0)-(existing?.q||0);
  if(others+q>row.total+1e-8)throw Error('La asignación supera la cantidad pedida');
  if(existing)existing.q=fix(q);else state.allocations.push({id:id('prov'),key,supplier,q:fix(q),status:'draft'});
 }
 export function moveDraftToSupplier(state,key,supplier){
- const active=state.allocations.filter(a=>a.key===key&&a.status!=='cancelled');
+ const active=state.allocations.filter(a=>sameProductKey(state,a.key,key)&&a.status!=='cancelled');
  if(active.some(a=>a.status==='sent'))throw Error('Este producto ya se envió: corrige el pedido en vez de moverlo silenciosamente');
- state.allocations=state.allocations.filter(a=>a.key!==key||a.status==='cancelled');
+ state.allocations=state.allocations.filter(a=>!sameProductKey(state,a.key,key)||a.status==='cancelled');
  return assignSupplier(state,key,supplier,qtyRequested(state,key));
 }
-export function supplierLines(state,supplier,includeSent=true){return state.allocations.filter(a=>a.supplier===supplier&&a.status!=='cancelled'&&(includeSent||a.status==='draft')).map(a=>({ ...a,product:totals(state).find(t=>t.key===a.key)?.product||a.key.split('|')[0] })).sort((a,b)=>a.product.localeCompare(b.product,'es',{numeric:true}));}
+export function supplierLines(state,supplier,includeSent=true){return state.allocations.filter(a=>a.supplier===supplier&&a.status!=='cancelled'&&(includeSent||a.status==='draft')).map(a=>({ ...a,product:normalizedProductName(a.key.split('|')[0],state) })).sort((a,b)=>a.product.localeCompare(b.product,'es',{numeric:true}));}
 const qtyLabel=n=>String(n).replace('.',',');
-export function supplierTXT(state,supplier){return supplierLines(state,supplier).map(a=>`${qtyLabel(a.q)}${display(a.product)}`).join('\n');}
+function combinedSupplierTXT(lines,state){
+ const map=new Map();for(const a of lines){const key=normalizedProductKey(state,a.key),old=map.get(key);
+  if(old)old.q=fix(old.q+a.q);else map.set(key,{name:normalizedProductName(a.product,state),q:fix(a.q)});}
+ return [...map.values()].sort((a,b)=>a.name.localeCompare(b.name,'es',{numeric:true})).map(a=>`${qtyLabel(a.q)}${display(a.name)}`).join('\n');
+}
+export function supplierTXT(state,supplier){return combinedSupplierTXT(supplierLines(state,supplier),state);}
 export function prepareWhatsApp(state,supplier){return {supplier,text:supplierTXT(state,supplier),url:`https://wa.me/?text=${encodeURIComponent('PEDIDO '+supplier+'\n'+supplierTXT(state,supplier))}`};}
 /** Sólo los productos que aún no han sido enviados: previene reenviar un pedido antiguo. */
-export function supplierDraftTXT(state,supplier){return supplierLines(state,supplier,false).map(a=>`${qtyLabel(a.q)}${display(a.product)}`).join('\n');}
+export function supplierDraftTXT(state,supplier){return combinedSupplierTXT(supplierLines(state,supplier,false),state);}
 export function supplierDraftWhatsApp(state,supplier){const text=supplierDraftTXT(state,supplier);return {supplier,text,url:text?`https://wa.me/?text=${encodeURIComponent('PEDIDO '+supplier+'\n'+text)}`:''};}
 /** Un pedido individual es independiente y forma parte del total Global sólo cuando contiene líneas. */
 export function destinationLines(state,dest){
@@ -211,7 +233,7 @@ export function destinationTXT(state,dest){return destinationLines(state,dest).m
 export function destinationWhatsApp(state,dest){const d=state.destinations.find(x=>x.id===dest);if(!d)throw Error('Destino desconocido');const text=destinationTXT(state,dest);return {text,url:text?`https://wa.me/?text=${encodeURIComponent('PEDIDO '+display(d.name)+'\n'+text)}`:''};}
 /** Conservar el Global completo, pero sacar lo asignado de la bandeja rápida de asignación. */
 export function unassignedProducts(state){return totals(state).filter(r=>{
- const allocations=state.allocations.filter(a=>a.key===r.key&&a.status!=='cancelled');
+ const allocations=state.allocations.filter(a=>sameProductKey(state,a.key,r.key)&&a.status!=='cancelled');
  const manual=productStatus(state,r.key).manuallyBought;
  return !allocations.length && r.total-manual>1e-8;
 });}
@@ -219,17 +241,17 @@ export function unassignedProducts(state){return totals(state).filter(r=>{
 export function reopenSupplierSent(state,supplier){
  const lines=supplierLines(state,supplier).filter(a=>a.status==='sent');
  if(!lines.length)throw Error('No hay líneas enviadas para reabrir');
- for(const a of lines){if(Object.keys(state.delivery).some(k=>k.startsWith(a.key+'@')&&state.delivery[k]>0))throw Error('Hay mercancía bajada: no se puede anular el envío sin corregir el reparto');}
+ for(const a of lines){if(Object.entries(state.delivery||{}).some(([location,q])=>{const at=location.lastIndexOf('@');return at>=0&&sameProductKey(state,location.slice(0,at),a.key)&&q>0;}))throw Error('Hay mercancía bajada: no se puede anular el envío sin corregir el reparto');}
  for(const a of state.allocations)if(a.supplier===supplier&&a.status==='sent')a.status='draft';
  return lines.length;
 }
 
-export function markSupplierSent(state,supplier){const lines=supplierLines(state,supplier,false);if(!lines.length)throw Error('No hay líneas nuevas para enviar');const packet={id:id('envio'),supplier,text:lines.map(x=>`${qtyLabel(x.q)}${display(x.product)}`).join('\n'),timestamp:new Date().toISOString(),simulation:true};for(const a of state.allocations)if(a.supplier===supplier&&a.status==='draft')a.status='sent';state.sentMessages.push(packet);return packet;}
+export function markSupplierSent(state,supplier){const lines=supplierLines(state,supplier,false);if(!lines.length)throw Error('No hay líneas nuevas para enviar');const packet={id:id('envio'),supplier,text:combinedSupplierTXT(lines,state),timestamp:new Date().toISOString(),simulation:true};for(const a of state.allocations)if(a.supplier===supplier&&a.status==='draft')a.status='sent';state.sentMessages.push(packet);return packet;}
 export function manualBuy(state,key,q){const row=totals(state).find(t=>t.key===key);if(!row)throw Error('No existe producto');if(row.unresolved)throw Error('Confirma el producto antes de comprar');if(!(q>0))throw Error('Cantidad positiva requerida');state.manual.push({id:id('manual'),key,q:fix(q),confirmed:true});}
 export function receiveSupplier(state,allocationId,q){const a=state.allocations.find(x=>x.id===allocationId&&x.status==='sent');if(!a)throw Error('El pedido debe estar enviado');if(!(q>0))throw Error('Cantidad inválida');const previous=state.receipts.filter(x=>x.allocationId===allocationId).reduce((s,x)=>s+x.q,0);if(previous+q>a.q+1e-8)throw Error('No se recibe más de lo enviado sin registrar una compra extra');state.receipts.push({id:id('receipt'),allocationId,q:fix(q)});}
-export function authorizedQty(state,key){const sent=state.allocations.filter(a=>a.key===key&&a.status==='sent').reduce((s,a)=>s+a.q,0);const manual=state.manual.filter(m=>m.key===key&&m.confirmed).reduce((s,a)=>s+a.q,0);return fix(sent+manual);}
-export function actuallyReceived(state,key){const manual=state.manual.filter(m=>m.key===key&&m.confirmed).reduce((s,x)=>s+x.q,0);
- const received=state.receipts.filter(r=>state.allocations.find(a=>a.id===r.allocationId)?.key===key).reduce((s,x)=>s+x.q,0);return fix(manual+received);
+export function authorizedQty(state,key){const sent=state.allocations.filter(a=>sameProductKey(state,a.key,key)&&a.status==='sent').reduce((s,a)=>s+a.q,0);const manual=state.manual.filter(m=>sameProductKey(state,m.key,key)&&m.confirmed).reduce((s,a)=>s+a.q,0);return fix(sent+manual);}
+export function actuallyReceived(state,key){const manual=state.manual.filter(m=>sameProductKey(state,m.key,key)&&m.confirmed).reduce((s,x)=>s+x.q,0);
+ const received=state.receipts.filter(r=>sameProductKey(state,state.allocations.find(a=>a.id===r.allocationId)?.key,key)).reduce((s,x)=>s+x.q,0);return fix(manual+received);
 }
 
 /** Regla única de negocio usada por Global, Compras y Reparto.
@@ -239,10 +261,10 @@ export function actuallyReceived(state,key){const manual=state.manual.filter(m=>
  */
 export function productStatus(state,key){
  const requested=qtyRequested(state,key);
- const active=state.allocations.filter(a=>a.key===key&&a.status!=='cancelled');
+ const active=state.allocations.filter(a=>sameProductKey(state,a.key,key)&&a.status!=='cancelled');
  const assignedDraft=fix(active.filter(a=>a.status==='draft').reduce((sum,a)=>sum+a.q,0));
  const assignedSent=fix(active.filter(a=>a.status==='sent').reduce((sum,a)=>sum+a.q,0));
- const manuallyBought=fix(state.manual.filter(m=>m.key===key&&m.confirmed).reduce((sum,m)=>sum+m.q,0));
+ const manuallyBought=fix(state.manual.filter(m=>sameProductKey(state,m.key,key)&&m.confirmed).reduce((sum,m)=>sum+m.q,0));
  const supplierReceived=fix(state.receipts.filter(r=>active.some(a=>a.id===r.allocationId)).reduce((sum,r)=>sum+r.q,0));
  const authorized=fix(assignedSent+manuallyBought);
  const status=authorized>0?'REPARTO_HABILITADO':assignedDraft>0?'ASIGNADO_SIN_ENVIAR':'SIN_GESTIONAR';
@@ -257,7 +279,7 @@ export function quickAssign(state,key,supplier){
  if(!row)throw Error('Producto no encontrado');
  if(row.unresolved)throw Error('Revisa el nombre en rojo antes de asignar');
  if(!SUPPLIERS.includes(supplier)||supplier==='COMPRA EXTERNA')throw Error('Selecciona un proveedor válido');
- const active=state.allocations.filter(a=>a.key===key&&a.status!=='cancelled');
+ const active=state.allocations.filter(a=>sameProductKey(state,a.key,key)&&a.status!=='cancelled');
  if(active.some(a=>a.status==='sent'))throw Error('Ya enviado: cualquier cambio requiere una corrección explícita');
  if(active.length&&active.every(a=>a.supplier===supplier&&a.status==='draft')){
   state.allocations=state.allocations.filter(a=>a.key!==key||a.status!=='draft');
@@ -293,13 +315,13 @@ export function manualBuySafe(state,key,q,{removeDraft=false,allowExtra=false}={
   // Solo se retira del borrador la cantidad de compra que supera
   // lo que estaba libre, sin tocar otros bultos reservados al proveedor.
   let toReduce=fix(Math.max(0,qty-unassigned));
-  for(const a of state.allocations.filter(a=>a.key===key&&a.status==='draft')){
+  for(const a of state.allocations.filter(a=>sameProductKey(state,a.key,key)&&a.status==='draft')){
    if(toReduce<=0)break;
    const reduction=Math.min(toReduce,a.q);
    a.q=fix(a.q-reduction);
    toReduce=fix(toReduce-reduction);
   }
-  state.allocations=state.allocations.filter(a=>!(a.key===key&&a.status==='draft'&&a.q<=0));
+  state.allocations=state.allocations.filter(a=>!(sameProductKey(state,a.key,key)&&a.status==='draft'&&a.q<=0));
  }
  manualBuy(state,key,qty);
  return productStatus(state,key);
@@ -330,7 +352,7 @@ export function checkManualPurchaseReversal(state,key,quantity){
  if(!Number.isFinite(qty)||qty<=0||qty>st.manuallyBought+1e-8)
   throw Error('Cantidad a deshacer inválida o superior a lo comprado manualmente');
  const after=fix(st.authorized-qty);
- const delivered=fix(Object.entries(state.delivery||{}).filter(([location,v])=>location.startsWith(key+'@')&&Number(v)>0).reduce((n,[,v])=>n+Number(v),0));
+ const delivered=fix(Object.entries(state.delivery||{}).filter(([location,v])=>{const at=location.lastIndexOf('@');return at>=0&&sameProductKey(state,location.slice(0,at),key)&&Number(v)>0;}).reduce((n,[,v])=>n+Number(v),0));
  if(after+1e-8<delivered){
   const name=totals(state).find(x=>x.key===key)?.product||key;
   throw Error(`No puedes desmarcar ${name}: hay ${delivered} ya bajado y quedarían ${after} habilitados. Deshaz primero las bajadas que correspondan.`);
@@ -377,7 +399,7 @@ export function planShortage(state,key,by){
  for(const [dest,rawQty] of Object.entries(by)){
   const q=num(rawQty);if(!Number.isFinite(q)||q<0)throw Error('Cantidad inválida');
   if(q>(row.by[dest]||0)+1e-8)throw Error('No se pueden asignar más de las cajas pedidas por tienda');
-  if(q+(1e-8)<(state.delivery[key+'@'+dest]||0))throw Error('No se puede quitar mercancía ya bajada');
+  if(q+(1e-8)<deliveredFor(state,key,dest))throw Error('No se puede quitar mercancía ya bajada');
   total+=q;
  }
  if(total>authorized+1e-8)throw Error('Se supera la mercancía habilitada');
@@ -390,11 +412,11 @@ export function deliveryPlan(state){const eligible=[],blocked=[],short=[],needsR
   const sorted=Object.entries(t.by).sort((a,b)=>dOrder(a[0],b[0]));
   // Si afecta a varias tiendas y falta producto, no se elige arbitrariamente quién recibe menos.
   const partial=authorized<t.total-1e-8&&sorted.length>1;
-  const specified=state.shortageAllocation[t.key];
+  const specified=legacyShortage(state,t.key);
   if(partial&&!specified){needsReview.push({...t,authorized,reason:'REPARTO INSUFICIENTE: ELIGE CANTIDADES POR DESTINO'});continue;}
   let left=authorized;
   for(const [dest,demand] of sorted){const proposal=partial?fix(specified[dest]||0):demand;const allowed=fix(Math.min(demand,left,proposal));
-   if(allowed>0){const delivered=fix(state.delivery[t.key+'@'+dest]||0);eligible.push({key:t.key,dest,product:t.product,unit:t.unit,requested:demand,allowed,delivered,remaining:fix(Math.max(0,allowed-delivered))});}
+   if(allowed>0){const delivered=deliveredFor(state,t.key,dest);eligible.push({key:t.key,dest,product:t.product,unit:t.unit,requested:demand,allowed,delivered,remaining:fix(Math.max(0,allowed-delivered))});}
    if(allowed<demand)short.push({key:t.key,dest,product:t.product,missing:fix(demand-allowed),unit:t.unit});
    left=fix(Math.max(0,left-allowed));}
  }
@@ -402,7 +424,7 @@ export function deliveryPlan(state){const eligible=[],blocked=[],short=[],needsR
 }
 
 export function deliver(state,key,dest,q=null){const row=deliveryPlan(state).eligible.find(r=>r.key===key&&r.dest===dest);if(!row)throw Error('Producto no habilitado para reparto');const add=q===null?row.remaining:num(q);if(!(add>0)||add>row.remaining+1e-8)throw Error('Cantidad superior al reparto habilitado');const k=key+'@'+dest;state.delivery[k]=fix((state.delivery[k]||0)+add);return state.delivery[k];}
-export function undoDelivery(state,key,dest){delete state.delivery[key+'@'+dest];}
+export function undoDelivery(state,key,dest){for(const location of Object.keys(state.delivery||{})){const at=location.lastIndexOf('@');if(at>=0&&location.slice(at+1)===dest&&sameProductKey(state,location.slice(0,at),key))delete state.delivery[location];}}
 
 /** Progreso de bajada por destino, ponderado por cantidades realmente habilitadas.
  * No mezcla tiendas y nunca cuenta productos sin compra/envío como bajados.
