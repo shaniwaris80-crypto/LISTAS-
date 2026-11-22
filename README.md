@@ -14,6 +14,18 @@ Firebase está configurado en el proyecto independiente `arslan-listas-next`. Au
 
 **Antes de empezar en el móvil:** usa el ordenador y navegador en el que ya están tus pedidos, descarga una copia JSON, inicia sesión y confirma que la primera importación a Firebase conserva todos los pedidos, compras, asignaciones y bajadas. Después verifica que el estado sea **SINCRONIZADO** y abre la misma cuenta/equipo en el móvil. No uses «Limpiar día» para resolver problemas de sincronización.
 
+## Rediseño Shopify (23/11/2026)
+
+La nueva interfaz se inspira en patrones de gestión de inventario: fondo claro, tarjetas compactas, buscador, cuatro accesos principales y navegación inferior de cuatro pestañas en iPhone. Proveedores se encuentra en Inicio y en el menú del ordenador. La pantalla de acceso aparece únicamente si no existe una sesión de Firebase válida. El navegador puede recordar el correo, **nunca guarda la contraseña en el código**.
+
+### Pedidos recibidos después de enviar al proveedor
+
+Si añades productos tras confirmar que se ha enviado al menos un proveedor, las líneas nuevas quedan identificadas como **pedido adicional**. Se suman a Global y aparecen en **Compras → Pedidos adicionales**, agrupadas por producto y destino. La compra manual se marca expresamente; nunca se reenvía el WhatsApp anterior ni se duplica automáticamente una compra. Se registra a qué tienda o restaurante corresponde cada compra adicional, y el plan de Reparto conserva las cantidades previamente reservadas para las tiendas originales.
+
+Una compra pendiente no se considera realmente comprada hasta que se confirma. Las compras adicionales pueden deshacerse con un movimiento de reversión mientras no comprometan bajadas físicas. Las operaciones concurrentes conservan las verificaciones existentes de Firebase; si hay conflicto, no sobrescriben silenciosamente el trabajo de otro dispositivo.
+
+**Seguridad de datos:** los cambios son de código; no ejecutan «Limpiar día», no reinician Firebase ni borran pedidos, proveedores, compras o historial. No se incluyen credenciales ni datos reales dentro del repositorio.
+
 ## Flujo completo
 
 1. **Pedidos:** pega listas juntas con encabezados `PEDIDO SP`, `PEDIDO SL`, `PEDIDO ST`, `PEDIDO BRASEROS CENTRO`, `PEDIDO BRASEROS FORUM`, `PEDIDO RIVIERA`, etc. Los restaurantes pueden añadirse de forma independiente. Cada destino tiene TXT, descarga y enlace a WhatsApp.
