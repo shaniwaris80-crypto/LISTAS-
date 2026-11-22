@@ -189,6 +189,61 @@ export function deliveredFor(state,key,dest){
 function legacyShortage(state,key){
  return state.shortageAllocation[key]||Object.entries(state.shortageAllocation||{}).find(([k])=>sameProductKey(state,k,key))?.[1]||null;
 }
+/** Ajuste rápido de cantidades pedidas por destino, SIN comprar el incremento.
+ * Modifica las líneas de pedido existentes sin tocar proveedores, compras o
+ * datos de bajadas. Valida la operación completa antes de aplicar cambios.
+ * Sólo se acepta un destino y la misma unidad del producto.
+ */
+export function adjustDestinationDemand(state,key,dest,change,{expectedQuantity=null,day=null,historyLength=null}={}){
+ if(day!==null&&day!==state.day)return {changed:false,code:'JORNADA_CAMBIADA'};
+ if(historyLength!==null&&historyLength!==(state.history||[]).length)return {changed:false,code:'JORNADA_CAMBIADA'};
+ if(!state.destinations.some(d=>d.id===dest))throw Error('Tienda o restaurante no encontrado');
+ const row=totals(state).find(r=>sameProductKey(state,r.key,key));
+ if(!row)throw Error('Producto no encontrado en el Global');
+ const actual=fix(row.by[dest]||0);
+ if(expectedQuantity!==null&&Math.abs(actual-Number(expectedQuantity))>1e-8)
+  return {changed:false,code:'MODIFICADO_POR_OTRO',cantidad:actual,total:row.total};
+ const delta=fix(Number(String(change).replace(',','.')));
+ if(!Number.isFinite(delta)||delta===0)throw Error('Cambio de cantidad inválido');
+ const next=fix(Math.max(0,actual+delta));
+ const changeApplied=fix(next-actual);
+ if(Math.abs(changeApplied)<1e-8)return {changed:false,code:'SIN_CAMBIOS',cantidad:actual,total:row.total};
+ const nextOrders=structuredClone(state.orders);
+ const matching=nextOrders.filter(o=>o.dest===dest&&o.q>0&&sameProductKey(state,canonical(o.product)+'|'+(o.unit||'BULTO'),row.key));
+ if(changeApplied>0){
+  if(matching.length){
+   const l=matching[matching.length-1];
+   l.q=fix(l.q+changeApplied);
+  }else{
+   nextOrders.push({id:id('cantidad'),dest,raw:String(changeApplied)+' '+row.product,
+    sourceName:canonical(row.product),product:row.product,q:changeApplied,unit:row.unit,
+    review:false,issues:[],suggestions:[],kind:'ajuste-cantidad'});
+  }
+ }else{
+  let remaining=fix(-changeApplied);
+  for(const l of [...matching].reverse()){
+   if(remaining<=1e-8)break;
+   const taken=fix(Math.min(l.q,remaining));
+   l.q=fix(l.q-taken);remaining=fix(remaining-taken);
+  }
+  if(remaining>1e-8)throw Error('La cantidad indicada supera el pedido actual');
+ }
+ const draft={...state,orders:nextOrders.filter(o=>o.q===null||o.q>1e-8)};
+ // Nunca permitir que el nuevo reparto deje cantidades ya bajadas sin respaldo.
+ const plan=deliveryPlan(draft);
+ for(const [location,q] of Object.entries(state.delivery||{})){
+  if(!(Number(q)>0))continue;
+  const at=location.lastIndexOf('@');if(at<0)continue;
+  const productKey=location.slice(0,at),place=location.slice(at+1);
+  const allowed=plan.eligible.filter(r=>r.dest===place&&sameProductKey(draft,r.key,productKey))
+   .reduce((sum,r)=>sum+r.allowed,0);
+  if(allowed+1e-8<deliveredFor(state,productKey,place))
+   throw Error('Hay mercancía bajada que quedaría sin respaldo. Corrige primero Reparto o compra la diferencia.');
+ }
+ state.orders=draft.orders;
+ return {changed:true,code:'ACTUALIZADO',cantidad:next,total:fix(row.total+changeApplied),
+  anterior:actual,diferencia:changeApplied,pendiente:pendingPurchases(state).find(x=>sameProductKey(state,x.key,row.key))?.remainingToBuy||0};
+}
 export function qtyRequested(state,key){return totals(state).find(t=>sameProductKey(state,t.key,key))?.total||0;}
 export function fix(n){return Math.round((Number(n)||0)*1000)/1000;}
 export function assignSupplier(state,key,supplier,quantity){if(!SUPPLIERS.includes(supplier))throw Error('Proveedor desconocido');const row=totals(state).find(t=>t.key===key);if(!row)throw Error('Producto inexistente');if(row.unresolved)throw Error('Revisa el nombre en rojo antes de asignar');
