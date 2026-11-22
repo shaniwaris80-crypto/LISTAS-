@@ -1355,6 +1355,26 @@ const ARSLAN_CLOUD_ACTIVE = Boolean(
 );
 // Adaptador de Firebase Realtime Database (misma arquitectura que Ruta Madrid).
 // Snapshot privado por UID con versión CAS para evitar pisar otro dispositivo.
+/**
+ * RTDB omite listas vacías al guardar ([] y {}).
+ * Recupera campos vacíos ausentes, conserva el contenido real y rechaza
+ * estructuras incompatibles para no borrar pedidos, compras ni bajadas.
+ */
+function hydrateCloudDocumentState(input){
+ if(!input||typeof input!=='object'||Array.isArray(input)||!Array.isArray(input.orders))
+  throw Error('Documento de jornada inválido; no se ha modificado la nube');
+ const defaults=createState();
+ const state={...input};
+ for(const field of ['catalog','orders','allocations','manual','receipts','destinations','history','sentMessages','importedFingerprints','riders']){
+  if(state[field]===undefined||state[field]===null)state[field]=structuredClone(defaults[field]);
+  else if(!Array.isArray(state[field]))throw Error('Campo de jornada incompatible: '+field+'. No se han modificado datos.');
+ }
+ for(const field of ['aliases','delivery','load','shortageAllocation','riderAssignments']){
+  if(state[field]===undefined||state[field]===null)state[field]={};
+  else if(typeof state[field]!=='object'||Array.isArray(state[field]))throw Error('Campo de jornada incompatible: '+field+'. No se han modificado datos.');
+ }
+ return state;
+}
 const FIREBASE_SDK_VERSION='12.16.0'; // versión usada en RUTA1 como referencia de compatibilidad
 const FIREBASE_SDK_BASE=`https://www.gstatic.com/firebasejs/${FIREBASE_SDK_VERSION}`;
 async function createArslanCloudAdapter(config=ARSLAN_FIREBASE_CONFIG) {
@@ -1383,7 +1403,7 @@ async function createArslanCloudAdapter(config=ARSLAN_FIREBASE_CONFIG) {
    if(!obj)return null;
    const rev=Number(obj.revision);
    if(!Number.isSafeInteger(rev) || rev<1 || !obj.data || !Array.isArray(obj.data.orders))throw Error('Los datos recibidos de Firebase no tienen un formato válido');
-   return {revision:rev,data:obj.data,updated_at:obj.updated_at||null};
+   return {revision:rev,data:hydrateCloudDocumentState(obj.data),updated_at:obj.updated_at||null};
  };
  const {ref,get,set,onValue,runTransaction}=dbSDK;
  return {
@@ -1437,7 +1457,7 @@ async function createArslanCloudAdapter(config=ARSLAN_FIREBASE_CONFIG) {
    let outcome={changed:false,code:'NO_DISPONIBLE'};
    const tx=await runTransaction(location,old=>{
     if(!old||!old.data||!Number.isSafeInteger(old.revision)){outcome={changed:false,code:'NO_DISPONIBLE'};return;}
-    const draft=structuredClone(old.data);
+    const draft=hydrateCloudDocumentState(structuredClone(old.data));
     const result=applyDeliveryMutation(draft,operation);
     outcome=result;
     if(!result.changed)return;
@@ -1457,7 +1477,7 @@ async function createArslanCloudAdapter(config=ARSLAN_FIREBASE_CONFIG) {
     if(!old||!old.data||!Number.isSafeInteger(old.revision)){
      outcome={changed:false,code:'NO_DISPONIBLE'};return;
     }
-    const draft=structuredClone(old.data);
+    const draft=hydrateCloudDocumentState(structuredClone(old.data));
     const result=adjustDestinationDemand(draft,operation.key,operation.dest,operation.delta,{
      expectedQuantity:operation.expectedQuantity,day:operation.day,historyLength:operation.historyLength});
     outcome=result;
