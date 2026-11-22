@@ -552,6 +552,31 @@ export function applyDeliveryMutation(state,{action,key,dest,quantity=null,expec
   undoDelivery(state,key,dest);
   return {changed:true,code:'DESHECHO',cantidad:fix(row.delivered)};
  }
+ // Ajuste individual, atómico y reversible en el mismo destino.
+ if(action==='ajustar'){
+  const delta=fix(Number(String(quantity).replace(',','.')));
+  if(!Number.isFinite(delta)||Math.abs(delta)<1e-8)return {changed:false,code:'CANTIDAD_INVALIDA'};
+  if(delta>row.remaining+1e-8)return {changed:false,code:'CANTIDAD_INSUFICIENTE'};
+  if(-delta>row.delivered+1e-8)return {changed:false,code:'CANTIDAD_INSUFICIENTE'};
+  if(delta>0)deliver(state,key,dest,delta);
+  else{
+   // Respetar claves antiguas del mismo producto para no perder bajadas.
+   let left=fix(-delta);
+   for(const location of Object.keys(state.delivery||{}).reverse()){
+    const at=location.lastIndexOf('@');
+    if(at<0||location.slice(at+1)!==dest||!sameProductKey(state,location.slice(0,at),key))continue;
+    const take=fix(Math.min(left,Number(state.delivery[location])||0));
+    if(take<=0)continue;
+    const next=fix(Number(state.delivery[location])-take);
+    if(next>0)state.delivery[location]=next;
+    else delete state.delivery[location];
+    left=fix(left-take);
+    if(left<=1e-8)break;
+   }
+   if(left>1e-8)throw Error('No se pudo encontrar la bajada anterior; no se guardó el ajuste');
+  }
+  return {changed:true,code:'AJUSTADO',cantidad:delta};
+ }
  return {changed:false,code:'ACCION_DESCONOCIDA'};
 }
 
