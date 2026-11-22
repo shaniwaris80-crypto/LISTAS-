@@ -13,7 +13,7 @@ export const DESTINATIONS=[
 ];
 export const SUPPLIERS=['ESMO','MONTENEGRO','ÁNGEL VACA','JOSÉ ANTONIO','JAVI','ANGELO','COMPRA EXTERNA'];
 const catalogList=`MANZANA PINK LADY|CHIRIMOYA|MANDARINA PLASENCIA|MARACUYA|MANDARINA COLOMBE|PINA|MELON|BROCOLI|MANZANA GOLDEN 28|LIMON SEGUNDA|PLATANO CANARIO PRIMERA|PAPAYA|MANGO|MANZANA GOLDEN 24|NARANJA MESA SONRISA|NARANJA HOJA|BATAVIA|PEREJIL|CHAMPINON|UVA BLANCA|UVA ROJA|CEREZA|ZANAHORIA|TOMATE ASURCADO MARRON|TOMATE ROSA|CEBOLLA DULCE|CEBOLLA NORMAL|MANDARINA HOJA|MANZANA GRANNY SMITH|KIWI ZESPRI GOLD|VALVENOSTA GOLDEN|KIWI ZESPRI|PERA RINCON DEL SOTO|GRANADA|PERA LIMONERA|NUECES|AGUACATE GRANEL|PERA CONFERENCIA SEGUNDA|KIWI SEGUNDA|KAKI|REINETA PARDA|COLIFLOR|ICEBERG|GUINDILLA|PIMIENTO PADRON|CASTANA|ESCAROLA|ACELGAS|ESPINACA|APIO|NARANJA ZUMO|ARANDANOS|SETAS|BERENJENA|CALABACIN|PIMIENTO ITALIANO ROJO|PUERROS|PEPINO|BONIATO|TOMATE PERA|TOMATE RAFF|TOMATE RAMA|TOMATE ASURCADO AZUL|CEBOLLA ROJA|PATATA 5 KG|AJO PRIMERA|REMOLACHA|MANZANA GOLDEN 20|MANZANA GOLDEN 24|MANZANA GOLDEN 28|MANZANA ROYAL GALA 24|REINETA 24|REINETA 28|PATATA 10 KG|PATATA 25 KG|CILANTRO|KIWI TOMASIN|YAUTIA|YAME|MACHO VERDE|MACHO MADURO|CEBOLLA ROJA|SANDIA|NARANJA ZUMO`; 
-export const SEED_CATALOG=[...new Set(catalogList.split('|'))].sort((a,b)=>a.localeCompare(b,'es',{numeric:true}));
+export const SEED_CATALOG=[...new Set([...catalogList.split('|'),'BANANA'])].sort((a,b)=>a.localeCompare(b,'es',{numeric:true}));
 export function canonical(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]+/g,' ').replace(/\s+/g,' ').trim();}
 export function display(s){return canonical(s);}
 export function suggest(name,catalog){
@@ -26,7 +26,18 @@ export function suggest(name,catalog){
 }
 let serial=0;const id=(p)=>`${p}_${typeof crypto!=='undefined' && crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+'_'+(++serial)+'_'+Math.random().toString(36).slice(2)}`;
 export function createState(){return {day:'2026-11-19',catalog:[...SEED_CATALOG],aliases:{},orders:[],allocations:[],manual:[],receipts:[],delivery:{},load:{},shortageAllocation:{},riderAssignments:{},riders:['REPARTIDOR 1','REPARTIDOR 2'],destinations:structuredClone(DESTINATIONS),history:[],sentMessages:[],importedFingerprints:[]};}
-export function matchCatalog(name,state){const k=canonical(name);return state.catalog.find(c=>canonical(c)===k)||state.aliases[k]||null;}
+/** Erratas seguras de productos: solo abreviaturas inequívocas. Nunca corregir
+ * automáticamente variedades, calibres ni denominaciones ambiguas. */
+export function normalizedProductName(name,state){
+ const key=canonical(name);
+ const exact=(state.catalog||[]).find(c=>canonical(c)===key);
+ if(exact)return exact;
+ const alias=(state.aliases||{})[key];
+ if(alias)return alias;
+ if(key==='BANAN')return (state.catalog||[]).find(c=>canonical(c)==='BANANA')||'BANANA';
+ return key;
+}
+export function matchCatalog(name,state){const k=canonical(name);const norm=normalizedProductName(k,state);return (state.catalog||[]).find(c=>canonical(c)===canonical(norm))||null;}
 const num=(x)=>Number(String(x).replace(',','.'));
 export function parseOrderLine(line,state){
  const text=String(line).replace(/^[-•*]\s*/,'').trim();if(!text)return null;
@@ -91,8 +102,8 @@ export function confirmProduct(state,lineId,target,{create=false,remember=true}=
 export function setQuantity(state,lineId,value){const line=state.orders.find(l=>l.id===lineId);if(!line)throw Error('Línea no encontrada');const q=num(value);if(!Number.isFinite(q)||q<=0)throw Error('Cantidad positiva requerida');line.q=q;line.issues=line.issues.filter(x=>x!=='CANTIDAD_SIN_CONFIRMAR');line.review=line.issues.length>0;}
 export function addDestination(state,name,kind='restaurante'){const key=canonical(name);let d=state.destinations.find(x=>canonical(x.name)===key);if(d)return d;d={id:id('dest'),name:key,kind};state.destinations.push(d);return d;}
 export function totals(state){
- const map=new Map();for(const l of state.orders){if(!l.q)continue;const key=canonical(l.product)+'|'+l.unit;let item=map.get(key);if(!item){item={key,product:l.product,unit:l.unit,total:0,by:{},unresolved:false};map.set(key,item);}
- item.total=fix(item.total+l.q);item.by[l.dest]=fix((item.by[l.dest]||0)+l.q);item.unresolved ||= l.review;
+ const map=new Map();for(const l of state.orders){if(!l.q)continue;const name=normalizedProductName(l.product,state),key=canonical(name)+'|'+l.unit;let item=map.get(key);if(!item){item={key,product:name,unit:l.unit,total:0,by:{},unresolved:false};map.set(key,item);}
+ item.total=fix(item.total+l.q);item.by[l.dest]=fix((item.by[l.dest]||0)+l.q);item.unresolved ||= (l.review && !(canonical(l.product)==='BANAN' && canonical(name)==='BANANA'));
  }
  return [...map.values()].sort((a,b)=>a.product.localeCompare(b.product,'es',{numeric:true}));
 }
@@ -124,10 +135,10 @@ export function destinationLines(state,dest){
  if(!state.destinations.some(d=>d.id===dest))throw Error('Destino desconocido');
  const map=new Map();
  for(const line of state.orders.filter(l=>l.dest===dest&&l.q>0)){
-  const key=canonical(line.product)+'|'+line.unit;
+  const product=normalizedProductName(line.product,state),key=canonical(product)+'|'+line.unit;
   const old=map.get(key);
   if(old){old.q=fix(old.q+line.q);old.review ||= line.review;}
-  else map.set(key,{key,product:line.product,unit:line.unit,q:fix(line.q),review:line.review});
+  else map.set(key,{key,product,unit:line.unit,q:fix(line.q),review:line.review && !(canonical(line.product)==='BANAN'&&canonical(product)==='BANANA')});
  }
  return [...map.values()].sort((a,b)=>a.product.localeCompare(b.product,'es',{numeric:true}));
 }
