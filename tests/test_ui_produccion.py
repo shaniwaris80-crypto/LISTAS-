@@ -112,9 +112,10 @@ with sync_playwright() as p:
 
     for width in [320,375,390,430,768,1440]:
         page.set_viewport_size({'width':width,'height':860})
-        page.locator('.bottomnav button[data-key="compras"]').click()
+        menu = '.bottomnav' if width <= 850 else '.side'
+        page.locator(menu+' button[data-key="compras"]').click()
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth+1'),f'desbordamiento compras {width}'
-        page.locator('.bottomnav button[data-key="reparto"]').click()
+        page.locator(menu+' button[data-key="reparto"]').click()
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth+1'),f'desbordamiento reparto {width}'
         if width <= 768:
             assert page.locator('.bottomnav').evaluate("(x)=>getComputedStyle(x).display") != 'none'
