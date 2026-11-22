@@ -134,7 +134,7 @@ export function importBlocks(state,text,{replace=false}={}){
   const raw=stripWhatsAppPrefix(original);
   if(!raw)continue;
   const heading=parseHeader(raw,state);
-  if(heading){dest=heading.startsWith('UNKNOWN:')?null:heading;if(!dest)issues.push('Destino no reconocido: '+heading.substring(8));if(replace&&dest&&!seen.has(dest)){if(state.allocations.some(a=>a.status==='sent')||state.manual.length||Object.keys(state.delivery).length)throw Error('No se pueden sustituir pedidos con compras o bajadas ya iniciadas; importa una corrección aparte');state.orders=state.orders.filter(o=>o.dest!==dest);seen.add(dest);}continue;}
+  if(heading){dest=heading.startsWith('UNKNOWN:')?null:heading;if(!dest)issues.push('Destino no reconocido: '+heading.substring(8));if(replace&&dest&&!seen.has(dest)){if(state.allocations.some(a=>a.status!=='cancelled')||state.manual.length||Object.keys(state.delivery).length)throw Error('No puedes sustituir pedidos con asignaciones, compras o bajadas iniciadas. Corrige cantidades desde Compras para conservar el historial');state.orders=state.orders.filter(o=>o.dest!==dest);seen.add(dest);}continue;}
   if(!dest){if(raw.trim().startsWith('['))continue;issues.push('Línea sin destino: '+raw.trim());continue;}
   const parsed=parseOrderLine(raw,state);if(parsed){state.orders.push({...parsed,dest});n++;}
  }
@@ -145,7 +145,7 @@ export function confirmProduct(state,lineId,target,{create=false,remember=true}=
  const line=state.orders.find(l=>l.id===lineId);if(!line)throw Error('No existe la línea');
  const clean=canonical(target);
  const priorKey=canonical(line.product)+'|'+line.unit;
- if(canonical(line.product)!==clean&&(state.allocations.some(a=>a.key===priorKey&&a.status==='sent')||Object.keys(state.delivery).some(k=>k.startsWith(priorKey+'@'))))throw Error('No cambies un producto ya enviado o bajado sin una corrección de compras');
+ if(canonical(line.product)!==clean&&(state.allocations.some(a=>a.status!=='cancelled'&&sameProductKey(state,a.key,priorKey))||state.manual.some(m=>sameProductKey(state,m.key,priorKey))||Object.keys(state.delivery).some(k=>k.startsWith(priorKey+'@'))))throw Error('Este producto ya tiene asignaciones, compras o bajadas. Deshaz primero las operaciones o corrige cantidades desde Compras; no se cambia su nombre silenciosamente');
  if(!clean)throw Error('Nombre vacío');
  const existing=matchCatalog(clean,state);
  if(!existing&&!create)throw Error('Producto inexistente: usa Crear nuevo');
