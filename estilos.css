@@ -150,3 +150,193 @@ html{width:100%;scroll-padding-bottom:112px}body{min-width:0;overflow-x:clip}but
 .purchase-inline .shortage-note strong{color:#b71c26}
 @media(max-width:430px){.purchase-inline{padding:9px 8px}.destination-qty-step{height:40px;width:40px}.destination-qty-controls{gap:3px}.destination-qty-value{min-width:34px}.breakdown-destination{font-size:12px}}
 @media(prefers-reduced-motion:reduce){.destination-qty-step{transition:none}}
+
+
+/* ARSLAN LISTAS · VISUAL SYSTEM V2. Desktop operativo + iPhone de reparto.
+   Blanco puro, negro profundo, verde confirmado, rojo incidencias.
+   Estos cambios son de presentación y no modifican datos de la jornada. */
+:root{
+ --black:#090a0a;--ink:#0c0d0e;--muted:#555e62;
+ --line:#dfe4e2;--soft:#f4f6f5;--green:#138044;
+ --greenbg:#e9f7ee;--red:#c92532;--redbg:#fff0f1;
+ --radius:17px;--shadow-card:0 1px 2px rgba(7,12,9,.025),0 9px 24px rgba(7,12,9,.025);
+}
+html{color-scheme:light;scroll-padding-top:84px}
+body{background:#f4f6f5;color:#0b0e0c;font-family:-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",sans-serif;
+ -webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+button,input,select,textarea{accent-color:#128044}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[role=button]:focus-visible{
+ outline:3px solid #127d40;outline-offset:3px}
+button:disabled{cursor:not-allowed}
+main{min-width:0}
+.card{border-color:#e1e5e2;box-shadow:var(--shadow-card)}
+.head h1{color:#060707;font-weight:900;letter-spacing:-.045em}
+.head p{max-width:760px;color:#53605b;font-size:14px;line-height:1.5}
+.sectionline{align-items:center}
+.sectionline h2{font-size:18px;font-weight:850;letter-spacing:-.024em;color:#101110}
+.item{background:#fff;border-color:#e7eae8;transition:border-color .12s ease,background .12s ease}
+.item .product{color:#0a0b0a;font-weight:820}
+.item .details{color:#5b6560}
+.item:focus-within{border-color:#879f8f}
+.keynum{background:#090b0a;color:#fff;border-radius:11px;font-variant-numeric:tabular-nums}
+.btn{border-color:#d3d9d6;border-radius:11px;font-weight:780;transition:background .12s ease,border-color .12s ease}
+.btn.dark{background:#090b0a;color:#fff}
+.btn.green{background:#138044;border-color:#138044}
+.btn.red{border-color:#d7b8bb;color:#bc2030}
+.tools{min-width:0}
+.tools .btn{min-width:0}
+.pill{border-radius:999px;letter-spacing:0;font-weight:820}
+.pill.ok{color:#086b33;background:#e8f6eb;border-color:#c5e4ce}
+.pill.err{color:#aa1426;background:#ffeded;border-color:#f0c7ca}
+.pill.warn{color:#80540b;background:#fff4dd;border-color:#ead5af}
+.notice{border-radius:13px}
+.notice.green{color:#15542e}
+.notice.amber{color:#704c0d}
+.stat{border-radius:14px;border-color:#e0e5e1;background:#fff;box-shadow:var(--shadow-card)}
+.stat b{color:#070a08;font-weight:900;letter-spacing:-.04em}
+.stat span{color:#59645c;font-weight:600}
+input:focus,select:focus,textarea:focus{border-color:#178047}
+input[type=search]{appearance:none;-webkit-appearance:none}
+.purchase-tabs{gap:7px}
+.purchase-filter{background:#f7f8f7;border-color:#e0e4e1;font-weight:850}
+.purchase-filter.active{background:#0a0c0b;border-color:#0a0c0b}
+.purchase-item{border-color:#e1e5e2}
+.purchase-title{font-weight:900;letter-spacing:-.015em}
+.purchase-inline{background:#f8faf9;border-color:#e5e9e7}
+.purchase-inline-label{color:#5c6660;font-size:10px;letter-spacing:.055em}
+.breakdown-line.total{font-weight:900}
+.breakdown-line.shortage-note{color:#ae1d2b}
+.destination-qty-controls{gap:7px}
+.destination-qty-step{border-color:#1d2520;border-radius:11px;background:#fff;color:#080a09}
+.destination-qty-step:focus-visible{outline-offset:1px}
+.destination-qty-step:active{background:#090b0a;color:#fff}
+.destination-qty-value{font-weight:900}
+.purchase-completed{border-color:#bfdac6}
+.purchase-tick.checked{background:#128044;border-color:#128044}
+.supplier-pills{align-items:center}
+.supplier-pills .btn{background:#fff;border-color:#d5dfd8;min-height:43px}
+.supplier-pills .btn.on{background:#0b0e0c;color:#fff;border-color:#0b0e0c}
+.provider-card .copy{max-height:170px;overflow:auto}
+.order-card{min-width:0}
+.delivery-progress{border-color:#bfd9c5;box-shadow:var(--shadow-card)}
+.progress-track{background:#e3e8e4;height:15px;border-radius:999px}
+.progress-fill{background:#168548}
+.progress-heading>b{color:#08783a}
+.sync-pill{font-weight:850;line-height:1.2}
+.destination-picker{border:1px solid #cfd9d3}
+.destination-picker select{font-weight:850;border-color:#0b0d0c;appearance:auto}
+.clear-day-home{background:#fff;border-color:#eac5ca}
+.clear-day-home .clear-day-description strong{font-weight:900}
+.searchable[hidden]{display:none!important}
+.orders-grid,.provider-grid{display:grid;gap:14px;align-items:start}
+.orders-grid>.card,.provider-grid>.card{min-width:0;margin:0}
+.orders-grid,.provider-grid{margin-bottom:20px}
+@media(min-width:851px){
+ .top{z-index:30;border-bottom:1px solid #e1e6e2;background:rgba(255,255,255,.98)}
+ .top-inner{max-width:1560px;padding:12px 34px;gap:16px}
+ .brand{font-size:20px;color:#080b09;letter-spacing:-.055em}
+ .logo{height:43px;width:43px;border-radius:13px;font-size:21px;background:#090b0a}
+ .top-inner .sync-pill{margin-left:auto}
+ .shell{max-width:1560px;grid-template-columns:230px minmax(0,1fr);gap:24px;padding:24px 30px 80px}
+ .side{top:94px;background:#0b0d0c;border-radius:20px;padding:14px 11px 16px;max-height:calc(100vh - 112px);overflow-y:auto;scrollbar-width:thin}
+ .side .caption{color:#89908a;font-size:10px;letter-spacing:.12em;margin:16px 10px 10px}
+ .side button{color:#cbd0cc;min-height:47px;border-radius:11px;margin-bottom:4px;font-size:13px;font-weight:740;padding:9px 10px}
+ .side button:hover{background:#242925;color:#fff}
+ .side button.active{background:#fff;color:#080b09;font-weight:900}
+ .side .step{background:#303631;color:#d7ded8;width:29px;height:29px;border-radius:9px;font-weight:850}
+ .side button.active .step{background:#0d100e;color:#fff}
+ .side .subtle{color:#aeb9b0!important;font-size:12px}
+ main{padding:0 2px;min-width:0}
+ .head{margin:5px 0 22px}
+ .head h1{font-size:clamp(31px,3.1vw,42px)}
+ .head p{font-size:14px}
+ .card{padding:23px;margin-bottom:16px}
+ .stat{padding:21px}
+ .grid{gap:14px}
+ .orders-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .provider-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .provider-grid .provider-card .items{max-height:360px;overflow:auto;scrollbar-width:thin}
+ .provider-grid .provider-card .item{padding:10px 11px}
+ .provider-grid .provider-card .copy{max-height:135px}
+ .purchase-inline{padding:13px 16px}
+ .purchase-inline .editable-destination{min-height:50px}
+ .purchase-inline .breakdown-destination{font-size:13px}
+ .destination-qty-step{width:42px;height:42px}
+ .purchase-item{padding:16px 18px}
+ .purchase-item .keynum{margin-top:2px}
+ .purchase-filter{min-height:48px}
+ .destination-picker{top:86px}
+ .clear-day-home{padding:16px 20px}
+}
+@media(min-width:1320px){
+ .shell{grid-template-columns:246px minmax(0,1fr);gap:30px}
+ .provider-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .orders-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:850px){
+ html{scroll-padding-top:62px;scroll-padding-bottom:120px}
+ body{background:#f5f6f5}
+ .top{z-index:65;background:#fff}
+ .top-inner{min-height:60px;padding:9px max(12px,env(safe-area-inset-right)) 9px max(12px,env(safe-area-inset-left))}
+ .brand{letter-spacing:-.035em}
+ .logo{border-radius:11px}
+ .shell{padding:11px max(12px,env(safe-area-inset-right)) calc(105px + env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left))}
+ main{max-width:760px;margin:0 auto}
+ .head{margin:10px 0 16px}
+ .head h1{font-size:27px;letter-spacing:-.045em;line-height:1.08}
+ .head p{font-size:13px;margin-top:7px}
+ .top-more{min-width:43px;width:43px;height:43px;border-radius:12px}
+ .bottomnav{padding-top:7px;padding-bottom:calc(9px + env(safe-area-inset-bottom));border-top-color:#e3e7e3;box-shadow:0 -3px 20px rgba(7,13,9,.065)}
+ .bottomnav button{min-height:58px;gap:4px;font-size:11px;padding:5px 1px;color:#59615b}
+ .bottomnav button.active{background:#090b0a;color:#fff}
+ .bottomnav button .nav-icon{height:23px;width:23px}
+ .card{padding:14px;border-radius:15px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.018)}
+ .sectionline h2{font-size:17px}
+ .grid{gap:8px}
+ .stat{padding:12px}
+ .stat b{font-size:26px}
+ .stat span{font-size:11px}
+ .item{padding:11px;gap:8px;border-radius:12px}
+ .item .product{font-size:14px;line-height:1.33}
+ .purchase-title{font-size:15px}
+ .keynum{font-size:17px}
+ .btn{min-height:44px}
+ .btn.small{min-height:43px}
+ .tools{gap:7px}
+ .purchase-tabs{gap:6px}
+ .purchase-filter{min-height:48px;font-size:12px}
+ .purchase-item .purchase-tick{width:44px;height:44px}
+ .purchase-inline{padding:9px 9px;margin-top:10px}
+ .purchase-inline .editable-destination{min-height:50px}
+ .destination-qty-step{height:43px;width:43px;border-radius:11px;font-size:23px}
+ .destination-qty-value{font-size:16px}
+ .breakdown-destination{font-size:12px;line-height:1.25}
+ .orders-grid,.provider-grid{grid-template-columns:minmax(0,1fr);gap:10px;margin-bottom:14px}
+ .destination-picker{top:62px;box-shadow:0 7px 20px rgba(0,0,0,.06)}
+ .destination-picker select{min-height:54px;font-size:16px}
+ .delivery-progress{margin-top:9px}
+ .progress-heading>b{font-size:25px}
+ .progress-track{height:17px}
+ .progress-caption{font-size:11px}
+ .purchase-bulk{margin-bottom:12px}
+ .purchase-bulk .tools .btn{flex:1 1 120px}
+ textarea,input,select{font-size:16px}
+}
+@media(max-width:380px){
+ .shell{padding-left:9px;padding-right:9px}
+ .brand{font-size:13px}
+ .top .sync-pill{font-size:8px;max-width:96px}
+ .stat b{font-size:23px}
+ .stat span{font-size:10px}
+ .bottomnav button{font-size:10px}
+ .bottomnav button .nav-icon{width:21px;height:21px}
+ .purchase-item{column-gap:6px}
+ .purchase-inline{padding:8px}
+ .destination-qty-step{width:39px;height:42px}
+ .destination-qty-controls{gap:3px}
+ .destination-qty-value{min-width:30px;font-size:14px}
+ .breakdown-destination{font-size:11.5px}
+}
+@media(prefers-reduced-motion:reduce){
+ *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
