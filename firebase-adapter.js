@@ -15,22 +15,29 @@ async function createArslanCloudAdapter(config=ARSLAN_FIREBASE_CONFIG) {
  const app=appSDK.getApps().find(a=>a.name==='arslan-listas-next')||appSDK.initializeApp(config,'arslan-listas-next');
  const auth=authSDK.getAuth(app),db=dbSDK.getDatabase(app);
  await authSDK.setPersistence(auth,authSDK.browserLocalPersistence);
- let currentUid=null;
+ let currentUid=null, workspaceOwner=null;
  const authUser=()=>{
    const actual=auth.currentUser?.uid;
    if(!currentUid || currentUid!==actual)throw Error('La sesión ha cambiado. Vuelve a iniciar sesión.');
    return currentUid;
  };
- const docPath=()=>`arslanListas/${ARSLAN_FIREBASE_WORKSPACE}/${authUser()}/document`;
+ const workspacePath=()=>`arslanListas/${ARSLAN_FIREBASE_WORKSPACE}/${workspaceOwner||authUser()}`;
+ const docPath=()=>`${workspacePath()}/document`;
+ const validUid=id=>typeof id==='string'&&/^[A-Za-z0-9]{16,128}$/.test(id);
  const normalize=(obj)=>{
    if(!obj)return null;
    const rev=Number(obj.revision);
    if(!Number.isSafeInteger(rev) || rev<1 || !obj.data || !Array.isArray(obj.data.orders))throw Error('Los datos recibidos de Firebase no tienen un formato válido');
    return {revision:rev,data:obj.data,updated_at:obj.updated_at||null};
  };
- const {ref,get,onValue,runTransaction}=dbSDK;
+ const {ref,get,set,onValue,runTransaction}=dbSDK;
  return {
-  setUser(id){currentUid=id;},
+  setUser(id){if(currentUid!==id)workspaceOwner=id;currentUid=id;},
+  setWorkspaceOwner(uid){if(!validUid(uid))throw Error('ID de equipo inválido');workspaceOwner=uid;},
+  getWorkspaceOwner(){return workspaceOwner||authUser();},
+  async addMember(uid){if(!validUid(uid))throw Error('ID de trabajador inválido');if((workspaceOwner||authUser())!==authUser())throw Error('Solo el propietario puede autorizar trabajadores');if(uid===authUser())throw Error('Ya eres propietario');await set(ref(db,workspacePath()+'/members/'+uid),true);},
+  async revokeMember(uid){if(!validUid(uid))throw Error('ID de trabajador inválido');if((workspaceOwner||authUser())!==authUser())throw Error('Solo el propietario puede retirar accesos');await set(ref(db,workspacePath()+'/members/'+uid),false);},
+  async listMembers(){if((workspaceOwner||authUser())!==authUser())return [];const snap=await get(ref(db,workspacePath()+'/members'));const data=snap.val()||{};return Object.keys(data).filter(uid=>data[uid]===true);},
   onAuthChange(listener){
    return authSDK.onAuthStateChanged(auth,user=>listener(user?'SIGNED_IN':'SIGNED_OUT',user?{user}:null),error=>listener('AUTH_ERROR',{error}));
   },
@@ -63,6 +70,27 @@ async function createArslanCloudAdapter(config=ARSLAN_FIREBASE_CONFIG) {
    const tx=await runTransaction(location,old=>old?.revision===expectedRevision?
     {revision:expectedRevision+1,data:state,updated_at:Date.now()}:undefined,{applyLocally:false});
    return tx.committed?normalize(tx.snapshot.val()):null;
+  },
+  /** Cada tick se procesa dentro de UNA transacción sobre el documento vigente.
+   * El SDK reintenta si otro repartidor guardó entre la lectura y la escritura.
+   * Un tick tardío sobre la misma fila queda rechazado, nunca se duplica.
+   */
+  async mutateDelivery(operation){
+   const location=ref(db,docPath());
+   const first=await get(location);
+   if(!first.exists())throw Error('No hay jornada sincronizada todavía');
+   let outcome={changed:false,code:'NO_DISPONIBLE'};
+   const tx=await runTransaction(location,old=>{
+    if(!old||!old.data||!Number.isSafeInteger(old.revision)){outcome={changed:false,code:'NO_DISPONIBLE'};return;}
+    const draft=structuredClone(old.data);
+    const result=applyDeliveryMutation(draft,operation);
+    outcome=result;
+    if(!result.changed)return;
+    return {revision:old.revision+1,data:draft,updated_at:Date.now()};
+   },{applyLocally:false});
+   if(tx.committed)return {...outcome,document:normalize(tx.snapshot.val())};
+   const latest=await get(location);
+   return {...outcome,document:latest.exists()?normalize(latest.val()):null};
   },
   watch(callback){
    let first=true;
