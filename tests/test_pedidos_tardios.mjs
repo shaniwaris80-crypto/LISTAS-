@@ -67,8 +67,8 @@ test('Ampliar un pedido existente tras envío no reescribe su línea original',(
  assert.equal(qty(s,'SP'),3);
 });
 test('Antes de enviar a proveedor, los pedidos no son ampliaciones',()=>{
- const s=M.createState();M.importBlocks(s,'PEDIDO BC\n1 TOMATE RAMA');
- assert.ok(s.orders.every(o=>o.kind!=='pedido-adicional'));
+ const s=M.createState();M.importBlocks(s,'PEDIDO BRASEROS CENTRO\n1 TOMATE RAMA');
+ assert.equal(s.orders.length,1);assert.ok(s.orders.every(o=>o.kind!=='pedido-adicional'));
 });
 test('Aumentar pedido tardío no aumenta el pedido enviado',()=>{
  const s=create();M.importBlocks(s,'PEDIDO BRASEROS CENTRO\n2 TOMATE RAMA');
