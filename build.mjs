@@ -5,7 +5,8 @@ const cloudConf=fs.readFileSync(new URL('./firebase-config.js',import.meta.url),
 const cloudAdapter=fs.readFileSync(new URL('./firebase-adapter.js',import.meta.url),'utf8');
 const ui=fs.readFileSync(new URL('./ui.js',import.meta.url),'utf8');
 const css=fs.readFileSync(new URL('./estilos.css',import.meta.url),'utf8');
-const fixture=fs.readFileSync(new URL('./tests/pedidos_ejemplo_sinteticos.txt',import.meta.url),'utf8');
+// Los pedidos ficticios se usan SOLO en tests. NUNCA se incluyen en la web real.
+const fixture='';
 const js=motor+'\n'+core+'\n'+cloudConf+'\n'+cloudAdapter+'\n'+ui.replace('__FIXTURE__',JSON.stringify(fixture).replaceAll('<','\\u003C'));
-fs.writeFileSync(new URL('./index.html',import.meta.url),`<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#050505"><title>ARSLAN LISTAS — Pedidos y reparto</title><style>${css}</style></head><body><div id="app"></div><script>${js}</script></body></html>`);
+fs.writeFileSync(new URL('./index.html',import.meta.url),`<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#050505"><title>ARSLAN LISTAS — Gestión diaria</title><style>${css}</style></head><body><div id="app"></div><script>${js}</script></body></html>`);
 console.log('index.html generado');
