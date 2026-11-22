@@ -1,0 +1,33 @@
+name: Auditoría visual PC e iPhone (aislada)
+on:
+  push:
+    branches:
+      - feature/progreso-reparto-concurrente
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browser-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Obtener el código
+        uses: actions/checkout@v4
+      - name: Node.js para compilar
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Compilar HTML idéntico al despliegue
+        run: npm run build
+      - name: Preparar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Instalar Playwright para Chromium
+        run: python -m pip install --disable-pip-version-check playwright==1.56.0
+      - name: Instalar navegador de pruebas
+        run: python -m playwright install --with-deps chromium
+      - name: Recorrido visual y funcional sin datos reales
+        run: python tests/test_ui_produccion.py
