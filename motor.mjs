@@ -468,7 +468,22 @@ export function deliveryPlan(state){const eligible=[],blocked=[],short=[],needsR
   // Si afecta a varias tiendas y falta producto, no se elige arbitrariamente quién recibe menos.
   const partial=authorized<t.total-1e-8&&sorted.length>1;
   const specified=legacyShortage(state,t.key);
-  if(partial&&!specified){needsReview.push({...t,authorized,reason:'REPARTO INSUFICIENTE: ELIGE CANTIDADES POR DESTINO'});continue;}
+  if(partial&&!specified){
+   needsReview.push({...t,authorized,reason:'REPARTO INSUFICIENTE: ELIGE CANTIDADES POR DESTINO'});
+   // Las bajadas ya hechas no desaparecen porque después aumenten un pedido.
+   // Se mantienen únicamente esos mínimos y la disponibilidad libre queda
+   // pendiente de distribuir manualmente, nunca se reparte a otra tienda.
+   const physical=sorted.map(([dest,demand])=>({dest,demand,delivered:deliveredFor(state,t.key,dest)}));
+   const taken=fix(physical.reduce((sum,x)=>sum+x.delivered,0));
+   if(taken<=authorized+1e-8){
+    for(const {dest,demand,delivered} of physical){
+     if(delivered>0)eligible.push({key:t.key,dest,product:t.product,unit:t.unit,
+      requested:demand,allowed:delivered,delivered,remaining:0});
+     if(delivered<demand)short.push({key:t.key,dest,product:t.product,missing:fix(demand-delivered),unit:t.unit});
+    }
+   }
+   continue;
+  }
   let left=authorized;
   for(const [dest,demand] of sorted){const proposal=partial?fix(specified[dest]||0):demand;const allowed=fix(Math.min(demand,left,proposal));
    if(allowed>0){const delivered=deliveredFor(state,t.key,dest);eligible.push({key:t.key,dest,product:t.product,unit:t.unit,requested:demand,allowed,delivered,remaining:fix(Math.max(0,allowed-delivered))});}
@@ -485,12 +500,14 @@ export function undoDelivery(state,key,dest){for(const location of Object.keys(s
  * No mezcla tiendas y nunca cuenta productos sin compra/envío como bajados.
  */
 export function deliveryProgress(state,dest){
- const rows=deliveryPlan(state).eligible.filter(x=>x.dest===dest);
- // Cada producto pesa una unidad de progreso: nunca sumamos cajas, kg y manojos.
+ // El progreso incluye TODO el pedido de la tienda, también lo que aún
+ // falta comprar o repartir. Evita enseñar 100 % con cajas todavía faltantes.
+ // Cada producto pesa una fila; nunca se suman bultos, kilos y manojos.
+ const rows=totals(state).filter(x=>(x.by[dest]||0)>0);
  const total=rows.length;
- const bajado=fix(rows.reduce((sum,r)=>sum+(r.allowed>0?Math.min(1,Math.max(0,r.delivered)/r.allowed):0),0));
- const completos=rows.filter(r=>r.remaining<=1e-8).length;
- const pendientes=rows.length-completos;
+ const bajado=fix(rows.reduce((sum,r)=>sum+Math.min(1,deliveredFor(state,r.key,dest)/(r.by[dest]||1)),0));
+ const completos=rows.filter(r=>deliveredFor(state,r.key,dest)+1e-8>=r.by[dest]).length;
+ const pendientes=total-completos;
  return {total,bajado,restante:fix(Math.max(0,total-bajado)),
    porcentaje:total>0?Math.min(100,Math.round(bajado/total*100)):0,
    productos:rows.length,completos,pendientes};
