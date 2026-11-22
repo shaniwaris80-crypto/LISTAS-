@@ -375,3 +375,47 @@ test('50. Escritura crítica de bajadas usa transacción Firebase',()=>{
  assert.ok(adapter.includes('runTransaction(location,old=>'));
  assert.ok(adapter.includes('applyDeliveryMutation(draft,operation)'));
 });
+
+test('51. Reemplazar lista de SP antes de comprar no borra SL',()=>{
+ const s=sample();
+ M.importBlocks(s,'PEDIDO SP\n1 TOMATE RAMA',{replace:true});
+ assert.equal(row(s,tomato).total,4);
+ assert.equal(row(s,tomato).by.SP,1);
+ assert.equal(row(s,tomato).by.SL,3);
+});
+
+test('52. No reemplaza un pedido de la jornada con envíos confirmados',()=>{
+ const s=sample();M.quickAssign(s,tomato,'ESMO');M.markSupplierSent(s,'ESMO');
+ const before=s.orders.length;
+ assert.throws(()=>M.importBlocks(s,'PEDIDO SP\n8 TOMATE RAMA',{replace:true}),/No se pueden sustituir/i);
+ assert.equal(s.orders.length,before);
+});
+
+test('53. Edición directa de Pedidos bloqueada si ya hay proveedor y recomienda Compras',()=>{
+ const s=sample(),l=s.orders.find(x=>x.dest==='SP'&&x.product==='TOMATE RAMA');
+ M.quickAssign(s,tomato,'ESMO');
+ assert.throws(()=>M.setQuantity(s,l.id,'5'),/Corrige el pedido desde Compras/i);
+ assert.equal(row(s,tomato).total,6);
+});
+
+test('54. Edición directa bloqueada si hay compra manual o bajada física',()=>{
+ const s=sample(),l=s.orders.find(x=>x.dest==='SP'&&x.product==='TOMATE RAMA');
+ M.manualBuySafe(s,tomato,6);M.deliver(s,tomato,'SP',1);
+ assert.throws(()=>M.setQuantity(s,l.id,'2'),/Compras/i);
+ assert.equal(s.delivery[tomato+'@SP'],1);
+});
+
+test('55. Cambiar desde Compras sí permite corregir cantidad con productos enviados',()=>{
+ const s=sample();M.quickAssign(s,tomato,'ESMO');M.markSupplierSent(s,'ESMO');
+ const res=M.adjustDestinationDemand(s,tomato,'SP',1,{expectedQuantity:3,day:s.day,historyLength:0});
+ assert.equal(res.changed,true);assert.equal(row(s,tomato).total,7);
+ assert.equal(purchase(s,tomato).remainingToBuy,1);
+});
+
+test('56. La app no ofrece restaurar una demo ni importa muestras en la página principal',()=>{
+ const ui=readFileSync(new URL('../ui.js',import.meta.url),'utf8');
+ assert.ok(!ui.includes("case 'resetdemo'"));
+ assert.ok(!ui.includes('importBlocks(state,FIXTURE)'));
+ assert.ok(!ui.includes('LIMPIAR DÍA — DEMOSTRACIÓN'));
+ assert.ok(ui.includes('ARSLAN_LISTAS_ANTES_LIMPIAR_'));
+});
