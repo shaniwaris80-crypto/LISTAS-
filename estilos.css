@@ -525,3 +525,20 @@ label{color:#202327}
 @media(prefers-reduced-motion:reduce){
  *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}
 }
+
+/* ARSLAN LISTAS · tarjetas de pedidos legibles en PC e iPhone (2026-11-22)
+   Las acciones nunca deben comprimir el nombre hasta ponerlo vertical. */
+.order-card .item{display:grid;grid-template-columns:max-content minmax(0,1fr);column-gap:12px;row-gap:10px;align-items:start}
+.order-card .item .keynum{grid-column:1;grid-row:1;align-self:start}
+.order-card .item .grow{grid-column:2;grid-row:1;min-width:0}
+.order-card .item .product{overflow-wrap:break-word;word-break:normal;white-space:normal}
+.order-card .item .details{overflow-wrap:break-word}
+.order-card .item .mini-actions{grid-column:1/-1;grid-row:2;width:100%;max-width:none;justify-content:flex-start;gap:8px}
+.order-card .item .mini-actions .btn{flex:0 1 auto;white-space:normal}
+@media(min-width:851px){
+ .orders-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr))}
+}
+@media(max-width:850px){
+ .order-card .item{column-gap:9px;row-gap:8px}
+ .order-card .item .mini-actions .btn{flex:1 1 auto;min-width:0}
+}
