@@ -387,7 +387,7 @@ test('51. Reemplazar lista de SP antes de comprar no borra SL',()=>{
 test('52. No reemplaza un pedido de la jornada con envíos confirmados',()=>{
  const s=sample();M.quickAssign(s,tomato,'ESMO');M.markSupplierSent(s,'ESMO');
  const before=s.orders.length;
- assert.throws(()=>M.importBlocks(s,'PEDIDO SP\n8 TOMATE RAMA',{replace:true}),/No se pueden sustituir/i);
+ assert.throws(()=>M.importBlocks(s,'PEDIDO SP\n8 TOMATE RAMA',{replace:true}),/No (se pueden|puedes) sustituir/i);
  assert.equal(s.orders.length,before);
 });
 
