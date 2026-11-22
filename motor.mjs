@@ -164,7 +164,20 @@ export function confirmProduct(state,lineId,target,{create=false,remember=true}=
  if(line.issues.length)line.review=true;
  return targetName;
 }
-export function setQuantity(state,lineId,value){const line=state.orders.find(l=>l.id===lineId);if(!line)throw Error('Línea no encontrada');const q=num(value);if(!Number.isFinite(q)||q<=0)throw Error('Cantidad positiva requerida');line.q=q;line.issues=line.issues.filter(x=>x!=='CANTIDAD_SIN_CONFIRMAR');line.review=line.issues.length>0;}
+export function setQuantity(state,lineId,value){
+ const line=state.orders.find(l=>l.id===lineId);
+ if(!line)throw Error('Línea no encontrada');
+ const q=num(value);
+ if(!Number.isFinite(q)||q<=0)throw Error('Cantidad positiva requerida');
+ const key=canonical(normalizedProductName(line.product,state))+'|'+(line.unit||'BULTO');
+ const managed=state.allocations.some(a=>a.status!=='cancelled'&&sameProductKey(state,a.key,key))
+  ||state.manual.some(m=>sameProductKey(state,m.key,key))
+  ||Object.entries(state.delivery||{}).some(([path,val])=>path.includes('@')&&sameProductKey(state,path.slice(0,path.lastIndexOf('@')),key)&&Number(val)>0);
+ if(managed)throw Error('Este producto ya tiene proveedor, compra o bajada. Corrige el pedido desde Compras con + / − para recalcular el Global y Reparto.');
+ line.q=q;
+ line.issues=line.issues.filter(x=>x!=='CANTIDAD_SIN_CONFIRMAR');
+ line.review=line.issues.length>0;
+}
 export function addDestination(state,name,kind='restaurante'){const key=canonical(name);let d=state.destinations.find(x=>canonical(x.name)===key);if(d)return d;d={id:id('dest'),name:key,kind};state.destinations.push(d);return d;}
 export function totals(state){
  const map=new Map();for(const l of state.orders){if(!l.q)continue;const name=normalizedProductName(l.product,state),key=canonical(name)+'|'+l.unit;let item=map.get(key);if(!item){item={key,product:name,unit:l.unit,total:0,by:{},unresolved:false};map.set(key,item);}
