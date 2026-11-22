@@ -1,4 +1,4 @@
-// ARSLAN LISTAS — laboratorio de auditoría aislado. No toca el sistema publicado.
+// ARSLAN LISTAS — motor de pedidos, proveedores, compras y reparto para uso diario.
 export const STORE_ORDER=['SP','SL','ST'];
 export const DESTINATIONS=[
  {id:'SP',name:'SAN PABLO',kind:'tienda'},
@@ -38,7 +38,7 @@ export function suggest(name,catalog){
   .sort((a,b)=>a.score-b.score||a.x.localeCompare(b.x,'es')).slice(0,3).map(v=>v.x);
 }
 let serial=0;const id=(p)=>`${p}_${typeof crypto!=='undefined' && crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+'_'+(++serial)+'_'+Math.random().toString(36).slice(2)}`;
-export function createState(){return {day:'2026-11-19',catalog:[...SEED_CATALOG],aliases:{},orders:[],allocations:[],manual:[],receipts:[],delivery:{},load:{},shortageAllocation:{},riderAssignments:{},riders:['REPARTIDOR 1','REPARTIDOR 2'],destinations:structuredClone(DESTINATIONS),history:[],sentMessages:[],importedFingerprints:[]};}
+export function createState(){const d=new Date();const day=[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');return {day,catalog:[...SEED_CATALOG],aliases:{},orders:[],allocations:[],manual:[],receipts:[],delivery:{},load:{},shortageAllocation:{},riderAssignments:{},riders:['REPARTIDOR 1','REPARTIDOR 2'],destinations:structuredClone(DESTINATIONS),history:[],sentMessages:[],importedFingerprints:[]};}
 /** Erratas seguras de productos: solo abreviaturas inequívocas. Nunca corregir
  * automáticamente variedades, calibres ni denominaciones ambiguas. */
 /** Reconocimiento seguro: alias explícitos y plurales de familias.
@@ -301,7 +301,7 @@ export function reopenSupplierSent(state,supplier){
  return lines.length;
 }
 
-export function markSupplierSent(state,supplier){const lines=supplierLines(state,supplier,false);if(!lines.length)throw Error('No hay líneas nuevas para enviar');const packet={id:id('envio'),supplier,text:combinedSupplierTXT(lines,state),timestamp:new Date().toISOString(),simulation:true};for(const a of state.allocations)if(a.supplier===supplier&&a.status==='draft')a.status='sent';state.sentMessages.push(packet);return packet;}
+export function markSupplierSent(state,supplier){const lines=supplierLines(state,supplier,false);if(!lines.length)throw Error('No hay líneas nuevas para enviar');const packet={id:id('envio'),supplier,text:combinedSupplierTXT(lines,state),timestamp:new Date().toISOString(),confirmedByUser:true,channel:'confirmacion-manual'};for(const a of state.allocations)if(a.supplier===supplier&&a.status==='draft')a.status='sent';state.sentMessages.push(packet);return packet;}
 export function manualBuy(state,key,q){const row=totals(state).find(t=>t.key===key);if(!row)throw Error('No existe producto');if(row.unresolved)throw Error('Confirma el producto antes de comprar');if(!(q>0))throw Error('Cantidad positiva requerida');state.manual.push({id:id('manual'),key,q:fix(q),confirmed:true});}
 export function receiveSupplier(state,allocationId,q){const a=state.allocations.find(x=>x.id===allocationId&&x.status==='sent');if(!a)throw Error('El pedido debe estar enviado');if(!(q>0))throw Error('Cantidad inválida');const previous=state.receipts.filter(x=>x.allocationId===allocationId).reduce((s,x)=>s+x.q,0);if(previous+q>a.q+1e-8)throw Error('No se recibe más de lo enviado sin registrar una compra extra');state.receipts.push({id:id('receipt'),allocationId,q:fix(q)});}
 export function authorizedQty(state,key){const sent=state.allocations.filter(a=>sameProductKey(state,a.key,key)&&a.status==='sent').reduce((s,a)=>s+a.q,0);const manual=state.manual.filter(m=>sameProductKey(state,m.key,key)&&m.confirmed).reduce((s,a)=>s+a.q,0);return fix(sent+manual);}
