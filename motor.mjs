@@ -228,7 +228,7 @@ export function adjustDestinationDemand(state,key,dest,change,{expectedQuantity=
   }
   if(remaining>1e-8)throw Error('La cantidad indicada supera el pedido actual');
  }
- const draft={...state,orders:nextOrders.filter(o=>o.q===null||o.q>1e-8)};
+ const draft={...state,orders:nextOrders}; // Conserva también las líneas ajustadas a 0 para poder recuperarlas en Pedidos.
  // Nunca permitir que el nuevo reparto deje cantidades ya bajadas sin respaldo.
  const plan=deliveryPlan(draft);
  for(const [location,q] of Object.entries(state.delivery||{})){
