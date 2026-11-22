@@ -80,11 +80,12 @@ check('same-date limpiar dia versus other change never merges',()=>{
  newDay(a,b.day);r.orders.push({id:'2',dest:'SL',product:'KIWI ZESPRI',q:1});
  assert.equal(mergeStates(b,a,r).ok,false);
 });
-check('firebase realtime database rules isolate users by uid',()=>{
+check('firebase rules allow owner and authorized team without public access',()=>{
  const rules=JSON.parse(readFileSync(new URL('../database.rules.json',import.meta.url),'utf8'));
- const scope=rules.rules.arslanListas['arslan-listas-next-v1'].$uid;
- assert.match(scope['.read'],/auth\.uid === \$uid/);
- assert.match(scope['.write'],/auth\.uid === \$uid/);
+ const scope=rules.rules.arslanListas['arslan-listas-next-v1'].$owner;
+ assert.match(scope.document['.read'],/auth\.uid === \$owner/);
+ assert.match(scope.document['.read'],/members/);
+ assert.match(scope.members.$member['.write'],/auth\.uid === \$owner/);
 });
 check('firebase configuration is connected only to the independent LISTAS project',()=>{
  const conf=readFileSync(new URL('../firebase-config.js',import.meta.url),'utf8');
