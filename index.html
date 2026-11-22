@@ -1,4 +1,4 @@
-<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#050505"><title>ARSLAN LISTAS — Gestión diaria</title><style>:root{--black:#050505;--ink:#131313;--muted:#686868;--line:#e1e1e1;--soft:#f5f5f5;--white:#fff;--green:#138542;--greenbg:#e6f7eb;--red:#d3222c;--redbg:#ffeced;--amber:#9b5e0f;--amberbg:#fff2da;--radius:16px}
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#050505"><title>ARSLAN LISTAS NEXT — Gestión diaria</title><style>:root{--black:#050505;--ink:#131313;--muted:#686868;--line:#e1e1e1;--soft:#f5f5f5;--white:#fff;--green:#138542;--greenbg:#e6f7eb;--red:#d3222c;--redbg:#ffeced;--amber:#9b5e0f;--amberbg:#fff2da;--radius:16px}
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:#f7f7f7;color:var(--ink);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:15px}button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit}button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid #999;outline-offset:2px}
 .top{background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}.top-inner{max-width:1270px;margin:auto;padding:12px 24px;display:flex;justify-content:space-between;align-items:center;gap:16px}.brand{display:flex;align-items:center;gap:12px;font-weight:900;letter-spacing:-.7px;font-size:19px}.logo{height:39px;width:39px;border-radius:11px;background:#070707;color:#fff;display:grid;place-items:center;font-size:19px}.subtitle{font-size:12px;color:#626262;font-weight:500;letter-spacing:0}.demo-pill{border:1px solid #e6cfcf;border-radius:999px;padding:7px 11px;background:#fff5f5;color:#9e2323;font-size:12px;font-weight:750;white-space:nowrap}
 .shell{max-width:1270px;margin:0 auto;display:grid;grid-template-columns:216px minmax(0,1fr);gap:24px;padding:22px 24px 65px}.side{position:sticky;top:90px;align-self:start}.side button{display:flex;align-items:center;gap:12px;padding:13px 14px;border:0;background:transparent;border-radius:11px;width:100%;text-align:left;color:#5f5f5f;font-weight:650;margin-bottom:3px}.side button.active{background:#080808;color:#fff}.side .step{font-size:12px;width:27px;height:27px;display:grid;place-items:center;border-radius:8px;background:#eee;color:#222;font-weight:850}.side button.active .step{background:#fff;color:#000}.side .caption{font-size:11px;text-transform:uppercase;font-weight:850;letter-spacing:.12em;color:#909090;margin:24px 14px 7px}
@@ -542,6 +542,285 @@ label{color:#202327}
  .order-card .item{column-gap:9px;row-gap:8px}
  .order-card .item .mini-actions .btn{flex:1 1 auto;min-width:0}
 }
+
+/* ARSLAN SHOPIFY REDESIGN 2026-11-23
+ * Inspired by Shopify's inventory UI patterns; original ARSLAN styling.
+ * Presentation only; never touch business data or authentication tokens. */
+:root{--black:#14191a;--ink:#161b18;--muted:#647067;--line:#e3e8e5;--soft:#f5f7f6;--white:#fff;--green:#0c823d;--greenbg:#e8f7ed;--red:#c52834;--redbg:#fff0f1;--radius:15px;--shadow-card:0 2px 8px rgba(23,46,28,.035)}
+html{scroll-padding-top:96px}
+body{background:#f8faf9;color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",system-ui,sans-serif;font-size:14px;letter-spacing:-.008em}
+button,input,select,textarea{font-family:inherit}
+button{touch-action:manipulation}
+.top{background:#fff;border-bottom:1px solid #e6ebe7;z-index:55}
+.top-inner{max-width:1460px;min-height:78px;padding:11px 24px}
+.brand{color:#111814;font-size:18px;font-weight:850;letter-spacing:-.037em;min-width:0}
+.brand>span:nth-child(2){display:flex;flex-direction:column;gap:2px}
+.brand .subtitle{display:block;font-size:11px;font-weight:450;letter-spacing:0;color:#718078}
+.logo{width:43px;height:43px;border-radius:12px;background:#098137;display:grid;place-items:center;flex:0 0 43px;color:#fff}
+.sync-pill{border-radius:999px;border:0;background:#e7f7ec;color:#08783c;font-weight:800;font-size:11px;padding:8px 11px;white-space:nowrap}
+.sync-pill.warn{color:#8b610d;background:#fff5e0}.sync-pill.err{color:#a72737;background:#fff0f2}
+.shell{max-width:1460px;padding-top:24px;gap:22px}
+.side{background:#fff;color:#28342c;border:1px solid var(--line);border-radius:17px;padding:13px;box-shadow:0 1px 9px rgba(10,35,22,.025);max-height:calc(100vh - 105px)}
+.side-head{display:flex;align-items:center;gap:10px;padding:10px 10px 20px;border-bottom:1px solid var(--line);margin-bottom:12px}
+.side-brand{background:#0b833d;color:white;border-radius:11px;width:37px;height:37px;display:grid;place-items:center;font-weight:900;font-size:22px}
+.side-head strong{display:block;font-size:13px;letter-spacing:-.018em}.side-head small{display:block;font-size:11px;color:#7a857c;margin-top:3px}
+.side .caption{margin:14px 11px 7px;color:#89948e;font-size:10px;letter-spacing:.1em}
+.side button{display:flex;align-items:center;gap:12px;width:100%;color:#546159;font-size:13px;font-weight:640;padding:11px 12px;min-height:44px;transition:background .12s ease}
+.side button:hover{background:#f2f6f3;color:#0b783b}
+.side button.active{background:#e8f6ec;color:#086e34;border-radius:10px;font-weight:800}
+.side button.active svg{color:#087e38}
+.side-cloud{border-top:1px solid var(--line);margin:18px 9px 0;padding-top:13px;display:flex;align-items:center;gap:6px;font-size:11px;color:#6d7a71;line-height:1.35}
+.side-cloud svg{color:#108840;flex:0 0 auto}
+main{min-width:0}
+.card{background:white;border:1px solid #e2e8e4;border-radius:16px;box-shadow:var(--shadow-card);padding:19px}
+.head{margin:7px 0 20px}.head h1{font-weight:830;letter-spacing:-.055em;font-size:29px}.head p{color:#758079;font-size:13px}
+.head .mini{color:#6f7d73;font-size:11px}
+.item{border:1px solid #e7ebe7;background:white;border-radius:13px;box-shadow:none}
+.item .product{font-size:14px;line-height:1.35;overflow-wrap:break-word;word-break:normal;font-weight:800;color:#202920}
+.item .details{font-size:12px;color:#7d8780}
+.item .grow{min-width:0}
+.keynum{background:#e9f8ed;color:#087b39;border-radius:9px;min-height:37px;min-width:38px;padding:7px 11px;font-size:16px}
+.btn{border:1px solid #dce4de;background:white;color:#29352e;border-radius:10px;font-weight:750;min-height:42px}
+.btn:hover{background:#f5f9f5}.btn.dark,.btn.green{background:#0b823d;border-color:#0b823d;color:white}
+.btn.dark:hover,.btn.green:hover{background:#086c32}
+.btn.small{font-size:12px;min-height:39px;padding:8px 12px}
+.pill{border-radius:999px;border:1px solid #e3e9e5;font-size:11px;font-weight:750;white-space:normal}
+.pill.ok{background:#e9f8ee;color:#08743a;border-color:#d2edda}
+.pill.warn{background:#fff5e8;color:#965d00;border-color:#f4dfba}
+input:not([type="checkbox"]),select,textarea{background:#f5f7f6;border:1px solid #e6ebe8;border-radius:11px;font-size:16px;color:#19231c}
+input:focus,textarea:focus,select:focus{border-color:#108a42;background:white;outline:2px solid #a6dabc;outline-offset:0}
+input[type=search]{appearance:none}
+.sectionline h2{font-weight:810;letter-spacing:-.03em;font-size:19px}
+.sectionline{align-items:center}
+.copy{background:#f7faf8;border:1px solid #e6ebe8;color:#344138;font-size:12px}
+.shop-search{display:flex;align-items:center;gap:10px;padding:0 13px;border:1px solid #e6eae6;border-radius:13px;background:#f2f5f3;color:#7d8880;margin-bottom:17px;min-height:53px}
+.shop-search input{border:0!important;outline:0!important;background:transparent!important;box-shadow:none!important;min-height:48px;flex:1;padding:8px 0!important;width:100%;font-size:15px}
+.shop-search svg{flex:0 0 auto}
+.home-welcome h1{font-size:32px;letter-spacing:-.05em;margin:2px 0 4px}
+.home-welcome p{font-size:13px;color:#69766d;margin:0 0 18px}
+.shop-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:#fff;border:1px solid var(--line);border-radius:15px;padding:14px 7px;margin:18px 0 23px;box-shadow:var(--shadow-card)}
+.shop-kpis>div{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;min-width:0;padding:8px 3px;border-right:1px solid #e3e8e4}
+.shop-kpis>div:last-child{border-right:0}
+.shop-kpis svg{color:#167b42}
+.shop-kpis b{font-size:26px;line-height:1.1;letter-spacing:-.06em;color:#112018}
+.shop-kpis span{color:#6f7a71;font-size:10px;font-weight:750;text-align:center;letter-spacing:.01em}
+.shop-shortcuts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:15px 0 27px}
+.shortcut{background:white;border:1px solid var(--line);border-radius:16px;text-align:left;display:flex;flex-direction:column;gap:8px;min-height:151px;padding:18px 17px;position:relative;box-shadow:var(--shadow-card);color:#142219}
+.shortcut:hover{border-color:#91cea4;background:#fcfffd}
+.shortcut strong{font-size:16px;font-weight:900;letter-spacing:-.035em;margin-top:5px}
+.shortcut small{color:#69776e;font-size:12px}
+.shortcut-arrow{position:absolute;right:15px;bottom:28px;color:#77867a;font-size:25px}
+.icon-tile,.alert-icon{width:46px;height:46px;display:inline-flex;align-items:center;justify-content:center;border-radius:12px;background:#e9f8ee;color:#087c3b;flex:0 0 auto}
+.alert-icon{width:39px;height:39px;border-radius:10px}
+.home-alerts{padding:8px 16px;margin-bottom:17px}
+.alert-line{display:flex;align-items:center;gap:12px;width:100%;padding:14px 0;background:transparent;border:0;border-bottom:1px solid #ebefeb;text-align:left;color:#25332a}
+.alert-line:last-child{border-bottom:0}
+.alert-line>span:nth-child(2){display:flex;flex:1;min-width:0;flex-direction:column;gap:4px}
+.alert-line strong{font-size:13px;font-weight:790;overflow-wrap:anywhere}
+.alert-line small{font-size:12px;color:#7b877d}
+.alert-line>span:last-child{font-size:23px;color:#87938a}
+.home-tools{margin:22px 0 40px}.home-tools>summary{display:flex;align-items:center;gap:8px;color:#667269;cursor:pointer;padding:14px;font-size:13px;border:1px solid var(--line);border-radius:12px;background:white}
+.home-tools #sync-panel{margin-top:14px}
+.home-tools .clear-day-home{margin-top:10px}
+.auth-page{min-height:100dvh;background:#fff;display:flex;align-items:center;justify-content:center;padding:25px 17px}
+.auth-working,.auth-card{width:100%;max-width:450px}
+.auth-working{text-align:center}.auth-working h1{font-size:26px}
+.auth-card{background:white;border:0;box-shadow:none;padding:15px 7px}
+.auth-heading{text-align:center;margin:12px 0 28px}
+.auth-logo{width:76px;height:76px;border-radius:20px;display:inline-flex;align-items:center;justify-content:center;background:#0b853d;color:white;margin-bottom:23px}
+.auth-heading h1{font-size:27px;margin:0;letter-spacing:-.06em;font-weight:880}
+.auth-heading p{font-size:15px;color:#7a847c;margin:8px 0 22px}
+.auth-help{display:inline-flex;align-items:center;gap:7px;background:#eaf8ee;color:#166d38;border-radius:999px;padding:9px 13px;font-size:12px}
+.auth-fields{display:grid;gap:10px}
+.auth-fields label{font-weight:750;color:#333f37;margin:5px 0 -5px}
+.auth-fields input{height:58px;padding:14px 15px;background:#f7faf8;border-color:#dce5df}
+.auth-explainer{display:flex;align-items:flex-start;gap:9px;color:#647269;font-size:12px;margin:18px 0 24px;line-height:1.5}
+.auth-explainer svg{color:#108747;flex:0 0 auto}
+.auth-buttons{display:flex;flex-direction:column;gap:10px}
+.auth-buttons button{min-height:53px}
+.auth-buttons .dark{font-size:17px;font-weight:870}
+.auth-footer{margin-top:35px;text-align:center;color:#7c8980;font-size:11px}
+.seg-tabs{display:flex;background:#f5f7f5;border:1px solid #e2e8e3;border-radius:12px;padding:4px;gap:3px;margin:12px 0 17px}
+.seg-tabs button{border:0;background:transparent;flex:1;min-width:0;border-radius:9px;color:#627068;padding:11px 6px;font-weight:720;font-size:13px}
+.seg-tabs button.active{background:#e3f6e9;color:#0b7835;font-weight:850}
+.order-store-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border:1px solid var(--line);background:white;border-radius:15px;margin-bottom:24px;overflow:hidden}
+.order-store-stats>div{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;min-width:0;padding:13px 5px;position:relative}
+.order-store-stats>div:not(:last-child):after{content:"";position:absolute;right:0;top:19px;bottom:19px;width:1px;background:#e2e8e3}
+.order-store-stats span{color:#0a843d;background:#eaf8ee;border-radius:9px;padding:6px}
+.order-store-stats strong{font-size:11px;letter-spacing:-.03em;white-space:normal}
+.order-store-stats b{font-size:23px;color:#08763b}
+.orders-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:12px}
+.order-card{min-width:0;padding:14px 15px}
+.order-summary{display:flex;align-items:center;gap:12px;border:0;background:transparent;text-align:left;width:100%;color:#171e18;padding:0}
+.order-overview{display:flex;flex-direction:column;gap:5px;min-width:0;flex:1}
+.order-overview strong{font-size:15px;line-height:1.25;font-weight:870;overflow-wrap:break-word}
+.order-overview small{font-size:11px;color:#828b83}
+.order-arrow{font-size:24px;color:#829086;margin:0 3px}
+.order-preview{margin:9px 0 0 58px;display:flex;flex-direction:column;gap:7px}
+.order-preview>div{display:flex;align-items:center;gap:8px;font-size:12px;color:#465149;min-width:0}
+.order-preview span{overflow-wrap:break-word;min-width:0}
+.order-preview small{color:#87938a;font-size:11px}
+.qty-chip{background:#e8f8ee;color:#08713a;border-radius:7px;padding:4px 8px;font-size:12px;min-width:29px;text-align:center}
+.order-expanded{border-top:1px solid #e6eae7;margin-top:13px;padding-top:13px}
+.order-expanded>.tools{margin-bottom:13px}
+.order-card .item{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:9px;align-items:start}
+.order-card .item .keynum{grid-row:1;grid-column:1}
+.order-card .item .grow{grid-row:1;grid-column:2}
+.order-card .item .mini-actions{grid-row:2;grid-column:1/-1;max-width:none;justify-content:flex-start;width:100%}
+.order-card .item .mini-actions .btn{flex:1 1 auto}
+.paste-panel{margin-top:16px}
+.paste-panel summary{cursor:pointer;font-size:13px;color:#57655b;padding:4px 0 11px}
+.paste-panel textarea{margin-top:11px}
+.provider-card{padding:16px}
+.provider-card .sectionline{margin-bottom:10px}
+.provider-card .sectionline h2{font-size:17px}
+.provider-card .item{box-shadow:none;padding:9px 10px;margin-bottom:7px}
+.provider-card .copy{max-height:120px;font-size:12px;margin-top:12px}
+.provider-card .tools{gap:7px}
+.purchase-item{min-width:0}
+.purchase-item .purchase-title{font-size:15px;font-weight:840}
+.purchase-item .purchase-breakdown{background:#f7faf8;border:1px solid #e6ebe8;border-radius:11px}
+.purchase-item .purchase-statuses{display:flex;gap:5px;flex-wrap:wrap}
+.purchase-tabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:5px}
+.purchase-filter{border-radius:999px;background:#f5f7f6;border:1px solid #e3e8e5;color:#66736a;padding:10px 13px;min-height:42px;white-space:nowrap}
+.purchase-filter.active{background:#e2f5e8;color:#0b7039;border-color:#bfe8cc}
+.purchase-tick{border-color:#0e8a40}
+.purchase-tick.checked{background:#0b853f;border-color:#0b853f}
+.purchase-item .qty-step,.destination-qty-step{border-radius:9px;background:#e8f8ed;border-color:#dbeddf;color:#0a813c;min-width:41px;min-height:41px}
+.purchase-item .qty-step:hover,.destination-qty-step:hover{background:#d5f0df}
+.purchase-qty-controls{display:flex;align-items:center;gap:5px}
+.purchase-qty-controls input{max-width:74px;text-align:center;font-size:17px;font-weight:800;background:white;border:1px solid #e1e6e2}
+.purchase-completed{margin-top:22px}
+.destination-picker{background:#fff;box-shadow:var(--shadow-card);border:1px solid var(--line)}
+.destination-picker select{background:#f6f8f6;border-color:#e2e8e3;font-size:14px}
+.delivery-progress{border:1px solid #d1e7d7;background:#fff}
+.progress-track{background:#e9eeeb}
+.progress-fill{background:#0b883e}
+.delivery-count{font-size:15px;font-weight:870;color:#08743b;padding:8px}
+.delivery-unready .item{background:#fffafa}
+@media(min-width:851px){
+ .shell{grid-template-columns:220px minmax(0,1fr)}
+ .side{position:sticky;top:94px}
+ .top-inner{padding:12px 27px}
+ .orders-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,350px),1fr))}
+}
+@media(max-width:850px){
+ body{background:#fff}
+ .top{position:sticky;top:0}
+ .top-inner{min-height:62px;padding:9px 12px}
+ .logo{width:36px;height:36px;flex-basis:36px;border-radius:10px}
+ .brand{gap:8px;font-size:14px;letter-spacing:-.04em}
+ .brand strong{line-height:1.05}
+ .brand .subtitle{display:none}
+ .sync-pill{font-size:9px;padding:7px 8px;max-width:110px;white-space:nowrap}
+ .top-more{width:36px;min-width:36px;border:1px solid #e1e8e2}
+ .shell{display:block;padding:14px 12px calc(93px + env(safe-area-inset-bottom))}
+ .side{display:none}
+ .head h1{font-size:28px}
+ .head p{font-size:12px}
+ .home-welcome h1{font-size:27px}
+ .shop-kpis{padding:9px 2px;margin:15px 0 22px}
+ .shop-kpis>div{padding:7px 2px;gap:6px}
+ .shop-kpis b{font-size:24px}
+ .shop-kpis span{font-size:9px;letter-spacing:-.025em}
+ .shop-shortcuts{gap:10px}
+ .shortcut{min-height:137px;padding:13px 12px;gap:6px}
+ .shortcut strong{font-size:13px;letter-spacing:-.04em}
+ .shortcut small{font-size:11px;line-height:1.35;max-width:95%}
+ .shortcut .icon-tile{width:40px;height:40px}
+ .shortcut-arrow{font-size:20px;right:9px;bottom:30px}
+ .icon-tile{width:40px;height:40px;border-radius:10px}
+ .sectionline h2{font-size:18px}
+ .card{padding:13px;border-radius:14px;box-shadow:none}
+ .order-card{padding:13px 14px}
+ .order-overview strong{font-size:14px}
+ .order-preview{margin-left:52px}
+ .orders-grid{grid-template-columns:minmax(0,1fr);gap:10px}
+ .order-store-stats strong{font-size:10px}
+ .purchase-item{padding:12px}
+ .bottomnav{position:fixed;bottom:0;left:0;right:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));align-items:center;gap:1px;background:#fff;z-index:70;box-shadow:0 -3px 18px rgba(0,0,0,.035);border-top:1px solid #e5ebe6;height:calc(72px + env(safe-area-inset-bottom));padding:4px 3px calc(6px + env(safe-area-inset-bottom))}
+ .bottomnav button{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px;min-width:0;min-height:55px;background:transparent;color:#626c64;border:0;font-size:11px;font-weight:650}
+ .bottomnav button svg{width:22px;height:22px;flex:0 0 auto}
+ .bottomnav button.active{background:#eaf8ed;color:#097c39;font-weight:870;border-radius:11px}
+ .bottomnav button.active svg{stroke:#09833c}
+ .delivery-count{font-size:14px}
+ .delivery-progress{padding:16px}
+ .destination-picker{top:65px}
+}
+@media(max-width:380px){
+ .brand{font-size:12px}
+ .sync-pill{font-size:8px;max-width:97px}
+ .shortcut{padding:12px 10px}
+ .shop-kpis span{font-size:8px}
+ .order-store-stats strong{font-size:9px}
+}
+
+/* Pedidos tardíos, compras por destino y distribución rápida */
+.provider-heading{display:flex;align-items:center;gap:12px;min-width:0;margin-bottom:11px}
+.provider-name{flex:1;min-width:0}
+.provider-name h2{font-size:17px;letter-spacing:-.035em;margin:0 0 4px;color:#16221a}
+.provider-name small{font-size:11px;color:#7b887d}
+.provider-preview{background:#f5f8f6;border-radius:10px;padding:10px 12px;color:#5b6b60;font-size:12px;line-height:1.55;overflow-wrap:break-word;margin:11px 0}
+.provider-actions{gap:7px;flex-wrap:wrap;margin-top:12px}
+.provider-details{border-top:1px solid #e4eae5;margin-top:12px;padding-top:10px}
+.provider-details>summary{cursor:pointer;font-weight:700;font-size:12px;color:#3a6e4a;padding:8px 0}
+.provider-details .items{max-height:310px;overflow:auto;scrollbar-width:thin;margin:9px 0}
+.provider-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,365px),1fr));gap:12px}
+.assign-panel{margin-top:19px}
+.assign-items{max-height:570px;overflow-y:auto;scrollbar-width:thin;margin-top:13px}
+.purchase-destination-details{grid-column:1/-1;width:100%;margin:9px 0}
+.purchase-destination-details>summary{cursor:pointer;color:#196b3b;font-size:12px;font-weight:780;border:1px solid #e0e8e3;border-radius:10px;background:#f7faf8;padding:12px 13px}
+.purchase-destination-details[open]>summary{border-radius:10px 10px 0 0;border-bottom-color:#f7faf8}
+.purchase-destination-details .purchase-breakdown{border-radius:0 0 10px 10px;margin-top:0!important;border-top:0;padding:10px!important}
+.purchase-item .purchase-controls{margin-top:12px}
+.purchase-item .purchase-qty-controls{display:flex;align-items:center;flex-wrap:nowrap}
+.purchase-item .purchase-qty-controls input{text-align:center}
+.additional-item{display:grid;grid-template-columns:46px minmax(0,1fr);gap:12px;align-items:start;padding:15px 12px}
+.additional-item .icon-tile{grid-column:1;grid-row:1}
+.additional-item .grow{grid-column:2;grid-row:1;min-width:0}
+.additional-item .product{font-size:15px;letter-spacing:-.02em}
+.additional-item .details{margin-top:5px;line-height:1.5}
+.additional-item .pill{display:inline-flex;margin-top:7px}
+.additional-controls{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:14px}
+.additional-controls input{text-align:center;max-width:61px;height:43px;padding:6px;font-weight:830;font-size:17px}
+.additional-controls .qty-step{height:43px;min-width:43px;border-radius:10px;background:#eaf7ee;border-color:#d2edda;color:#087f3b;font-size:22px;font-weight:650}
+.additional-controls>.btn{flex:1 1 115px;height:43px;font-size:12px}
+.purchases-list>.items{gap:10px}
+.purchase-completed>summary{cursor:pointer;font-weight:800;color:#14743c;padding:5px 0}
+.delivery-dest-chips{display:flex;align-items:center;gap:8px;overflow-x:auto;scrollbar-width:thin;-webkit-overflow-scrolling:touch;padding:2px 1px 12px;margin:8px 0 15px}
+.delivery-dest-chips button{flex:0 0 auto;min-height:43px;border-radius:999px;border:1px solid #dfe8e1;background:#f5f7f6;color:#4b5a50;padding:9px 13px;white-space:nowrap;font-size:11px;font-weight:800;max-width:230px;text-overflow:ellipsis;overflow:hidden}
+.delivery-dest-chips button.active{background:#0b813b;color:#fff;border-color:#0b813b}
+.delivery-progress{padding:18px 17px;border-radius:15px}
+.progress-heading strong{font-size:16px;font-weight:850;color:#152219}
+.progress-heading>b{font-size:24px;color:#078137}
+.progress-track{height:12px;background:#e6ebe8;border-radius:999px}
+.delivery-progress .progress-caption{color:#718178;font-size:12px}
+.delivery-count{min-width:57px;text-align:center;color:#0b793a;background:#f2faf5;border-radius:8px;white-space:nowrap}
+.delivery-unready{border-color:#efdbc9}
+@media(min-width:851px){
+ .provider-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,370px),1fr))}
+ .delivery-dest-chips{flex-wrap:wrap;overflow:visible}
+ .purchase-item .purchase-destination-details .purchase-inline{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:850px){
+ .provider-grid{grid-template-columns:minmax(0,1fr)}
+ .provider-card{padding:14px}
+ .provider-actions .btn{flex:1 1 120px}
+ .provider-name h2{font-size:15px}
+ .provider-heading>.pill{font-size:10px}
+ .delivery-dest-chips{margin-top:7px;margin-bottom:9px;max-width:calc(100vw - 22px)}
+ .delivery-dest-chips button{min-height:43px;padding:8px 12px}
+ .destination-picker{position:relative;top:auto;box-shadow:none;padding:12px}
+ .destination-picker select{min-height:44px}
+ .delivery-progress{padding:14px}
+ .additional-item{padding:12px 10px;gap:9px;grid-template-columns:40px minmax(0,1fr)}
+ .additional-item .icon-tile{width:38px;height:38px}
+ .additional-controls{gap:5px}
+ .additional-controls .qty-step{min-width:39px;height:40px}
+ .additional-controls input{width:48px;height:40px}
+ .additional-controls .btn{min-height:42px}
+ .purchase-destination-details .purchase-inline{grid-template-columns:1fr}
+}
 </style></head><body><div id="app"></div><script>// ARSLAN LISTAS — motor de pedidos, proveedores, compras y reparto para uso diario.
 const STORE_ORDER=['SP','SL','ST'];
 const DESTINATIONS=[
@@ -680,7 +959,9 @@ function importBlocks(state,text,{replace=false}={}){
   const heading=parseHeader(raw,state);
   if(heading){dest=heading.startsWith('UNKNOWN:')?null:heading;if(!dest)issues.push('Destino no reconocido: '+heading.substring(8));if(replace&&dest&&!seen.has(dest)){if(state.allocations.some(a=>a.status!=='cancelled')||state.manual.length||Object.keys(state.delivery).length)throw Error('No puedes sustituir pedidos con asignaciones, compras o bajadas iniciadas. Corrige cantidades desde Compras para conservar el historial');state.orders=state.orders.filter(o=>o.dest!==dest);seen.add(dest);}continue;}
   if(!dest){if(raw.trim().startsWith('['))continue;issues.push('Línea sin destino: '+raw.trim());continue;}
-  const parsed=parseOrderLine(raw,state);if(parsed){state.orders.push({...parsed,dest});n++;}
+  const parsed=parseOrderLine(raw,state);if(parsed){
+   const late=state.allocations.some(a=>a.status==='sent');
+   state.orders.push({...parsed,dest,...(late?{kind:'pedido-adicional',receivedAt:new Date().toISOString()}:{} )});n++;}
  }
  if(!state.importedFingerprints)state.importedFingerprints=[];state.importedFingerprints.push(fingerprint);
  return {imported:n,issues};
@@ -768,7 +1049,12 @@ function adjustDestinationDemand(state,key,dest,change,{expectedQuantity=null,da
  const nextOrders=structuredClone(state.orders);
  const matching=nextOrders.filter(o=>o.dest===dest&&o.q>0&&sameProductKey(state,canonical(o.product)+'|'+(o.unit||'BULTO'),row.key));
  if(changeApplied>0){
-  if(matching.length){
+  const afterSupplierSend=state.allocations.some(a=>a.status==='sent');
+  if(afterSupplierSend){
+   nextOrders.push({id:id('adicional'),dest,raw:String(changeApplied)+' '+row.product,
+    sourceName:canonical(row.product),product:row.product,q:changeApplied,unit:row.unit,
+    review:false,issues:[],suggestions:[],kind:'pedido-adicional',receivedAt:new Date().toISOString()});
+  }else if(matching.length){
    const l=matching[matching.length-1];
    l.q=fix(l.q+changeApplied);
   }else{
@@ -1018,10 +1304,47 @@ function planShortage(state,key,by){
  state.shortageAllocation[key]=Object.fromEntries(Object.entries(by).map(([d,q])=>[d,fix(num(q))]));
  return state.shortageAllocation[key];
 }
+/** Los pedidos adicionales NUNCA pueden consumir la cantidad previamente
+ * reservada a las tiendas antes del envío a proveedor.  */
+function lateCoveredPlan(state,t,authorized,sorted){
+ const lateBy={};
+ for(const line of state.orders||[]){
+  if(line.kind!=='pedido-adicional'||!(line.q>0))continue;
+  const k=canonical(normalizedProductName(line.product,state))+'|'+(line.unit||'BULTO');
+  if(sameProductKey(state,k,t.key))lateBy[line.dest]=fix((lateBy[line.dest]||0)+line.q);
+ }
+ if(!Object.values(lateBy).some(q=>q>0)||legacyShortage(state,t.key))return null;
+ const baseBy=Object.fromEntries(sorted.map(([dest,q])=>[dest,fix(Math.max(0,q-(lateBy[dest]||0)))]));
+ const baseTotal=fix(Object.values(baseBy).reduce((n,q)=>n+q,0));
+ const reserved={};
+ for(const m of state.manual||[]){
+  if(m.confirmed&&m.additionalDest&&sameProductKey(state,m.key,t.key))
+   reserved[m.additionalDest]=fix((reserved[m.additionalDest]||0)+m.q);
+ }
+ const reservedTotal=fix(Object.values(reserved).reduce((n,q)=>n+Math.max(0,q),0));
+ if(authorized-reservedTotal+1e-8<baseTotal)return null;
+ let free=fix(Math.max(0,authorized-reservedTotal-baseTotal));
+ const eligible=[],short=[];
+ for(const [dest,demand] of sorted){
+  const original=baseBy[dest]||0,late=lateBy[dest]||0;
+  const own=fix(Math.min(late,Math.max(0,reserved[dest]||0)));
+  const shared=fix(Math.min(Math.max(0,late-own),free));
+  free=fix(free-shared);
+  const allowed=fix(Math.min(demand,original+own+shared));
+  if(allowed>0){const delivered=deliveredFor(state,t.key,dest);
+   eligible.push({key:t.key,dest,product:t.product,unit:t.unit,
+    requested:demand,allowed,delivered,remaining:fix(Math.max(0,allowed-delivered))});}
+  if(allowed<demand)short.push({key:t.key,dest,product:t.product,missing:fix(demand-allowed),unit:t.unit});
+ }
+ return {eligible,short};
+}
+
 function deliveryPlan(state){const eligible=[],blocked=[],short=[],needsReview=[];let all=totals(state);
  for(const t of all){const authorized=productStatus(state,t.key).authorized;
   if(!authorized){blocked.push({...t,reason:'SIN ENVIAR NI COMPRAR'});continue;}
   const sorted=Object.entries(t.by).sort((a,b)=>dOrder(a[0],b[0]));
+  const addition=lateCoveredPlan(state,t,authorized,sorted);
+  if(addition){eligible.push(...addition.eligible);short.push(...addition.short);continue;}
   // Si afecta a varias tiendas y falta producto, no se elige arbitrariamente quién recibe menos.
   const partial=authorized<t.total-1e-8&&sorted.length>1;
   const specified=legacyShortage(state,t.key);
@@ -1517,6 +1840,7 @@ if(!CLOUD_ENABLED){
 state=normalizeRuntimeState(state);
 let tab='inicio',supplier='ESMO',filter='pending',purchaseView='pending',toastMessage='';
 let selectedDeliveryDest='SP',expandedPurchaseKey='',editingDestination='';
+let orderView='all',expandedOrderDest='';
 const purchaseDrafts=Object.create(null); // Sólo controles temporales. Ninguna compra se guarda sin confirmar.
 let cloudAdapter=null,cloudEngine=null,cloudUser=null;
 let teamOwnerUid=null,teamMembers=[],deliveryBusy=false;
@@ -1564,7 +1888,12 @@ function teamPanel(){
 
 function cloudPanel(){
  if(!CLOUD_ENABLED)return `<div class="card sync-panel"><h2>Sincronización entre dispositivos</h2><div class="notice red"><b>No activada.</b> Estos pedidos se guardan solamente en este navegador. Abrir la página en otro móvil no los copia.</div>${legacyBackupButtons()}<p class="subtle">La conexión requiere un proyecto Firebase independiente de Ruta Madrid. Consulta docs/FIREBASE_CONFIGURACION.md.</p></div>`;
- if(!cloudUser)return `<div class="card sync-panel"><h2>Conectar mis dispositivos</h2>${state.orders.length?`<div class="notice amber"><b>Copia local detectada: ${state.orders.length} líneas.</b> La puedes consultar sin perderla, pero aún no está sincronizada. Descarga JSON y entra para subirla a Firebase. No pulses Limpiar día.</div>`:''}<p class="subtle">Usa el mismo correo y contraseña en móvil y ordenador. Se requiere una base propia de Firebase, nunca la de Ruta Madrid.</p><label for="cloud-email">Correo electrónico</label><input id="cloud-email" type="email" autocomplete="username" placeholder="tu-correo@ejemplo.es"><label for="cloud-password">Contraseña</label><input id="cloud-password" type="password" autocomplete="current-password" placeholder="Contraseña de Firebase"><div class="tools">${btn('cloud-login','Entrar','','dark')}${btn('cloud-signup','Crear cuenta','','small')}${btn('cloud-reset','Recuperar contraseña','','small')}</div><p class="subtle">${esc(cloudMessage)}</p>${legacyBackupButtons()}</div>`;
+ if(!cloudUser)return `<div class="auth-card"><div class="auth-heading"><span class="auth-logo">${uiIcon('purchases',36)}</span><h1>ARSLAN LISTAS NEXT</h1><p>Pedidos, compras y reparto</p><span class="auth-help">${uiIcon('check',17)} Accede a tu jornada en segundos</span></div>
+ ${state.orders.length?`<div class="notice amber"><b>Hay ${state.orders.length} líneas en este navegador.</b> Descarga una copia antes de importar o cambiar de equipo.</div>`:''}
+ <div class="auth-fields"><label for="cloud-email">Correo electrónico</label><input id="cloud-email" type="email" autocomplete="username" inputmode="email" placeholder="Tu correo" value="${esc(localStorage.getItem('arslan_listas_last_email')||'')}"><label for="cloud-password">Contraseña</label><input id="cloud-password" type="password" autocomplete="current-password" placeholder="Tu contraseña"></div>
+ <p class="auth-explainer">${uiIcon('check',18)} Este dispositivo recuerda la sesión. Si continúa válida, entrarás directamente.</p>
+ <div class="auth-buttons">${btn('cloud-login','Entrar','','dark')}${btn('cloud-reset','¿Olvidaste la contraseña?','','small')}${btn('cloud-signup','Crear cuenta','','small')}</div>
+ <p class="subtle">${esc(cloudMessage)}</p>${legacyBackupButtons()}<p class="auth-footer">Inicio seguro con Firebase · No guardamos contraseñas en el código.</p></div>`;
  const user=esc(cloudUser.email||'Cuenta conectada');
  let actions='';
  if(cloudStatus==='esperando_origen')actions=`<div class="notice"><b>La nube está vacía y este dispositivo no tiene pedidos guardados.</b> No crearemos una jornada vacía que pueda bloquear la importación del ordenador. Abre LISTAS desde el navegador donde hiciste los pedidos, inicia sesión con esta misma cuenta y pulsa «Subir los datos de este dispositivo». Después pulsa ${btn('cloud-refresh','Comprobar si ya están las listas','','dark')} aquí.</div>`;
@@ -1629,63 +1958,98 @@ if(typeof setInterval==='function')setInterval(()=>{if(CLOUD_ENABLED&&cloudEngin
 if(typeof window.addEventListener==='function')window.addEventListener('online',()=>{if(cloudEngine)void cloudEngine.refresh();});
 if(typeof document.addEventListener==='function')document.addEventListener('visibilitychange',()=>{if(!document.hidden&&cloudEngine)void cloudEngine.refresh();});
 function issueText(x){return x.issues.includes('PRODUCTO_NO_EN_CATALOGO')?'PRODUCTO NO EN CATÁLOGO':'REVISAR CANTIDAD'}
+
+const SHOP_ICONS={
+ home:'<path d="m3 10 9-7 9 7v11h-7v-7h-4v7H3z"/>',
+ orders:'<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 2h6v4H9M9 11h6M9 15h6"/>',
+ suppliers:'<path d="M3 10h18l-2-6H5l-2 6Zm2 0v10h14V10M9 20v-6h6v6"/>',
+ purchases:'<path d="M3 4h2l2 11h11l3-8H6M9 20h.01M18 20h.01"/>',
+ delivery:'<path d="M3 6h10v12H3zM13 10h4l4 4v4h-8zM7 21a2 2 0 1 0 0-4 2 2 0 0 0 0 4M17 21a2 2 0 1 0 0-4 2 2 0 0 0 0 4"/>',
+ check:'<path d="M20 6 9 17l-5-5"/>',
+ search:'<circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/>',
+ package:'<path d="m12 2 9 5-9 5-9-5 9-5Zm-9 5v10l9 5 9-5V7M12 12v10"/>',
+ store:'<path d="M3 10h18l-2-6H5l-2 6Zm2 0v10h14V10M9 20v-6h6v6"/>',
+ restaurants:'<path d="M5 3v8M8 3v8M11 3v8M8 11v10M18 3v18M18 3c-3 2-4 5-4 9"/>',
+ alert:'<circle cx="12" cy="12" r="10"/><path d="M12 7v6M12 17h.01"/>',
+ settings:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/>'
+};
+function uiIcon(name,size=22){return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${SHOP_ICONS[name]||SHOP_ICONS.package}</svg>`;}
+function shopifyDate(){const d=new Date(state.day+'T12:00:00');return Number.isNaN(d.valueOf())?esc(state.day):d.toLocaleDateString('es-ES',{day:'numeric',month:'short',year:'numeric'}).toUpperCase();}
+
 const btn=(action,text,key='',cls='')=>`<button class="btn ${cls}" data-action="${action}" data-key="${enc(key)}">${text}</button>`;
 const pill=(t,cls='')=>`<span class="pill ${cls}">${esc(t)}</span>`;
 const sectionTitle=(s,d)=>`<div class="head"><div><h1>${s}</h1><p>${d}</p></div><div class="mini">Jornada ${esc(state.day)} · ${esc(CLOUD_ENABLED?(cloudStatus==='sincronizado'?'Sincronizado con Firebase':'Sincronización pendiente'):'Solo en este dispositivo')}</div></div>`;
 function stats(){let x=summary(state);return `<div class="grid"><div class="stat"><b>${x.originalLines}</b><span>Líneas de pedido</span></div><div class="stat"><b>${x.products}</b><span>Productos globales</span></div><div class="stat"><b>${x.unreviewed}</b><span>Por revisar</span></div></div>`;}
 function nav(){
- const links=[['inicio','Hoy'],['pedidos','Pedidos'],['global','Proveedores'],['compras','Compras'],['carga','Carga'],['reparto','Reparto'],['auditoria','Auditoría']];
- const icons={
-  inicio:'<path d="M3 10.5 12 3l9 7.5V21h-6v-6H9v6H3z"/>',
-  pedidos:'<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 2h6v4H9zM9 11h6M9 15h6"/>',
-  global:'<path d="M4 8h16M4 13h16M4 18h16"/><circle cx="4" cy="4" r="1"/>',
-  compras:'<path d="M3 4h2l2 11h11l3-8H6M9 20h.01M18 20h.01"/>',
-  reparto:'<rect x="3" y="4" width="18" height="17" rx="3"/><path d="m8 13 3 3 5-6"/>'
- };
- const mobile=[['inicio','Hoy'],['pedidos','Pedidos'],['global','Prov.'],['compras','Compras'],['reparto','Bajar']];
- return `<aside class="side"><div class="caption">Operativa diaria</div>${links.map(([k,label],i)=>`<button class="${tab===k?'active':''}" data-action="goto" data-key="${k}"><span class="step">${i+1}</span>${label}</button>`).join('')}<div class="caption">Almacenamiento</div><div class="subtle" style="padding:6px 14px">${esc(CLOUD_ENABLED?cloudMessage:'Solo en este dispositivo. Sin nube conectada.')}</div></aside><nav class="bottomnav" aria-label="Navegación principal">${mobile.map(([k,label])=>`<button type="button" aria-label="Abrir ${k==='global'?'Proveedores':k==='reparto'?'Reparto':label}" aria-current="${tab===k?'page':'false'}" class="${tab===k?'active':''}" data-action="goto" data-key="${k}"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.85" aria-hidden="true">${icons[k]}</svg><span>${label}</span></button>`).join('')}</nav>`;
+ const links=[['inicio','Inicio','home'],['pedidos','Pedidos','orders'],['global','Proveedores','suppliers'],['compras','Compras','purchases'],['carga','Carga','package'],['reparto','Reparto','delivery'],['auditoria','Auditoría','alert']];
+ const mobile=[['inicio','Inicio','home'],['pedidos','Pedidos','orders'],['compras','Compras','purchases'],['reparto','Reparto','delivery']];
+ return `<aside class="side"><div class="side-head"><span class="side-brand">A</span><div><strong>ARSLAN NEXT</strong><small>Operativa diaria</small></div></div><div class="caption">NAVEGACIÓN</div>${links.map(([k,label,icon])=>`<button type="button" class="${tab===k?'active':''}" data-action="goto" data-key="${k}">${uiIcon(icon,19)}<span>${label}</span></button>`).join('')}<div class="side-cloud">${uiIcon('check',16)} ${esc(CLOUD_ENABLED?cloudMessage:'Solo en este dispositivo')}</div></aside><nav class="bottomnav" aria-label="Navegación principal">${mobile.map(([k,label,icon])=>`<button type="button" aria-label="Abrir ${label}" aria-current="${tab===k?'page':'false'}" class="${tab===k?'active':''}" data-action="goto" data-key="${k}">${uiIcon(icon,23)}<span>${label}</span></button>`).join('')}</nav>`;
 }
-function home(){let x=summary(state),plan=deliveryPlan(state);return sectionTitle('Control de jornada','Pedidos, proveedores, compras y reparto de tiendas y restaurantes, en una sola pantalla.')+`<div class="clear-day-home"><div class="clear-day-description"><strong>¿Empezar pedidos nuevos?</strong><span>Archiva la jornada actual y conserva catálogo, restaurantes, proveedores y precios.</span></div>${btn('clearday','Limpiar día','','red clear-day-button')}</div>`+`<div id="sync-panel">${cloudPanel()}</div>`+stats()+`<div class="spacer"></div><div class="card"><h2>Regla de reparto y seguridad</h2><div class="notice"><b>No se reparte lo que no se ha gestionado.</b> Un producto sólo aparece en «Por bajar» si hay un pedido marcado como enviado a proveedor o una compra manual confirmada. Asignarlo a un proveedor, sin enviarlo, no basta.</div><div class="tools">${btn('goto','Revisar pedidos','pedidos','dark')}${btn('goto','Asignar proveedores','global')}${btn('goto','Bajar mercancía','reparto')}</div></div><div class="twocol"><div class="card"><h2>Compras</h2><div class="subtle">${x.assignedDraft} asignaciones pendientes de enviar · ${x.assignedSent} enviadas · ${x.manualBought} compras manuales registradas.</div><div class="spacer"></div>${btn('goto','Abrir compras','compras','dark')}</div><div class="card"><h2>Reparto</h2><div class="subtle">${plan.eligible.filter(r=>r.remaining>0).length} líneas por bajar · ${plan.blocked.length} productos sin compra ni envío · ${plan.needsReview.length} compras parciales por distribuir.</div><div class="spacer"></div>${btn('goto','Abrir reparto','reparto','dark')}</div></div><div class="card"><h2>Destinos incluidos</h2><div class="summary-list">${state.destinations.map(d=>pill(d.name)).join('')}</div><p class="subtle">Los restaurantes están listos, pero sólo suman al Global cuando introduces sus pedidos. No se inventan cantidades.</p></div>`;}
+function home(){
+ const plan=deliveryPlan(state),all=pendingPurchases(state);
+ const shops=state.destinations.filter(d=>d.kind==='tienda').length;
+ const restaurants=state.destinations.filter(d=>d.kind!=='tienda'&&state.orders.some(o=>o.dest===d.id)).length;
+ const pending=all.filter(r=>r.remainingToBuy>0).length,done=plan.eligible.filter(r=>r.remaining<=0).length;
+ const suppliers=SUPPLIERS.filter(p=>p!=='COMPRA EXTERNA'&&supplierLines(state,p,false).length).map(p=>({name:p,n:supplierLines(state,p,false).length}));
+ const extras=typeof additionalPurchaseRows==='function'?additionalPurchaseRows(state).filter(r=>r.pending>0):[];
+ const actions=[['pedidos','orders','PEDIDOS','Añadir y revisar listas'],['global','suppliers','PROVEEDORES','Asignar y enviar'],['compras','purchases','COMPRAS','Pendientes y manuales'],['reparto','delivery','REPARTO','Bajar por destino']];
+ return `<div class="shop-home"><div class="home-welcome"><h1>Mi jornada</h1><p>${shopifyDate()} · San Pablo, San Lesmes, Santiago y restaurantes</p></div>
+ <label class="shop-search">${uiIcon('search',21)}<input type="search" id="homeSearch" placeholder="Buscar producto o tienda" autocomplete="off"></label>
+ <div class="shop-kpis"><div>${uiIcon('store',22)}<b>${shops}</b><span>TIENDAS</span></div><div>${uiIcon('restaurants',22)}<b>${restaurants}</b><span>RESTAURANTES</span></div><div>${uiIcon('orders',22)}<b>${pending}</b><span>PENDIENTES</span></div><div>${uiIcon('check',22)}<b>${done}</b><span>BAJADOS</span></div></div>
+ <div class="shop-shortcuts">${actions.map(([page,icon,title,desc])=>`<button type="button" class="shortcut" data-action="goto" data-key="${page}"><span class="icon-tile">${uiIcon(icon,26)}</span><strong>${title}</strong><small>${desc}</small><span class="shortcut-arrow">›</span></button>`).join('')}</div>
+ <div class="sectionline"><h2>Avisos de hoy</h2>${pill(pending+' productos por comprar',pending?'warn':'ok')}</div>
+ <div class="card home-alerts">${extras.slice(0,3).map(r=>`<button type="button" class="alert-line" data-action="goto-additional"><span class="alert-icon">${uiIcon('alert',20)}</span><span><strong>${esc(destName(r.dest))} · ${esc(r.pending)} ${esc(r.product)}</strong><small>Pedido adicional · compra manual pendiente</small></span><span>›</span></button>`).join('')}${suppliers.slice(0,3).map(p=>`<button type="button" class="alert-line" data-action="goto" data-key="global"><span class="alert-icon">${uiIcon('package',20)}</span><span><strong>${esc(p.name)}</strong><small>${p.n} líneas pendientes de enviar</small></span><span>›</span></button>`).join('')}${!extras.length&&!suppliers.length?'<p class="subtle">No hay ampliaciones ni proveedores pendientes de enviar.</p>':''}</div>
+ <details class="home-tools"><summary>${uiIcon('settings',17)} Más opciones, sincronización y copias de seguridad</summary><div id="sync-panel">${cloudPanel()}</div><div class="clear-day-home"><div class="clear-day-description"><strong>Limpiar día</strong><span>Solo al terminar la jornada; se descarga una copia y pide confirmación.</span></div>${btn('clearday','Limpiar día','','red clear-day-button')}</div></details></div>`;
+}
 function orderCard(d){
  const lines=state.orders.filter(l=>l.dest===d.id).sort((a,b)=>a.product.localeCompare(b.product,'es',{numeric:true}));
- const isEditing=editingDestination===d.id;
- const isRest=d.kind==='restaurante';
- return `<div class="card order-card" data-destination="${esc(d.id)}"><div class="sectionline"><h2>${esc(d.name)}</h2>${pill((isRest?'Restaurante · ':'Tienda · ')+lines.length+' líneas',lines.length?'ok':'')}</div>`+
- `<div class="tools" style="margin-bottom:12px">${btn('destedit',isEditing?'Cerrar edición':'+ Pegar / añadir pedido',d.id,'small dark')}${lines.length?btn('destcopy','Copiar TXT',d.id,'small')+btn('destdownload','Descargar TXT',d.id,'small')+btn('destwa','WhatsApp',d.id,'small green'):pill('Todavía sin pedido')}</div>`+
- (isEditing?`<div class="inline-order"><label for="destorder-${esc(d.id)}">Escribe o pega el pedido de ${esc(d.name)}</label><textarea id="destorder-${esc(d.id)}" placeholder="2 TOMATE RAMA&#10;1 BROCOLI"></textarea><div class="tools">${btn('destadd','Añadir líneas a este destino',d.id,'dark small')}</div></div>`:'')+
- (lines.length?`<div class="items">${lines.map(l=>`<div class="item ${l.review?'err':''}"><div class="keynum">${esc(l.q??'?')}</div><div class="grow"><div class="product">${esc(l.product)}</div><div class="details">${esc(l.unit)} · ${l.review?pill(issueText(l),'err'):pill('OK','ok')} ${l.raw!==`${l.q} ${l.product}`?'· Original: '+esc(l.raw):''}</div>${l.review&&l.suggestions.length?`<div class="tools" style="margin-top:8px">${l.suggestions.map(x=>`<button class="btn small" data-action="suggest" data-key="${enc(l.id)}" data-target="${enc(x)}">Usar ${esc(x)}</button>`).join('')}</div>`:''}</div><div class="mini-actions">${l.review?btn('create','+ Crear producto',l.id,'small dark'):''}${btn('qty','Cantidad',l.id,'small')}${btn('editname','Editar nombre',l.id,'small')}</div></div>`).join('')}</div>`:`<p class="subtle">Sin cantidades. Este destino no se suma al Global hasta que introduzcas un pedido.</p>`)+`</div>`;
+ const editing=editingDestination===d.id,expanded=expandedOrderDest===d.id||editing;
+ const preview=lines.slice(0,3);
+ return `<div class="card order-card searchable ${expanded?'expanded':''}" data-destination="${esc(d.id)}" data-search="${esc(d.name+' '+lines.map(l=>l.product).join(' '))}">
+ <button type="button" class="order-summary" data-action="order-open" data-key="${enc(d.id)}" aria-expanded="${expanded}"><span class="icon-tile">${uiIcon(d.kind==='tienda'?'store':'restaurants',23)}</span><span class="order-overview"><strong>${esc(d.name)}</strong><small>${lines.length} productos pedidos</small></span><span class="order-arrow">${expanded?'⌃':'›'}</span></button>
+ ${!expanded?`<div class="order-preview">${preview.map(l=>`<div><b class="qty-chip">${esc(l.q??'?')}</b><span>${esc(l.product)}</span></div>`).join('')}${lines.length>3?`<small>Y ${lines.length-3} más…</small>`:''}${!lines.length?'<small>Sin pedido todavía</small>':''}</div>`:''}
+ ${expanded?`<div class="order-expanded"><div class="tools">${btn('destedit',editing?'Cerrar edición':'+ Añadir pedido',d.id,'small dark')}${lines.length?btn('destcopy','Copiar TXT',d.id,'small')+btn('destdownload','Descargar TXT',d.id,'small')+btn('destwa','WhatsApp',d.id,'small green'):''}</div>
+ ${editing?`<div class="inline-order"><label for="destorder-${esc(d.id)}">Añadir productos a ${esc(d.name)}</label><textarea id="destorder-${esc(d.id)}" placeholder="2 TOMATE RAMA&#10;1 BROCOLI"></textarea>${btn('destadd','Guardar pedido',d.id,'dark small')}</div>`:''}
+ <div class="items">${lines.map(l=>`<div class="item ${l.review?'err':''}"><div class="keynum">${esc(l.q??'?')}</div><div class="grow"><div class="product">${esc(l.product)}</div><div class="details">${esc(l.unit)} · ${l.review?pill(issueText(l),'err'):pill('OK','ok')}${l.kind==='pedido-adicional'?' · '+pill('Adicional','warn'):''}</div>${l.review&&l.suggestions.length?`<div class="tools">${l.suggestions.map(x=>`<button class="btn small" data-action="suggest" data-key="${enc(l.id)}" data-target="${enc(x)}">Usar ${esc(x)}</button>`).join('')}</div>`:''}</div><div class="mini-actions">${l.review?btn('create','Crear producto',l.id,'small dark'):''}${btn('qty','Cantidad',l.id,'small')}${btn('editname','Editar nombre',l.id,'small')}</div></div>`).join('')}</div></div>`:''}</div>`;
 }
 function pedidos(){
- const candidates=state.orders.filter(x=>x.review);
- const stores=state.destinations.filter(d=>d.kind==='tienda');
+ const candidates=state.orders.filter(x=>x.review),stores=state.destinations.filter(d=>d.kind==='tienda');
  const restaurants=state.destinations.filter(d=>d.kind!=='tienda').sort((a,b)=>a.name.localeCompare(b.name,'es'));
- const occupied=restaurants.filter(d=>state.orders.some(o=>o.dest===d.id)||editingDestination===d.id);
- const empty=restaurants.filter(d=>!state.orders.some(o=>o.dest===d.id)&&editingDestination!==d.id);
- return sectionTitle('Pedidos','Tiendas y restaurantes separados. Pega varios encabezados o escribe cada lista desde el móvil.')+
- `<div class="card"><div class="sectionline"><h2>Pegar varias listas juntas</h2>${pill('SP / SL / ST / BRASEROS / RIVIERA')}</div><label for="paste">Pedidos de WhatsApp con encabezados</label><textarea id="paste" placeholder="PEDIDO SP&#10;3 MANZANA GOLDEN 28&#10;PEDIDO SL&#10;2 TOMATE RAMA&#10;PEDIDO BRASEROS CENTRO&#10;1 BROCOLI"></textarea><div class="tools"><button class="btn dark" data-action="import">Añadir pedidos</button><button class="btn" data-action="replace">Sustituir listas del destino</button>${btn('goto','Ver Global','global')}</div></div>`+
- (candidates.length?`<div class="notice"><b>${candidates.length} nombres por confirmar</b> Elige una sugerencia o crea producto nuevo y se recordará.</div>`:'<div class="notice green"><b>Nombres confirmados</b> Puedes organizar las compras.</div>')+
- `<h2>Tiendas</h2><div class="orders-grid">`+stores.map(orderCard).join('')+`</div><div class="sectionline"><h2>Pedidos de restaurantes</h2><div class="tools">${pill(restaurants.filter(d=>state.orders.some(o=>o.dest===d.id)).length+' con pedido','ok')}${btn('newdest','+ Nuevo restaurante','','small dark')}</div></div>`+
- `<div class="orders-grid">`+occupied.map(orderCard).join('')+`</div>`+
- `<div class="card"><h3>Restaurantes disponibles</h3><p class="subtle">Braseros Centro, Forum, Severo, Edificio, Tomillares y Riviera. Se suman al Global sólo si tienen pedido.</p><div class="tools">${empty.length?empty.map(d=>btn('destedit','+ '+esc(d.name),d.id,'small')).join(''):'<span class="subtle">Todos tienen pedido o están abiertos para editar.</span>'}</div></div>`;
+ const shown=orderView==='stores'?stores:orderView==='restaurants'?restaurants:[...stores,...restaurants];
+ const active=shown.filter(d=>state.orders.some(o=>o.dest===d.id)||editingDestination===d.id),inactive=shown.filter(d=>!active.some(x=>x.id===d.id));
+ return sectionTitle('Pedidos','Añade productos a cada tienda o restaurante sin mezclar cantidades.')+
+ `<label class="shop-search">${uiIcon('search',21)}<input type="search" id="searchRows" placeholder="Buscar producto o cliente" autocomplete="off"></label>
+ <div class="seg-tabs" role="group" aria-label="Filtrar destinos">${[['stores','Tiendas'],['restaurants','Restaurantes'],['all','Todos']].map(([k,label])=>`<button type="button" class="${orderView===k?'active':''}" data-action="order-filter" data-key="${k}">${label}</button>`).join('')}</div>
+ <div class="order-store-stats">${stores.map(d=>`<div><span>${uiIcon('store',20)}</span><strong>${esc(d.name)}</strong><b>${state.orders.filter(o=>o.dest===d.id&&o.q>0).length}</b></div>`).join('')}</div>
+ <div class="sectionline"><h2>Pedidos de la jornada</h2>${pill(active.length+' destinos con pedido','ok')}</div>
+ <div class="orders-grid">${active.map(orderCard).join('')||'<p class="subtle">Aún no hay pedidos.</p>'}</div>
+ <div class="sectionline"><h2>Otros destinos</h2><div class="tools">${btn('newdest','+ Nuevo restaurante','','small dark')}${btn('toggle-paste','+ Pegar listas','','small')}</div></div>
+ <div class="orders-grid">${inactive.map(orderCard).join('')}</div>
+ <details class="card paste-panel" id="bulkPaste"><summary><strong>Pegar varias listas juntas</strong> · tiendas y restaurantes</summary><label for="paste">Pedidos de WhatsApp con encabezados</label><textarea id="paste" placeholder="PEDIDO SP&#10;3 MANZANA GOLDEN 28&#10;PEDIDO BRASEROS CENTRO&#10;2 AGUACATE PRIMERA"></textarea><div class="tools">${btn('import','Añadir pedidos','','dark')}${btn('replace','Sustituir listas (solo sin compras)','','small')}${btn('goto','Proveedores','global','small')}</div></details>
+ ${candidates.length?`<div class="notice amber"><b>${candidates.length} productos por revisar</b> Abre el destino y confirma los nombres o cantidades antes de comprar.</div>`:''}`;
 }
 function providerCard(p){
- const rows=supplierLines(state,p),draft=supplierLines(state,p,false),sent=rows.filter(x=>x.status==='sent');
- const allText=supplierTXT(state,p),draftText=supplierDraftTXT(state,p);
- return `<div class="card provider-card" data-provider="${esc(p)}"><div class="sectionline"><h2>${esc(p)}</h2>${pill(rows.length+' productos')}${sent.length?pill(sent.length+' enviados','ok'):pill('Sin enviar','warn')}</div>`+
- (rows.length?`<div class="items">${rows.map(a=>`<div class="item ${a.status==='sent'?'done':''}"><div class="keynum">${esc(a.q)}</div><div class="grow"><div class="product">${esc(display(a.product))}</div><div class="details">${a.status==='sent'?pill('✓ Enviado','ok'):pill('☐ Sin enviar','warn')}</div></div>${a.status==='draft'?btn('unassign','↩ Quitar',a.key,'small'):''}</div>`).join('')}</div>`:'<div class="subtle">No tiene productos asignados todavía.</div>')+
- (rows.length?`<div class="copy">${esc(draftText||'(Todo lo asignado está marcado como enviado)')}</div>`:'')+
- `<div class="tools" style="margin-top:12px">${draft.length?btn('copy','Copiar TXT pendiente',p,'small dark')+btn('provdownload','Descargar TXT',p,'small')+btn('whatsapp','WhatsApp',p,'small green')+btn('sent','☐ Marcar enviado',p,'small'):''}${rows.length?btn('copyall','Copiar TXT completo',p,'small')+btn('provdownloadall','Descargar todo',p,'small'):''}${sent.length?btn('reopensent','Corregir enviado',p,'small'):''}</div>`+
- `<p class="subtle">WhatsApp solo prepara las líneas pendientes; confirma el envío con la casilla después de enviarlo.</p></div>`;
+ const rows=supplierLines(state,p),draft=rows.filter(a=>a.status==='draft'),sent=rows.filter(a=>a.status==='sent'),draftText=supplierDraftTXT(state,p);
+ const status=draft.length?pill(draft.length+' pendientes','warn'):sent.length?pill('ENVIADO','ok'):pill('Sin asignar');
+ return `<div class="card provider-card searchable" data-provider="${esc(p)}" data-search="${esc(p+' '+rows.map(a=>a.product).join(' '))}">
+ <div class="provider-heading"><span class="icon-tile">${uiIcon('suppliers',23)}</span><div class="provider-name"><h2>${esc(p)}</h2><small>${rows.length} productos · ${sent.length} enviados</small></div>${status}</div>
+ ${rows.length?`<div class="provider-preview">${rows.slice(0,3).map(a=>`${esc(a.q)} ${esc(display(a.product))}`).join(' · ')}${rows.length>3?' · …':''}</div>`:'<p class="subtle">Sin productos asignados.</p>'}
+ <div class="tools provider-actions">${draft.length?btn('whatsapp','WhatsApp pendiente',p,'small green')+btn('copy','Copiar TXT',p,'small')+btn('provdownload','Descargar TXT',p,'small')+btn('sent','✓ Marcar enviado',p,'small dark'):''}${!draft.length&&sent.length?pill('✓ Sin líneas nuevas por enviar','ok'):''}</div>
+ ${rows.length?`<details class="provider-details"><summary>Ver líneas y opciones</summary><div class="items">${rows.map(a=>`<div class="item ${a.status==='sent'?'done':''}"><div class="keynum">${esc(a.q)}</div><div class="grow"><div class="product">${esc(display(a.product))}</div><div class="details">${pill(a.status==='sent'?'✓ Enviado':'Pendiente',a.status==='sent'?'ok':'warn')}</div></div>${a.status==='draft'?btn('unassign','Quitar borrador',a.key,'small'):''}</div>`).join('')}</div><div class="tools">${btn('copyall','Copiar todo',p,'small')}${btn('provdownloadall','Descargar todo',p,'small')}${sent.length?btn('reopensent','Corregir enviado',p,'small red'):''}</div>${draftText?`<pre class="copy">${esc(draftText)}</pre>`:''}</details>`:''}
+ </div>`;
 }
 function globalView(){
- const rows=totals(state),unassigned=unassignedProducts(state);
- const selected=SUPPLIERS.filter(x=>x!=='COMPRA EXTERNA');
+ const rows=totals(state),unassigned=unassignedProducts(state),selected=SUPPLIERS.filter(x=>x!=='COMPRA EXTERNA');
  const visible=filter==='all'?rows:filter==='pending'?unassigned:filter==='draft'?rows.filter(r=>state.allocations.some(a=>a.key===r.key&&a.status==='draft')):rows.filter(r=>state.allocations.some(a=>a.key===r.key&&a.status==='sent'));
- return sectionTitle('Asignación a proveedores','Elige un proveedor y toca cada producto de «Sin asignar». Desaparece de esa lista y entra en el proveedor elegido.')+
- `<div class="card"><div class="sectionline"><h2>Proveedor seleccionado</h2>${pill(supplier,'black')}</div><div class="supplier-pills">${selected.map(p=>`<button class="btn ${supplier===p?'on':''}" data-action="selprov" data-key="${enc(p)}">${esc(p)} (${supplierLines(state,p).length})</button>`).join('')}</div>`+
- `<div class="tools">${btn('filter',`Sin asignar (${unassigned.length})`,'pending','small '+(filter==='pending'?'dark':''))}${btn('filter','Global total','all','small '+(filter==='all'?'dark':''))}${btn('filter','Asignados sin enviar','draft','small')}${btn('filter','Enviados','sent','small')}</div></div>`+
- `<div class="card"><div class="sectionline"><h2>${filter==='pending'?'Sin asignar':filter==='all'?'Global · todas las cantidades':filter==='draft'?'Asignados sin enviar':'Ya enviados'} · ${visible.length}</h2><span class="subtle">Global conserva los totales de todos los destinos</span></div><label for="searchRows">Buscar producto</label><input id="searchRows" placeholder="Ej.: TOMATE RAMA, GOLDEN 28" autocomplete="off"/><div class="items">${visible.map(r=>{const active=state.allocations.filter(a=>a.key===r.key&&a.status!=='cancelled');const status=authorizedQty(state,r.key)>0?pill('Habilitado','ok'):active.length?pill('Asignado / sin enviar','warn'):pill('Sin asignar','err');return `<div class="item searchable ${r.unresolved?'err':''}" data-search="${esc(r.product)}" ${!active.length&&!r.unresolved?`data-action="assign" data-key="${enc(r.key)}" role="button" tabindex="0" aria-label="Asignar ${esc(r.product)} a ${esc(supplier)}"`:''}><div class="keynum">${esc(r.total)}</div><div class="grow"><div class="product">${esc(r.product)}</div><div class="details">${esc(r.unit)} · ${Object.entries(r.by).map(([d,n])=>esc(destName(d))+': '+n).join(' · ')}</div><div class="tools" style="margin-top:7px">${status} ${active.map(a=>pill(a.supplier+' '+a.q,a.status==='sent'?'ok':'warn')).join('')}</div></div><div class="mini-actions">${r.unresolved?pill('Revisar nombre','err'):!active.length?btn('assign','+ '+esc(supplier),r.key,'small dark'):active.some(a=>a.status==='draft')?btn('unassign','↩ Quitar borrador',r.key,'small'):''}</div></div>`;}).join('')||'<p class="subtle">Sin productos en esta lista. Cambia el filtro para ver el Global consolidado.</p>'}</div></div>`+
- `<div class="sectionline"><h2>Listas por proveedor</h2>${pill('TXT y WhatsApp independientes')}</div><div class="provider-grid">`+selected.map(providerCard).join('')+'</div>';
+ return sectionTitle('Proveedores','Envía solo las líneas pendientes; los pedidos ya enviados nunca se reenvían automáticamente.')+
+ `<label class="shop-search">${uiIcon('search',21)}<input id="searchRows" type="search" placeholder="Buscar proveedor o producto" autocomplete="off"></label>
+ <div class="sectionline"><h2>Mis proveedores</h2>${pill(selected.length+' proveedores')}</div>
+ <div class="provider-grid">${selected.map(providerCard).join('')}</div>
+ <div class="card assign-panel"><div class="sectionline"><h2>Asignar productos</h2>${pill('Global conserva todos los pedidos')}</div>
+ <div class="supplier-pills">${selected.map(p=>`<button class="btn ${supplier===p?'on':''}" data-action="selprov" data-key="${enc(p)}">${esc(p)}</button>`).join('')}</div>
+ <div class="tools">${btn('filter',`Sin asignar (${unassigned.length})`,'pending','small '+(filter==='pending'?'dark':''))}${btn('filter','Todos','all','small '+(filter==='all'?'dark':''))}${btn('filter','Sin enviar','draft','small')}${btn('filter','Enviados','sent','small')}</div>
+ <div class="items assign-items">${visible.map(r=>{const active=state.allocations.filter(a=>sameProductKey(state,a.key,r.key)&&a.status!=='cancelled');const covered=authorizedQty(state,r.key)>0;return `<div class="item searchable ${r.unresolved?'err':''}" data-search="${esc(r.product)}"><div class="keynum">${esc(r.total)}</div><div class="grow"><div class="product">${esc(r.product)}</div><div class="details">${esc(r.unit)} · ${Object.entries(r.by).map(([d,n])=>esc(destName(d))+': '+n).join(' · ')}</div><div class="tools">${covered?pill('Enviado o comprado','ok'):active.length?pill('Asignado sin enviar','warn'):pill('Sin asignar')}</div></div><div class="mini-actions">${r.unresolved?pill('Revisar nombre','err'):!active.length?btn('assign','+ '+esc(supplier),r.key,'small dark'):active.some(a=>a.status==='draft')?btn('unassign','Quitar borrador',r.key,'small'):''}</div></div>`;}).join('')||'<p class="subtle">No hay productos en este filtro.</p>'}</div></div>
+ <div class="notice green"><b>¿Ha llegado un pedido nuevo después de enviar?</b> Agrégalo en Pedidos. Lo que falte se gestionará desde Compras Manuales, sin repetir WhatsApp.</div>`;
 }
 function getPurchaseDraft(row,mode){
  const key=mode+':'+row.key;
@@ -1709,7 +2073,8 @@ function purchaseItem(row,mode){
  const status=row.assignedSent>0?pill(row.assignedSent+' enviado proveedor','ok'):'';
  const drafted=row.assignedDraft>0?pill(row.assignedDraft+' asignado sin enviar','warn'):'';
  const bought=row.manuallyBought>0?pill(row.manuallyBought+' comprado manual','ok'):'';
- const checkbox=mode==='pending'||mode==='manual';
+ const reserved=mode==='manual'&&additionalPurchaseRows(state).some(r=>r.key===row.key&&r.purchased>0);
+ const checkbox=(mode==='pending'||mode==='manual')&&!reserved;
  const tick=checkbox?`<button type="button" class="purchase-tick ${checked?'checked':''}" role="checkbox" aria-checked="${checked}" ${row.unresolved?'disabled':''} data-action="purchase-toggle" data-key="${enc(row.key)}" data-target="${mode}" aria-label="${checked?'Desmarcar compra manual de':'Marcar como comprado'} ${esc(row.product)}">${checked?'✓':''}</button>`:'';
  // Mostrar también las otras tiendas para poder sumar un producto que hoy está a cero.
  const detail=Object.entries({...Object.fromEntries(state.destinations.filter(d=>d.kind==='tienda').map(d=>[d.id,0])),...row.by})
@@ -1723,33 +2088,62 @@ function purchaseItem(row,mode){
   ${tick}<div class="keynum">${qty}</div><div class="grow"><div class="product purchase-title">${esc(row.product)}</div>
    <div class="details">${esc(row.unit)} · Pedido total: <b>${row.total}</b> · Falta comprar: <b>${row.remainingToBuy}</b></div>
    <div class="purchase-statuses">${status}${drafted}${bought}${row.unresolved?pill('Revisar nombre en Pedidos','err'):''}</div>
-   <div class="purchase-breakdown purchase-inline"><div class="purchase-inline-label">CANTIDAD POR TIENDA · un toque para corregir</div>
+   <details class="purchase-destination-details"><summary>Ver cantidades por tienda · Ajustar + / −</summary><div class="purchase-breakdown purchase-inline"><div class="purchase-inline-label">CANTIDAD POR TIENDA · un toque para corregir</div>
     ${destinations}
     <div class="breakdown-line total"><span>TOTAL GLOBAL</span><strong>${row.total} ${esc(row.unit)}</strong></div>
     ${row.remainingToBuy>0?`<div class="breakdown-line shortage-note"><span>Sin comprar ni enviar</span><strong>${row.remainingToBuy} ${esc(row.unit)}</strong></div>`:''}
-   </div>
+   </div></details>
+   ${reserved?'<p class="subtle">Parte de esta compra está reservada a un destino. Corrígela desde Pedidos adicionales.</p>':''}
    ${checkbox&&!row.unresolved?purchaseQuantityEditor(row,mode):''}</div>
    ${mode==='pending'&&!row.unresolved?btn('purchase-confirm','Confirmar compra',row.key,'small dark'):''}
-   ${checked?btn('purchase-undo','Deshacer',row.key,'small'):''}</div>`;
+   ${checked?(reserved?btn('goto-additional','Ver adicionales','','small'):btn('purchase-undo','Deshacer',row.key,'small')):''}</div>`;
 }
+
+/** Pedidos incorporados después de enviar a proveedores; no reenviar WhatsApp. */
+function additionalPurchaseRows(snapshot){
+ const rows=new Map(),plan=deliveryPlan(snapshot),t=totals(snapshot);
+ for(const line of snapshot.orders||[]){
+  if(line.kind!=='pedido-adicional'||!(Number(line.q)>0)||line.review)continue;
+  const key=canonical(normalizedProductName(line.product,snapshot))+'|'+(line.unit||'BULTO'),id=key+'@'+line.dest;
+  if(!rows.has(id))rows.set(id,{key,dest:line.dest,product:normalizedProductName(line.product,snapshot),unit:line.unit||'BULTO',qty:0});
+  rows.get(id).qty=fix(rows.get(id).qty+line.q);
+ }
+ return [...rows.values()].map(r=>{
+  const ordered=t.find(x=>sameProductKey(snapshot,x.key,r.key));
+  const original=fix(Math.max(0,(ordered?.by?.[r.dest]||0)-r.qty));
+  const allowed=plan.eligible.find(x=>sameProductKey(snapshot,x.key,r.key)&&x.dest===r.dest)?.allowed||0;
+  const purchased=fix(Math.max(0,(snapshot.manual||[]).filter(m=>m.confirmed&&m.additionalDest===r.dest&&sameProductKey(snapshot,m.key,r.key)).reduce((n,m)=>n+(Number(m.q)||0),0)));
+  return {...r,purchased,original,pending:fix(Math.max(0,r.qty-Math.max(0,allowed-original)))};
+ }).sort((a,b)=>a.dest.localeCompare(b.dest)||a.product.localeCompare(b.product,'es'));
+}
+function additionalPurchaseItem(row){
+ const id=row.key+'@'+row.dest,inputId='additional-'+encodeURIComponent(id),value=purchaseDrafts['additional:'+id]??String(row.pending).replace('.',',');
+ return `<div class="item searchable additional-item" data-search="${esc(row.product+' '+destName(row.dest))}"><div class="icon-tile">${uiIcon('package',23)}</div><div class="grow"><div class="product">${esc(row.product)}</div><div class="details">${esc(destName(row.dest))} · ${esc(row.unit)} · Pedido adicional: <b>${row.qty}</b></div>
+ ${row.purchased>0?pill(row.purchased+' compra manual confirmada','ok'):''}
+ ${row.pending>0?`<div class="additional-controls"><button type="button" class="qty-step" data-action="additional-step" data-key="${enc(id)}" data-target="-1">−</button><input id="${esc(inputId)}" data-additional-qty data-additional-key="${esc(id)}" type="text" inputmode="decimal" autocomplete="off" value="${esc(value)}" aria-label="Cantidad de compra adicional de ${esc(row.product)}"><button type="button" class="qty-step" data-action="additional-step" data-key="${enc(id)}" data-target="1">+</button>${btn('additional-buy','✓ Comprado',id,'small dark')}</div>`:pill('Cubierto · listo para reparto','ok')}
+ ${row.purchased>0?btn('additional-undo','Deshacer compra adicional',id,'small'):''}</div></div>`;
+}
+
 function compras(){
- const all=pendingPurchases(state);
- const pending=all.filter(r=>r.remainingToBuy>0||r.unresolved);
+ const all=pendingPurchases(state),additional=additionalPurchaseRows(state),subtract=new Map();
+ for(const r of additional)if(r.pending>0)subtract.set(r.key,fix((subtract.get(r.key)||0)+r.pending));
+ const pending=all.map(r=>({...r,remainingToBuy:fix(Math.max(0,r.remainingToBuy-(subtract.get(r.key)||0)))})).filter(r=>r.remainingToBuy>0||r.unresolved);
  const bought=all.filter(r=>r.manuallyBought>0);
- const counts={pending:pending.length,supplier:all.filter(r=>r.supplierCovered>0).length,manual:bought.length,all:all.length};
- const filters=[['pending','Por comprar'],['supplier','A proveedores'],['manual','Comprado manual'],['all','Ver todos']];
+ const counts={pending:pending.length,additional:additional.filter(r=>r.pending>0).length,manual:bought.length,supplier:all.filter(r=>r.supplierCovered>0).length,all:all.length};
+ const filters=[['pending','Pendientes'],['additional','Pedidos adicionales'],['manual','Comprados'],['supplier','Proveedores'],['all','Todos']];
  const other=purchaseView==='supplier'?all.filter(r=>r.supplierCovered>0):all;
  const exportable=pendingManualPurchaseTXT(state);
- const title=purchaseView==='pending'?'Pendiente de comprar':purchaseView==='supplier'?'Pedidos a proveedores':purchaseView==='manual'?'Compras manuales':'Todos los productos';
- return sectionTitle('Compras','Marca los productos con un toque, ajusta cantidades con + / − o escríbelas, como en Ruta Madrid.')+
- `<div class="notice green purchase-guidance"><b>Sin compras duplicadas.</b> Lo enviado o reservado a proveedor no entra en pendientes manuales. Lo marcado aparece ABAJO y se puede desmarcar. No se eliminan pedidos ni proveedores.</div>`+
- `<div class="card"><div class="purchase-tabs" role="group" aria-label="Filtro de compras">${filters.map(([name,label])=>`<button type="button" class="purchase-filter ${purchaseView===name?'active':''}" data-action="purchasefilter" data-key="${name}" aria-pressed="${purchaseView===name}">${esc(label)} <span class="filter-count">${counts[name]}</span></button>`).join('')}</div><label for="searchRows">Buscar producto</label><input id="searchRows" type="search" placeholder="Ej.: TOMATE RAMA" autocomplete="off"/>
- <div class="sectionline"><h2>${title}</h2>${pill((purchaseView==='manual'?bought.length:purchaseView==='pending'?pending.length:other.length)+' productos')}</div>`+
- (purchaseView==='pending'?`<div class="purchase-bulk"><div class="tools">${btn('manual-copy-pending','Copiar TXT pendiente','','small')}${btn('manual-download-pending','Descargar TXT','','small')}${btn('manual-wa-pending','WhatsApp pendientes','','small green')}</div><p class="subtle">${exportable?'Solo lo que queda por comprar manualmente; WhatsApp no lo marca como comprado.':'No hay productos pendientes confirmados para exportar.'}</p><details><summary>Acciones masivas (confirmación obligatoria)</summary><div class="tools">${btn('buyall','Marcar TODOS como comprados','','small dark')}</div></details></div>`:'')+
- `<div class="items">${purchaseView==='pending'?pending.map(r=>purchaseItem(r,'pending')).join('')||'<div class="notice green"><b>Todo cubierto.</b> No quedan compras pendientes.</div>':purchaseView==='manual'?bought.map(r=>purchaseItem(r,'manual')).join('')||'<p class="subtle">No hay compras manuales activas.</p>':other.map(r=>purchaseItem(r,'readonly')).join('')||'<p class="subtle">No hay productos para esta vista.</p>'}</div></div>`+
- (purchaseView==='pending'&&bought.length?`<div class="card purchase-completed"><div class="sectionline"><h2>✓ Comprados manualmente</h2>${pill(bought.length+' seleccionados','ok')}</div><p class="subtle">Están abajo para no mezclarlos con lo pendiente. Toca ✓ para desmarcar o ajusta la cantidad.</p><div class="items">${bought.map(r=>purchaseItem(r,'manual')).join('')}</div>${btn('manual-undo-all','Deshacer TODAS las compras manuales','','small red')}</div>`:'')+
- (purchaseView==='manual'&&bought.length?`<div class="card"><div class="tools">${btn('manual-undo-all','Deshacer TODAS las compras manuales','','small red')}</div><p class="subtle">Se conservan los movimientos anteriores en el historial. No se modifican bajadas ya realizadas.</p></div>`:'')+
- `<div class="card"><div class="sectionline"><h2>Extras confirmados</h2>${pill('No duplicar compra')}</div>${surplus(state).length?surplus(state).map(r=>`<div class="item"><div class="keynum">+${r.extra}</div><div class="grow"><b>${esc(r.product)}</b><div class="subtle">Compra EXTRA real. Distribución manual opcional.</div></div>${btn('extra','Ver reparto',r.key,'small')}</div>`).join(''):'<p class="subtle">No hay compra extra confirmada.</p>'}</div>`;
+ const title={pending:'Por comprar',additional:'Pedidos adicionales',manual:'Compras realizadas',supplier:'Cubierto por proveedores',all:'Todos los productos'}[purchaseView]||'Compras';
+ return sectionTitle('Compras manuales','Lo enviado a proveedores no se compra dos veces. Los pedidos tardíos se identifican por destino.')+
+ `<label class="shop-search">${uiIcon('search',21)}<input id="searchRows" type="search" placeholder="Buscar producto" autocomplete="off"></label>
+ <div class="purchase-tabs" role="group" aria-label="Filtros de compras">${filters.map(([k,label])=>`<button type="button" class="purchase-filter ${purchaseView===k?'active':''}" data-action="purchasefilter" data-key="${k}" aria-pressed="${purchaseView===k}">${label} <span class="filter-count">${counts[k]}</span></button>`).join('')}</div>
+ ${purchaseView==='additional'?'<div class="notice green"><b>Pedidos recibidos después de enviar a proveedores.</b> Compra y marca sólo lo que falte. Cada cantidad se reserva a su tienda o restaurante, sin modificar los mensajes enviados.</div>':'<div class="notice green"><b>Compras sin duplicados.</b> Lo enviado o reservado al proveedor no se suma otra vez. Usa + / − para editar cantidades y confirma la compra real.</div>'}
+ <div class="card purchases-list"><div class="sectionline"><h2>${title}</h2>${pill((purchaseView==='additional'?additional.filter(r=>r.pending>0).length:purchaseView==='manual'?bought.length:purchaseView==='pending'?pending.length:other.length)+' productos')}</div>
+ ${purchaseView==='pending'?`<div class="purchase-bulk"><div class="tools">${btn('manual-copy-pending','Copiar TXT pendiente','','small')}${btn('manual-download-pending','Descargar TXT','','small')}${btn('manual-wa-pending','WhatsApp pendientes','','small green')}</div><details><summary>Acciones masivas · confirmar antes de comprar</summary><div class="tools">${btn('buyall','Marcar pendientes normales como comprados','','small dark')}</div></details><p class="subtle">${exportable?'El TXT pendiente incluye también ampliaciones sin comprar.':'Todo cubierto.'}</p></div>`:''}
+ <div class="items">${purchaseView==='pending'?(pending.map(r=>purchaseItem(r,'pending')).join('')||'<p class="subtle">No quedan compras normales pendientes.</p>'):purchaseView==='additional'?(additional.map(additionalPurchaseItem).join('')||'<p class="subtle">Todavía no hay pedidos adicionales. Cuando añadas un pedido después de enviar a proveedores, aparecerá aquí.</p>'):purchaseView==='manual'?(bought.map(r=>purchaseItem(r,'manual')).join('')||'<p class="subtle">No hay compras manuales confirmadas.</p>'):(other.map(r=>purchaseItem(r,'readonly')).join('')||'<p class="subtle">Sin productos en esta vista.</p>')}</div></div>
+ ${purchaseView==='pending'&&bought.length?`<details class="card purchase-completed"><summary>✓ Comprados manualmente · ${bought.length} productos</summary><div class="items">${bought.map(r=>purchaseItem(r,'manual')).join('')}</div></details>`:''}
+ ${purchaseView==='manual'&&bought.length?`<div class="card"><div class="tools">${btn('manual-undo-all','Deshacer todas (si no hay reservas ni bajadas)','','small red')}</div></div>`:''}
+ <div class="card"><div class="sectionline"><h2>Extras confirmados</h2>${pill('Sin compras duplicadas')}</div>${surplus(state).length?surplus(state).map(r=>`<div class="item"><div class="keynum">+${r.extra}</div><div class="grow"><b>${esc(r.product)}</b><div class="subtle">Compra adicional real; distribución opcional.</div></div>${btn('extra','Distribución',r.key,'small')}</div>`).join(''):'<p class="subtle">No hay sobrantes confirmados.</p>'}</div>`;
 }
 function carga(){const x=deliveryPlan(state);return sectionTitle('Carga · opcional','Si quieres, marca lo que has cargado. Si prefieres ir directamente a Reparto, puedes saltarte este paso.')+`<div class="notice green"><b>La carga no bloquea reparto.</b> Los productos habilitados aparecen en Reparto aunque no marques nada aquí.</div><div class="tools" style="margin-bottom:15px">${btn('goto','Ir directo a Reparto','reparto','dark')}</div>`+
  `<div class="card"><h2>Por cargar</h2><div class="items">${x.eligible.map(r=>{const q=state.load[r.key+'@'+r.dest]||0;return `<div class="item ${q>=r.allowed?'done':''}"><button class="clickable" data-action="load" data-key="${enc(r.key)}" data-dest="${enc(r.dest)}"><span class="check">${q>=r.allowed?'✓':''}</span><div class="grow"><div class="product">${esc(r.allowed)} ${esc(r.product)}</div><div class="details">${esc(destName(r.dest))} · ${esc(r.unit)}${q?' · cargado '+q:''}</div></div></button></div>`}).join('')||'<div class="subtle">Primero registra envío a proveedor o compra manual.</div>'}</div></div>`;}
@@ -1760,9 +2154,9 @@ function reparto(){
  const dest=selectedDeliveryDest;
  const progress=deliveryProgress(state,dest);
  const current=state.destinations.find(x=>x.id===dest),notDone=p.eligible.filter(x=>x.dest===dest&&x.remaining>0),done=p.eligible.filter(x=>x.dest===dest&&x.remaining===0),myReview=p.needsReview.filter(x=>(x.by?.[dest]||0)>0),short=p.short.filter(x=>x.dest===dest),unready=p.blocked.filter(x=>(x.by?.[dest]||0)>0);
- return sectionTitle('Bajar mercancía','Selecciona ARRIBA una tienda o restaurante; sólo ves sus productos, sin mezclar listas.')+
+ return sectionTitle('Reparto','Selecciona la tienda o restaurante y baja la mercancía con un toque.')+
  `<div class="card destination-picker"><label for="deliveryDestination">¿En qué tienda o restaurante estás bajando?</label><select id="deliveryDestination">${dests.map(d=>`<option value="${esc(d.id)}" ${dest===d.id?'selected':''}>${esc(d.name)} · ${p.eligible.filter(x=>x.dest===d.id&&x.remaining>0).length} pendientes</option>`).join('')||'<option value="">Todavía sin pedidos</option>'}</select><div class="tools" style="margin-top:10px">${current?btn('rider','Repartidor: '+esc(state.riderAssignments?.[dest]||'Sin asignar'),dest,'small'):''}${pill('Carga opcional','ok')}</div></div>`+
- `<div class="card delivery-progress"><div class="progress-heading"><div><strong>Progreso · ${esc(current?.name||'destino')}</strong><span>${progress.completos} de ${progress.productos} productos completos</span></div><b>${progress.porcentaje}%</b></div><div class="progress-track" role="progressbar" aria-label="Bajadas de ${esc(current?.name||'destino')}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progress.porcentaje}"><div class="progress-fill" style="width:${progress.porcentaje}%"></div></div><div class="progress-caption">${progress.pendientes} pendientes · actualizada con las bajadas confirmadas</div></div>`+
+ `<div class="delivery-dest-chips" role="group" aria-label="Elegir tienda o restaurante">${dests.map(d=>`<button type="button" class="${d.id===dest?'active':''}" data-action="delivery-select" data-key="${enc(d.id)}" aria-pressed="${d.id===dest}">${esc(d.name)}</button>`).join('')}</div><div class="card delivery-progress"><div class="progress-heading"><div><strong>Progreso · ${esc(current?.name||'destino')}</strong><span>${progress.completos} de ${progress.productos} productos completos</span></div><b>${progress.porcentaje}%</b></div><div class="progress-track" role="progressbar" aria-label="Bajadas de ${esc(current?.name||'destino')}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progress.porcentaje}"><div class="progress-fill" style="width:${progress.porcentaje}%"></div></div><div class="progress-caption">${progress.pendientes} pendientes · actualizada con las bajadas confirmadas</div></div>`+
  `<div class="grid"><div class="stat"><b>${notDone.length}</b><span>Por bajar en ${esc(current?.name||'destino')}</span></div><div class="stat"><b>${done.length}</b><span>Bajados en este destino</span></div></div><div class="spacer"></div>`+
  (myReview.length?`<div class="notice amber"><b>Compra parcial pendiente de distribuir</b> ${myReview.map(r=>btn('shortage','Distribuir '+esc(r.product),r.key,'small')).join('')}</div>`:'')+
  `<div class="card"><div class="sectionline"><h2>Por bajar · ${esc(current?.name||'Sin destino')}</h2>${pill(notDone.length+' pendientes')}</div><div class="items">${notDone.map(r=>`<div class="item"><button class="clickable" data-action="deliver" data-key="${enc(r.key)}" data-dest="${enc(dest)}" ${deliveryBusy?'disabled aria-busy="true"':''}><span class="check"></span><div class="grow"><div class="product">${esc(r.remaining)} ${esc(r.product)}</div><div class="details">${esc(r.unit)} · ${r.delivered>0?`${r.delivered} ya bajado · `:''}Toca para marcar BAJADO</div></div></button><div class="mini-actions"><button type="button" class="btn small" data-action="deliver-step" data-key="${enc(r.key)}" data-dest="${enc(dest)}" data-target="-1" ${r.delivered<=0||deliveryBusy?'disabled':''} aria-label="Quitar una unidad bajada de ${esc(r.product)}">−</button><strong class="delivery-count">${esc(r.delivered)} / ${esc(r.allowed)}</strong><button type="button" class="btn small" data-action="deliver-step" data-key="${enc(r.key)}" data-dest="${enc(dest)}" data-target="${Math.min(1,r.remaining)}" ${deliveryBusy?'disabled':''} aria-label="Bajar una unidad de ${esc(r.product)}">+</button><button class="btn small" data-action="deliverpartial" data-key="${enc(r.key)}" data-dest="${enc(dest)}" ${deliveryBusy?'disabled':''}>Parcial</button></div></div>`).join('')||'<p class="subtle">Este destino no tiene productos por bajar. Puede que aún no haya un proveedor enviado o una compra manual, o que ya esté todo bajado.</p>'}</div></div>`+
@@ -1793,7 +2187,15 @@ function auditoria(){
  `<div class="card"><h2>Copias de seguridad</h2><p class="subtle">Descarga una copia JSON antes de cambiar de equipo o realizar correcciones importantes. Tus datos no se suben a GitHub.</p><div class="tools">${btn('export','Descargar copia de la jornada','','dark')}${btn('goto','Volver a pedidos','pedidos')}</div></div>`+
  `<div class="card"><h2>Jornada nueva</h2><p class="subtle">Archiva movimientos y conserva el diccionario, proveedores y restaurantes. Antes de limpiar se descarga una copia.</p>${btn('newday','Archivar y comenzar otro día','','small red')}</div>`;
 }
-function render(){const drafts={};document.querySelectorAll('textarea').forEach(t=>{if(t.id&&t.value)drafts[t.id]=t.value;});const app=document.getElementById('app');if(!app)return;let screenHTML='';try{const view=({inicio:home,pedidos,global:globalView,compras,carga,reparto,mas,auditoria})[tab];if(!view)throw Error('Pantalla no disponible');screenHTML=view();}catch(error){console.error('Error al abrir sección de LISTAS:',tab,error);screenHTML=`<div class="card"><h2>No se pudo abrir ${esc(tab)}</h2><div class="notice red">${esc(error?.message||'Error de datos. No se ha borrado nada.')}</div><div class="tools">${btn('goto','Volver a Inicio','inicio','dark')}${btn('export','Descargar copia JSON','','small')}</div></div>`;}app.innerHTML=`<div class="top"><div class="top-inner"><div class="brand"><span class="logo">A</span><span>ARSLAN LISTAS <span style="font-weight:550">· REPARTO SEGURO</span><div class="subtitle">Compras · proveedores · reparto</div></span></div>${syncBadge()}<button type="button" class="top-more" data-action="goto" data-key="mas" aria-label="Más opciones" title="Más opciones">···</button></div></div><div class="shell">${nav()}<main>${toastMessage?`<div class="notice ${toastMessage.startsWith('ERROR')?'red':'green'}">${esc(toastMessage)}</div>`:''}${screenHTML}</main></div>`;Object.entries(drafts).forEach(([key,value])=>{const el=document.getElementById(key);if(el)el.value=value;});}
+function render(){
+ const drafts={};document.querySelectorAll('textarea').forEach(t=>{if(t.id&&t.value)drafts[t.id]=t.value;});
+ const app=document.getElementById('app');if(!app)return;
+ if(CLOUD_ENABLED&&!cloudUser){app.innerHTML=`<div class="auth-page">${cloudStatus==='conectando'?`<div class="auth-working"><span class="auth-logo">${uiIcon('purchases',38)}</span><h1>ARSLAN LISTAS NEXT</h1><p>Comprobando sesión guardada…</p></div>`:cloudPanel()}</div>`;return;}
+ let screenHTML='';try{const view=({inicio:home,pedidos,global:globalView,compras,carga,reparto,mas,auditoria})[tab];if(!view)throw Error('Pantalla no disponible');screenHTML=view();}
+ catch(error){console.error('Error al abrir sección de LISTAS:',tab,error);screenHTML=`<div class="card"><h2>No se pudo abrir ${esc(tab)}</h2><div class="notice red">${esc(error?.message||'Error de datos. No se ha borrado nada.')}</div><div class="tools">${btn('goto','Volver a Inicio','inicio','dark')}${btn('export','Descargar copia JSON','','small')}</div></div>`;}
+ app.innerHTML=`<div class="top"><div class="top-inner"><div class="brand"><span class="logo">${uiIcon('purchases',24)}</span><span><strong>ARSLAN LISTAS NEXT</strong><span class="subtitle">Pedidos, compras y reparto</span></span></div>${syncBadge()}<button type="button" class="top-more" data-action="goto" data-key="mas" aria-label="Más opciones" title="Más opciones">···</button></div></div><div class="shell">${nav()}<main>${toastMessage?`<div class="notice ${toastMessage.startsWith('ERROR')?'red':'green'}">${esc(toastMessage)}</div>`:''}${screenHTML}</main></div>`;
+ Object.entries(drafts).forEach(([key,value])=>{const el=document.getElementById(key);if(el)el.value=value;});
+}
 function download(name,text,type='text/plain'){const a=document.createElement('a');const url=URL.createObjectURL(new Blob([text],{type}));a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 async function copyText(text){try{await navigator.clipboard.writeText(text);return true;}catch{return false;}}
 
@@ -1882,7 +2284,7 @@ async function processDeliveryClick(action,key,dest,qty=null){
 
 async function handleAction(action,key,target,dest){
  try{
- const readonly=['goto','export','copy','copyall','provdownload','provdownloadall','whatsapp','destcopy','destdownload','destwa','purchasefilter','breakdown','filter','selprov','purchase-step','manual-copy-pending','manual-download-pending','manual-wa-pending'];
+ const readonly=['goto','export','copy','copyall','provdownload','provdownloadall','whatsapp','destcopy','destdownload','destwa','purchasefilter','breakdown','filter','selprov','purchase-step','additional-step','order-open','order-filter','toggle-paste','goto-additional','delivery-select','manual-copy-pending','manual-download-pending','manual-wa-pending'];
  if(deliveryBusy&&!readonly.includes(action)&&!action.startsWith('cloud-')&&!action.startsWith('team-'))throw Error('Guardando el último cambio en Firebase.');
  if(CLOUD_ENABLED&&!action.startsWith('cloud-')&&!action.startsWith('team-')&&!readonly.includes(action)&&!cloudCanEdit())throw Error('Para guardar cambios debes entrar y tener sincronización lista. Revisa el estado de la nube en Inicio.');
  switch(action){
@@ -1890,7 +2292,7 @@ async function handleAction(action,key,target,dest){
  case 'team-add':{if(!cloudUser)throw Error('Inicia sesión');const id=document.getElementById('team-member-id')?.value.trim();await cloudAdapter.addMember(id);teamMembers=await cloudAdapter.listMembers();toastMessage='Trabajador autorizado. Ya puede usar tu espacio de LISTAS.';render();return;}
  case 'team-revoke':{if(!cloudUser)throw Error('Inicia sesión');if(!confirm('¿Retirar acceso a este trabajador? No se borrarán los pedidos ni las bajadas.'))return;await cloudAdapter.revokeMember(key);teamMembers=await cloudAdapter.listMembers();toastMessage='Acceso retirado, sin borrar la jornada';render();return;}
  case 'team-join':{if(!cloudUser||!cloudAdapter)throw Error('Inicia sesión');const owner=document.getElementById('team-owner-id')?.value.trim();if(!/^[a-zA-Z0-9]{16,128}$/.test(owner))throw Error('ID de propietario inválido');if(owner===teamOwnerUid){toastMessage='Ya estás en este espacio de equipo';render();return;}if(cloudEngine?.dirty||cloudEngine?.conflict||cloudEngine?.running)throw Error('Hay cambios por guardar. No se cambia de equipo mientras haya modificaciones pendientes');if(!confirm('¿Cambiar de espacio? Se descargará antes una copia de esta jornada. Los datos existentes no se borrarán.'))return;download('ARSLAN_LISTAS_COPIA_ANTES_CAMBIAR_EQUIPO.json',JSON.stringify(state,null,2),'application/json');localStorage.setItem(KEY+':team:'+cloudUser.id,owner);const user={uid:cloudUser.id,email:cloudUser.email};if(cloudEngine)cloudEngine.stop();cloudEngine=null;cloudUser=null;await beginCloudUser(user);toastMessage='Espacio de equipo seleccionado. Solo verás datos si el propietario te ha autorizado.';render();return;}
- case 'cloud-login':case 'cloud-signup':case 'cloud-reset': {const email=document.getElementById('cloud-email')?.value?.trim(),password=document.getElementById('cloud-password')?.value||'';if(!email||!email.includes('@'))throw Error('Introduce un correo válido');if(action==='cloud-reset'){await cloudAdapter.resetPassword(email);toastMessage='Correo de recuperación solicitado; revisa tu buzón';}else if(action==='cloud-signup'){await cloudAdapter.signUp(email,password);toastMessage='Cuenta creada: confirma los permisos de Firebase';}else{await cloudAdapter.sendLogin(email,password);toastMessage='Sesión iniciada';}render();return;}
+ case 'cloud-login':case 'cloud-signup':case 'cloud-reset': {const email=document.getElementById('cloud-email')?.value?.trim(),password=document.getElementById('cloud-password')?.value||'';if(!email||!email.includes('@'))throw Error('Introduce un correo válido');if(action==='cloud-reset'){await cloudAdapter.resetPassword(email);toastMessage='Correo de recuperación solicitado; revisa tu buzón';}else if(action==='cloud-signup'){await cloudAdapter.signUp(email,password);toastMessage='Cuenta creada: confirma los permisos de Firebase';}else{await cloudAdapter.sendLogin(email,password);try{localStorage.setItem('arslan_listas_last_email',email)}catch{}toastMessage='Sesión iniciada';}render();return;}
  case 'cloud-refresh': {if(!cloudEngine)throw Error('Sin sesión');await cloudEngine.refresh();toastMessage='Sincronización comprobada: '+cloudMessage;render();return;}
  case 'cloud-init': {if(!confirm('¿Subir los datos de este dispositivo a la nube nueva? Antes se descargará una copia JSON. Comprueba que estás en el ordenador que tiene los pedidos buenos.'))return;download('ARSLAN_LISTAS_COPIA_ANTES_DE_SUBIR.json',JSON.stringify(state,null,2),'application/json');await cloudEngine.initializeFromLocal();render();return;}
  case 'cloud-use-remote': {if(!cloudEngine?.conflict)throw Error('No hay conflicto');if(!confirm('¿Usar la versión de la nube? Antes se descargará la versión LOCAL para recuperarla si lo necesitas.'))return;download('ARSLAN_COPIA_LOCAL_ANTES_DE_CAMBIAR.json',JSON.stringify(state,null,2),'application/json');await cloudEngine.useRemote();render();return;}
@@ -1903,6 +2305,41 @@ async function handleAction(action,key,target,dest){
 
  case 'goto':tab=key;toastMessage='';render();try{window.scrollTo({top:0,behavior:'instant'});}catch{}return;
  case 'purchasefilter':purchaseView=['pending','supplier','manual','all'].includes(key)?key:'pending';render();return;
+ case 'additional-step':{
+  const input=[...document.querySelectorAll('[data-additional-qty]')].find(el=>el.dataset.additionalKey===key);
+  if(!input)throw Error('No está disponible la cantidad adicional');
+  const delta=Number(String(target).replace(',','.')),value=Number(String(input.value).replace(',','.'));
+  if(!Number.isFinite(delta)||!delta)throw Error('Ajuste inválido');
+  input.value=String(fix(Math.max(0,(Number.isFinite(value)?value:0)+delta))).replace('.',',');
+  purchaseDrafts['additional:'+key]=input.value;return;
+ }
+ case 'additional-buy':{
+  const row=additionalPurchaseRows(state).find(r=>r.key+'@'+r.dest===key);
+  if(!row||row.pending<=0)throw Error('Esta ampliación ya está cubierta; comprueba Reparto');
+  const input=[...document.querySelectorAll('[data-additional-qty]')].find(el=>el.dataset.additionalKey===key);
+  const amount=Number(String(input?.value??row.pending).replace(',','.'));
+  if(!Number.isFinite(amount)||amount<=0||amount>row.pending+1e-8)throw Error('La cantidad debe ser positiva y no superar lo que falta del pedido adicional');
+  const prev=state.manual.length;
+  manualBuySafe(state,row.key,amount);
+  if(state.manual.length!==prev+1)throw Error('La compra adicional no quedó registrada');
+  state.manual[state.manual.length-1].additionalDest=row.dest;
+  state.manual[state.manual.length-1].kind='compra-adicional';
+  state.manual[state.manual.length-1].createdAt=new Date().toISOString();
+  delete purchaseDrafts['additional:'+key];
+  commit('Compra adicional registrada para '+destName(row.dest)+'; reparto habilitado sin reenviar proveedor');return;
+ }
+ case 'additional-undo':{
+  const row=additionalPurchaseRows(state).find(r=>r.key+'@'+r.dest===key);
+  if(!row||!(row.purchased>0))throw Error('No hay compra adicional que deshacer');
+  if(deliveredFor(state,row.key,row.dest)>row.original+1e-8)throw Error('Esta ampliación ya tiene mercancía bajada. Deshaz primero las bajadas adicionales.');
+  if(!confirm('¿Deshacer la compra adicional de '+row.purchased+' '+row.product+' de '+destName(row.dest)+'? Las cantidades del proveedor no se modifican.'))return;
+  const previous=state.manual.length;
+  reverseManualPurchase(state,row.key,row.purchased);
+  if(state.manual.length!==previous+1)throw Error('No se registró la reversión');
+  state.manual[state.manual.length-1].additionalDest=row.dest;
+  state.manual[state.manual.length-1].kind='reversion-adicional';
+  commit('Compra adicional deshecha con historial; no se alteró el pedido original');return;
+ }
  case 'purchase-step': {
   const [mode,stepString]=target.split(':'),step=Number(stepString);
   if(!['pending','manual'].includes(mode)||![-1,1].includes(step))throw Error('Control de cantidad inválido');
@@ -1916,7 +2353,8 @@ async function handleAction(action,key,target,dest){
   const row=pendingPurchases(state).find(r=>r.key===key);
   if(!row)throw Error('Producto no encontrado');
   const undo=action==='purchase-undo'||(action==='purchase-toggle'&&target==='manual');
-  if(undo){reverseManualPurchase(state,key);delete purchaseDrafts['manual:'+key];purchaseView='pending';commit('Compra manual DESMARCADA. Ahora vuelve a pendientes; no se borraron los movimientos.');return;}
+  if(undo){if(additionalPurchaseRows(state).some(r=>r.key===key&&r.purchased>0))throw Error('Compra reservada para un destino. Deshazla desde Pedidos adicionales para no alterar el reparto.');reverseManualPurchase(state,key);delete purchaseDrafts['manual:'+key];purchaseView='pending';commit('Compra manual DESMARCADA. Ahora vuelve a pendientes; no se borraron los movimientos.');return;}
+  if(action==='purchase-save'&&additionalPurchaseRows(state).some(r=>r.key===key&&r.purchased>0))throw Error('Producto con compra adicional reservada. Corrige su cantidad desde Pedidos adicionales.');
   const mode=action==='purchase-save'?'manual':'pending';
   const wanted=purchaseQtyFromInput(key,mode);
   if(mode==='pending'){
@@ -1938,6 +2376,7 @@ async function handleAction(action,key,target,dest){
   commit(wanted===0?'Compra manual desmarcada; vuelve a pendientes':'Cantidad manual actualizada: '+wanted+' '+row.product);return;
  }
  case 'manual-undo-all': {
+  if(additionalPurchaseRows(state).some(r=>r.purchased>0))throw Error('Hay compras adicionales reservadas por restaurante. Deshazlas individualmente en Pedidos adicionales.');
   const products=pendingPurchases(state).filter(r=>r.manuallyBought>0);
   if(!products.length)throw Error('No hay compras manuales para deshacer');
   if(!confirm('¿DESHACER las compras manuales de '+products.length+' productos? Se conservarán los pedidos, proveedores e historial. Las bajadas realizadas no se alterarán.'))return;
@@ -1956,12 +2395,17 @@ async function handleAction(action,key,target,dest){
   toastMessage='WhatsApp preparado solo con lo pendiente. El envío es manual y NO marca nada como comprado.';render();return;
  }
  
-  case 'filter':filter=key;render();return;
+  case 'goto-additional':purchaseView='additional';tab='compras';toastMessage='';render();return;
+ case 'delivery-select':selectedDeliveryDest=key;render();return;
+ case 'order-filter':orderView=key;render();return;
+ case 'order-open':expandedOrderDest=expandedOrderDest===key?'':key;render();return;
+ case 'toggle-paste':{const p=document.getElementById('bulkPaste');if(p){p.open=true;p.scrollIntoView({behavior:'smooth',block:'start'});}return;}
+ case 'filter':filter=key;render();return;
  case 'selprov':supplier=key;render();return;
  case 'destqty':{await changeDemandOneTap(key,dest,target);return;}
  case 'breakdown':expandedPurchaseKey=expandedPurchaseKey===key?'':key;render();return;
- case 'newdest':{const name=prompt('Nombre del nuevo restaurante:');if(name===null)return;const d=addDestination(state,name,'restaurante');editingDestination=d.id;commit('Restaurante '+d.name+' creado, sin pedido todavía');document.querySelector(`[data-destination=\"${d.id}\"]`)?.scrollIntoView({behavior:'smooth',block:'start'});return;}
- case 'destedit':editingDestination=editingDestination===key?'':key;render();if(editingDestination)document.querySelector(`[data-destination=\"${editingDestination}\"]`)?.scrollIntoView({behavior:'smooth',block:'start'});return;
+ case 'newdest':{const name=prompt('Nombre del nuevo restaurante:');if(name===null)return;const d=addDestination(state,name,'restaurante');orderView='all';expandedOrderDest=d.id;editingDestination=d.id;commit('Restaurante '+d.name+' creado, sin pedido todavía');document.querySelector(`[data-destination=\"${d.id}\"]`)?.scrollIntoView({behavior:'smooth',block:'start'});return;}
+ case 'destedit':editingDestination=editingDestination===key?'':key;expandedOrderDest=key;render();if(editingDestination)document.querySelector(`[data-destination=\"${editingDestination}\"]`)?.scrollIntoView({behavior:'smooth',block:'start'});return;
  case 'destadd':{const d=state.destinations.find(x=>x.id===key);if(!d)throw Error('Destino desconocido');const v=document.getElementById('destorder-'+key)?.value?.trim();if(!v)throw Error('Introduce al menos un producto');const header='PEDIDO '+(key==='SP'||key==='SL'||key==='ST'?key:display(d.name));const r=importBlocks(state,header+'\n'+v);editingDestination='';commit(`Añadidas ${r.imported} líneas a ${d.name}`);return;}
  case 'destcopy':{const t=destinationTXT(state,key);if(!t)throw Error('Este destino aún no tiene pedido');const ok=await copyText(t);toastMessage=ok?'Pedido de '+destName(key)+' copiado':'No se pudo copiar. Descarga TXT';render();return;}
  case 'destdownload':{const t=destinationTXT(state,key);if(!t)throw Error('Este destino aún no tiene pedido');download('PEDIDO_'+canonical(destName(key)).replaceAll(' ','_')+'_'+state.day+'.txt',t);return;}
@@ -1983,7 +2427,16 @@ async function handleAction(action,key,target,dest){
  case 'whatsapp':{const t=supplierDraftWhatsApp(state,key);if(!t.text)throw Error('No hay líneas pendientes de envío');window.open(t.url,'_blank','noopener');toastMessage='WhatsApp preparado solo con lo no enviado. Confirma el envío al regresar.';render();return;}
  case 'sent':{if(!confirm('¿Confirmas que has enviado realmente el pedido a '+key+'? Abrir WhatsApp no cuenta como envío hasta que lo confirmes.'))return;const packet=markSupplierSent(state,key);commit(`Confirmado como ENVIADO a ${key}: ${packet.text.split('\n').length} líneas. No se envía automáticamente.`);return;}
  case 'reopensent':{if(!confirm('¿Reabrir como SIN ENVIAR las líneas marcadas enviadas a '+key+'? Si ya se bajó mercancía se bloqueará.'))return;reopenSupplierSent(state,key);commit('Marcado SIN ENVIAR de nuevo para '+key);return;}
- case 'buyall':{const rows=pendingPurchases(state).filter(r=>!r.unresolved&&r.remainingToBuy>0);if(!rows.length)throw Error('No quedan productos pendientes de compra manual');const keyword=prompt(`ATENCIÓN: vas a marcar ${rows.length} productos como COMPRADOS. Esto no envía mensajes. Escribe COMPRAR para confirmar:`);if(keyword!=='COMPRAR')return;const copy=structuredClone(state);for(const r of rows)manualBuySafe(copy,r.key,r.remainingToBuy);state.manual=copy.manual;state.allocations=copy.allocations;for(const k of Object.keys(purchaseDrafts))delete purchaseDrafts[k];commit(`${rows.length} productos comprados manualmente. Puedes deshacerlos abajo.`);return;}
+ case 'buyall':{
+  const extra=new Map();for(const r of additionalPurchaseRows(state))extra.set(r.key,fix((extra.get(r.key)||0)+r.pending));
+  const rows=pendingPurchases(state).map(r=>({...r,remainingToBuy:fix(Math.max(0,r.remainingToBuy-(extra.get(r.key)||0)))})).filter(r=>!r.unresolved&&r.remainingToBuy>0);
+  if(!rows.length)throw Error('No quedan compras normales pendientes. Revisa Pedidos adicionales.');
+  const keyword=prompt(`Marcar ${rows.length} productos NORMALES como comprados (sin ampliaciones). Escribe COMPRAR para confirmar:`);
+  if(keyword!=='COMPRAR')return;
+  const copy=structuredClone(state);for(const r of rows)manualBuySafe(copy,r.key,r.remainingToBuy);
+  state.manual=copy.manual;state.allocations=copy.allocations;for(const k of Object.keys(purchaseDrafts))delete purchaseDrafts[k];
+  commit(`${rows.length} productos normales comprados manualmente; ampliaciones intactas.`);return;
+ }
  case 'buy':{const r=pendingPurchases(state).find(x=>x.key===key);if(!r)throw Error('Producto inexistente');const q=r.remainingToBuy;if(q<=0)throw Error('Ya cubierto por proveedor o compra manual; evita comprarlo otra vez');manualBuySafe(state,key,q);commit(`Comprado manualmente: solo ${q} ${r.product} que faltaban`);return;}
  case 'buyedit':{const r=pendingPurchases(state).find(x=>x.key===key);if(!r)throw Error('Producto inexistente');const val=prompt('Cantidad REAL de compra manual, evitando lo cubierto por proveedor:',String(r.remainingToBuy));if(val===null)return;const q=Number(val.replace(',','.'));if(!(q>0))throw Error('Introduce una cantidad positiva');const removeDraft=r.assignedDraft>0&&q>r.remainingToBuy&&confirm('¿Quieres reducir expresamente el borrador de proveedor en la cantidad adicional que compras?');if(r.assignedDraft>0&&q>r.remainingToBuy&&!removeDraft)return;const allowExtra=r.authorized+q>r.total+1e-8;if(allowExtra&&!confirm('Atención: esta compra excede lo pedido. ¿Confirmas una compra EXTRA real?'))return;manualBuySafe(state,key,q,{removeDraft,allowExtra});commit('Compra manual confirmada; sin duplicar proveedor');return;}
  case 'load':{const r=deliveryPlan(state).eligible.find(x=>x.key===key&&x.dest===dest);if(!r)throw Error('Producto no habilitado');loadItem(state,key,dest,r.allowed);commit('Marcado como cargado; el reparto sigue siendo independiente');return;}
@@ -2029,6 +2482,6 @@ document.addEventListener('change',async e=>{
   }catch(err){toastMessage='ERROR AL IMPORTAR: '+(err?.message||err);render();}
  }
 });
-document.addEventListener('input',e=>{if(e.target.matches('[data-purchase-qty]'))purchaseDrafts[e.target.dataset.purchaseMode+':'+e.target.dataset.purchaseKey]=e.target.value;if(e.target.id==='searchRows'){const word=canonical(e.target.value);document.querySelectorAll('.searchable').forEach(el=>{el.hidden=!canonical(el.dataset.search).includes(word);});}});
+document.addEventListener('input',e=>{if(e.target.matches('[data-additional-qty]'))purchaseDrafts['additional:'+e.target.dataset.additionalKey]=e.target.value;if(e.target.matches('[data-purchase-qty]'))purchaseDrafts[e.target.dataset.purchaseMode+':'+e.target.dataset.purchaseKey]=e.target.value;if(e.target.id==='searchRows'){const word=canonical(e.target.value);document.querySelectorAll('.searchable').forEach(el=>{el.hidden=!canonical(el.dataset.search).includes(word);});}if(e.target.id==='homeSearch'&&e.target.value.trim().length>1){tab='pedidos';render();const input=document.getElementById('searchRows');if(input){input.value=e.target.value;input.dispatchEvent(new Event('input',{bubbles:true}));}}});
 document.addEventListener('click',e=>{const b=e.target.closest('[data-action]');if(b){e.preventDefault();handleAction(b.dataset.action,dec(b.dataset.key||''),b.dataset.target?dec(b.dataset.target):'',b.dataset.dest?dec(b.dataset.dest):'');}});
 void bootCloud();</script></body></html>
