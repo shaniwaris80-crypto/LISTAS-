@@ -365,8 +365,10 @@ test('48. Navegación y botones centrales permanecen en la web',()=>{
 test('49. Menú móvil iPhone y distribución PC están incorporados',()=>{
  const css=readFileSync(new URL('../estilos.css',import.meta.url),'utf8');
  assert.ok(css.includes('safe-area-inset-bottom'));
- assert.ok(css.includes('grid-template-columns:repeat(5,minmax(0,1fr))'));
- assert.ok(css.includes('grid-template-columns:232px minmax(0,1fr)'));
+ assert.ok(css.includes('grid-template-columns:repeat(4,minmax(0,1fr))'));
+ assert.ok(css.includes('grid-template-columns:220px minmax(0,1fr)'));
+ assert.ok(css.includes('ARSLAN SHOPIFY REDESIGN 2026-11-23'));
+ assert.ok(css.includes('.additional-controls'));
 });
 
 test('50. Escritura crítica de bajadas usa transacción Firebase',()=>{
