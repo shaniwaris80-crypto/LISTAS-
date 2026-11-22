@@ -17,6 +17,7 @@ if(!CLOUD_ENABLED){
 state=normalizeRuntimeState(state);
 let tab='inicio',supplier='ESMO',filter='pending',purchaseView='pending',toastMessage='';
 let selectedDeliveryDest='SP',expandedPurchaseKey='',editingDestination='';
+let orderView='all',expandedOrderDest='';
 const purchaseDrafts=Object.create(null); // Sólo controles temporales. Ninguna compra se guarda sin confirmar.
 let cloudAdapter=null,cloudEngine=null,cloudUser=null;
 let teamOwnerUid=null,teamMembers=[],deliveryBusy=false;
@@ -64,7 +65,12 @@ function teamPanel(){
 
 function cloudPanel(){
  if(!CLOUD_ENABLED)return `<div class="card sync-panel"><h2>Sincronización entre dispositivos</h2><div class="notice red"><b>No activada.</b> Estos pedidos se guardan solamente en este navegador. Abrir la página en otro móvil no los copia.</div>${legacyBackupButtons()}<p class="subtle">La conexión requiere un proyecto Firebase independiente de Ruta Madrid. Consulta docs/FIREBASE_CONFIGURACION.md.</p></div>`;
- if(!cloudUser)return `<div class="card sync-panel"><h2>Conectar mis dispositivos</h2>${state.orders.length?`<div class="notice amber"><b>Copia local detectada: ${state.orders.length} líneas.</b> La puedes consultar sin perderla, pero aún no está sincronizada. Descarga JSON y entra para subirla a Firebase. No pulses Limpiar día.</div>`:''}<p class="subtle">Usa el mismo correo y contraseña en móvil y ordenador. Se requiere una base propia de Firebase, nunca la de Ruta Madrid.</p><label for="cloud-email">Correo electrónico</label><input id="cloud-email" type="email" autocomplete="username" placeholder="tu-correo@ejemplo.es"><label for="cloud-password">Contraseña</label><input id="cloud-password" type="password" autocomplete="current-password" placeholder="Contraseña de Firebase"><div class="tools">${btn('cloud-login','Entrar','','dark')}${btn('cloud-signup','Crear cuenta','','small')}${btn('cloud-reset','Recuperar contraseña','','small')}</div><p class="subtle">${esc(cloudMessage)}</p>${legacyBackupButtons()}</div>`;
+ if(!cloudUser)return `<div class="auth-card"><div class="auth-heading"><span class="auth-logo">${uiIcon('purchases',36)}</span><h1>ARSLAN LISTAS NEXT</h1><p>Pedidos, compras y reparto</p><span class="auth-help">${uiIcon('check',17)} Accede a tu jornada en segundos</span></div>
+ ${state.orders.length?`<div class="notice amber"><b>Hay ${state.orders.length} líneas en este navegador.</b> Descarga una copia antes de importar o cambiar de equipo.</div>`:''}
+ <div class="auth-fields"><label for="cloud-email">Correo electrónico</label><input id="cloud-email" type="email" autocomplete="username" inputmode="email" placeholder="Tu correo" value="${esc(localStorage.getItem('arslan_listas_last_email')||'')}"><label for="cloud-password">Contraseña</label><input id="cloud-password" type="password" autocomplete="current-password" placeholder="Tu contraseña"></div>
+ <p class="auth-explainer">${uiIcon('check',18)} Este dispositivo recuerda la sesión. Si continúa válida, entrarás directamente.</p>
+ <div class="auth-buttons">${btn('cloud-login','Entrar','','dark')}${btn('cloud-reset','¿Olvidaste la contraseña?','','small')}${btn('cloud-signup','Crear cuenta','','small')}</div>
+ <p class="subtle">${esc(cloudMessage)}</p>${legacyBackupButtons()}<p class="auth-footer">Inicio seguro con Firebase · No guardamos contraseñas en el código.</p></div>`;
  const user=esc(cloudUser.email||'Cuenta conectada');
  let actions='';
  if(cloudStatus==='esperando_origen')actions=`<div class="notice"><b>La nube está vacía y este dispositivo no tiene pedidos guardados.</b> No crearemos una jornada vacía que pueda bloquear la importación del ordenador. Abre LISTAS desde el navegador donde hiciste los pedidos, inicia sesión con esta misma cuenta y pulsa «Subir los datos de este dispositivo». Después pulsa ${btn('cloud-refresh','Comprobar si ya están las listas','','dark')} aquí.</div>`;
@@ -129,23 +135,49 @@ if(typeof setInterval==='function')setInterval(()=>{if(CLOUD_ENABLED&&cloudEngin
 if(typeof window.addEventListener==='function')window.addEventListener('online',()=>{if(cloudEngine)void cloudEngine.refresh();});
 if(typeof document.addEventListener==='function')document.addEventListener('visibilitychange',()=>{if(!document.hidden&&cloudEngine)void cloudEngine.refresh();});
 function issueText(x){return x.issues.includes('PRODUCTO_NO_EN_CATALOGO')?'PRODUCTO NO EN CATÁLOGO':'REVISAR CANTIDAD'}
+
+const SHOP_ICONS={
+ home:'<path d="m3 10 9-7 9 7v11h-7v-7h-4v7H3z"/>',
+ orders:'<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 2h6v4H9M9 11h6M9 15h6"/>',
+ suppliers:'<path d="M3 10h18l-2-6H5l-2 6Zm2 0v10h14V10M9 20v-6h6v6"/>',
+ purchases:'<path d="M3 4h2l2 11h11l3-8H6M9 20h.01M18 20h.01"/>',
+ delivery:'<path d="M3 6h10v12H3zM13 10h4l4 4v4h-8zM7 21a2 2 0 1 0 0-4 2 2 0 0 0 0 4M17 21a2 2 0 1 0 0-4 2 2 0 0 0 0 4"/>',
+ check:'<path d="M20 6 9 17l-5-5"/>',
+ search:'<circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/>',
+ package:'<path d="m12 2 9 5-9 5-9-5 9-5Zm-9 5v10l9 5 9-5V7M12 12v10"/>',
+ store:'<path d="M3 10h18l-2-6H5l-2 6Zm2 0v10h14V10M9 20v-6h6v6"/>',
+ restaurants:'<path d="M5 3v8M8 3v8M11 3v8M8 11v10M18 3v18M18 3c-3 2-4 5-4 9"/>',
+ alert:'<circle cx="12" cy="12" r="10"/><path d="M12 7v6M12 17h.01"/>',
+ settings:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/>'
+};
+function uiIcon(name,size=22){return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${SHOP_ICONS[name]||SHOP_ICONS.package}</svg>`;}
+function shopifyDate(){const d=new Date(state.day+'T12:00:00');return Number.isNaN(d.valueOf())?esc(state.day):d.toLocaleDateString('es-ES',{day:'numeric',month:'short',year:'numeric'}).toUpperCase();}
+
 const btn=(action,text,key='',cls='')=>`<button class="btn ${cls}" data-action="${action}" data-key="${enc(key)}">${text}</button>`;
 const pill=(t,cls='')=>`<span class="pill ${cls}">${esc(t)}</span>`;
 const sectionTitle=(s,d)=>`<div class="head"><div><h1>${s}</h1><p>${d}</p></div><div class="mini">Jornada ${esc(state.day)} · ${esc(CLOUD_ENABLED?(cloudStatus==='sincronizado'?'Sincronizado con Firebase':'Sincronización pendiente'):'Solo en este dispositivo')}</div></div>`;
 function stats(){let x=summary(state);return `<div class="grid"><div class="stat"><b>${x.originalLines}</b><span>Líneas de pedido</span></div><div class="stat"><b>${x.products}</b><span>Productos globales</span></div><div class="stat"><b>${x.unreviewed}</b><span>Por revisar</span></div></div>`;}
 function nav(){
- const links=[['inicio','Hoy'],['pedidos','Pedidos'],['global','Proveedores'],['compras','Compras'],['carga','Carga'],['reparto','Reparto'],['auditoria','Auditoría']];
- const icons={
-  inicio:'<path d="M3 10.5 12 3l9 7.5V21h-6v-6H9v6H3z"/>',
-  pedidos:'<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 2h6v4H9zM9 11h6M9 15h6"/>',
-  global:'<path d="M4 8h16M4 13h16M4 18h16"/><circle cx="4" cy="4" r="1"/>',
-  compras:'<path d="M3 4h2l2 11h11l3-8H6M9 20h.01M18 20h.01"/>',
-  reparto:'<rect x="3" y="4" width="18" height="17" rx="3"/><path d="m8 13 3 3 5-6"/>'
- };
- const mobile=[['inicio','Hoy'],['pedidos','Pedidos'],['global','Prov.'],['compras','Compras'],['reparto','Bajar']];
- return `<aside class="side"><div class="caption">Operativa diaria</div>${links.map(([k,label],i)=>`<button class="${tab===k?'active':''}" data-action="goto" data-key="${k}"><span class="step">${i+1}</span>${label}</button>`).join('')}<div class="caption">Almacenamiento</div><div class="subtle" style="padding:6px 14px">${esc(CLOUD_ENABLED?cloudMessage:'Solo en este dispositivo. Sin nube conectada.')}</div></aside><nav class="bottomnav" aria-label="Navegación principal">${mobile.map(([k,label])=>`<button type="button" aria-label="Abrir ${k==='global'?'Proveedores':k==='reparto'?'Reparto':label}" aria-current="${tab===k?'page':'false'}" class="${tab===k?'active':''}" data-action="goto" data-key="${k}"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.85" aria-hidden="true">${icons[k]}</svg><span>${label}</span></button>`).join('')}</nav>`;
+ const links=[['inicio','Inicio','home'],['pedidos','Pedidos','orders'],['global','Proveedores','suppliers'],['compras','Compras','purchases'],['carga','Carga','package'],['reparto','Reparto','delivery'],['auditoria','Auditoría','alert']];
+ const mobile=[['inicio','Inicio','home'],['pedidos','Pedidos','orders'],['compras','Compras','purchases'],['reparto','Reparto','delivery']];
+ return `<aside class="side"><div class="side-head"><span class="side-brand">A</span><div><strong>ARSLAN NEXT</strong><small>Operativa diaria</small></div></div><div class="caption">NAVEGACIÓN</div>${links.map(([k,label,icon])=>`<button type="button" class="${tab===k?'active':''}" data-action="goto" data-key="${k}">${uiIcon(icon,19)}<span>${label}</span></button>`).join('')}<div class="side-cloud">${uiIcon('check',16)} ${esc(CLOUD_ENABLED?cloudMessage:'Solo en este dispositivo')}</div></aside><nav class="bottomnav" aria-label="Navegación principal">${mobile.map(([k,label,icon])=>`<button type="button" aria-label="Abrir ${label}" aria-current="${tab===k?'page':'false'}" class="${tab===k?'active':''}" data-action="goto" data-key="${k}">${uiIcon(icon,23)}<span>${label}</span></button>`).join('')}</nav>`;
 }
-function home(){let x=summary(state),plan=deliveryPlan(state);return sectionTitle('Control de jornada','Pedidos, proveedores, compras y reparto de tiendas y restaurantes, en una sola pantalla.')+`<div class="clear-day-home"><div class="clear-day-description"><strong>¿Empezar pedidos nuevos?</strong><span>Archiva la jornada actual y conserva catálogo, restaurantes, proveedores y precios.</span></div>${btn('clearday','Limpiar día','','red clear-day-button')}</div>`+`<div id="sync-panel">${cloudPanel()}</div>`+stats()+`<div class="spacer"></div><div class="card"><h2>Regla de reparto y seguridad</h2><div class="notice"><b>No se reparte lo que no se ha gestionado.</b> Un producto sólo aparece en «Por bajar» si hay un pedido marcado como enviado a proveedor o una compra manual confirmada. Asignarlo a un proveedor, sin enviarlo, no basta.</div><div class="tools">${btn('goto','Revisar pedidos','pedidos','dark')}${btn('goto','Asignar proveedores','global')}${btn('goto','Bajar mercancía','reparto')}</div></div><div class="twocol"><div class="card"><h2>Compras</h2><div class="subtle">${x.assignedDraft} asignaciones pendientes de enviar · ${x.assignedSent} enviadas · ${x.manualBought} compras manuales registradas.</div><div class="spacer"></div>${btn('goto','Abrir compras','compras','dark')}</div><div class="card"><h2>Reparto</h2><div class="subtle">${plan.eligible.filter(r=>r.remaining>0).length} líneas por bajar · ${plan.blocked.length} productos sin compra ni envío · ${plan.needsReview.length} compras parciales por distribuir.</div><div class="spacer"></div>${btn('goto','Abrir reparto','reparto','dark')}</div></div><div class="card"><h2>Destinos incluidos</h2><div class="summary-list">${state.destinations.map(d=>pill(d.name)).join('')}</div><p class="subtle">Los restaurantes están listos, pero sólo suman al Global cuando introduces sus pedidos. No se inventan cantidades.</p></div>`;}
+function home(){
+ const plan=deliveryPlan(state),all=pendingPurchases(state);
+ const shops=state.destinations.filter(d=>d.kind==='tienda').length;
+ const restaurants=state.destinations.filter(d=>d.kind!=='tienda'&&state.orders.some(o=>o.dest===d.id)).length;
+ const pending=all.filter(r=>r.remainingToBuy>0).length,done=plan.eligible.filter(r=>r.remaining<=0).length;
+ const suppliers=SUPPLIERS.filter(p=>p!=='COMPRA EXTERNA'&&supplierLines(state,p,false).length).map(p=>({name:p,n:supplierLines(state,p,false).length}));
+ const extras=typeof additionalPurchaseRows==='function'?additionalPurchaseRows(state).filter(r=>r.pending>0):[];
+ const actions=[['pedidos','orders','PEDIDOS','Añadir y revisar listas'],['global','suppliers','PROVEEDORES','Asignar y enviar'],['compras','purchases','COMPRAS','Pendientes y manuales'],['reparto','delivery','REPARTO','Bajar por destino']];
+ return `<div class="shop-home"><div class="home-welcome"><h1>Mi jornada</h1><p>${shopifyDate()} · San Pablo, San Lesmes, Santiago y restaurantes</p></div>
+ <label class="shop-search">${uiIcon('search',21)}<input type="search" id="homeSearch" placeholder="Buscar producto o tienda" autocomplete="off"></label>
+ <div class="shop-kpis"><div>${uiIcon('store',22)}<b>${shops}</b><span>TIENDAS</span></div><div>${uiIcon('restaurants',22)}<b>${restaurants}</b><span>RESTAURANTES</span></div><div>${uiIcon('orders',22)}<b>${pending}</b><span>PENDIENTES</span></div><div>${uiIcon('check',22)}<b>${done}</b><span>BAJADOS</span></div></div>
+ <div class="shop-shortcuts">${actions.map(([page,icon,title,desc])=>`<button type="button" class="shortcut" data-action="goto" data-key="${page}"><span class="icon-tile">${uiIcon(icon,26)}</span><strong>${title}</strong><small>${desc}</small><span class="shortcut-arrow">›</span></button>`).join('')}</div>
+ <div class="sectionline"><h2>Avisos de hoy</h2>${pill(pending+' productos por comprar',pending?'warn':'ok')}</div>
+ <div class="card home-alerts">${extras.slice(0,3).map(r=>`<button type="button" class="alert-line" data-action="goto-additional"><span class="alert-icon">${uiIcon('alert',20)}</span><span><strong>${esc(destName(r.dest))} · ${esc(r.pending)} ${esc(r.product)}</strong><small>Pedido adicional · compra manual pendiente</small></span><span>›</span></button>`).join('')}${suppliers.slice(0,3).map(p=>`<button type="button" class="alert-line" data-action="goto" data-key="global"><span class="alert-icon">${uiIcon('package',20)}</span><span><strong>${esc(p.name)}</strong><small>${p.n} líneas pendientes de enviar</small></span><span>›</span></button>`).join('')}${!extras.length&&!suppliers.length?'<p class="subtle">No hay ampliaciones ni proveedores pendientes de enviar.</p>':''}</div>
+ <details class="home-tools"><summary>${uiIcon('settings',17)} Más opciones, sincronización y copias de seguridad</summary><div id="sync-panel">${cloudPanel()}</div><div class="clear-day-home"><div class="clear-day-description"><strong>Limpiar día</strong><span>Solo al terminar la jornada; se descarga una copia y pide confirmación.</span></div>${btn('clearday','Limpiar día','','red clear-day-button')}</div></details></div>`;
+}
 function orderCard(d){
  const lines=state.orders.filter(l=>l.dest===d.id).sort((a,b)=>a.product.localeCompare(b.product,'es',{numeric:true}));
  const isEditing=editingDestination===d.id;
@@ -293,7 +325,15 @@ function auditoria(){
  `<div class="card"><h2>Copias de seguridad</h2><p class="subtle">Descarga una copia JSON antes de cambiar de equipo o realizar correcciones importantes. Tus datos no se suben a GitHub.</p><div class="tools">${btn('export','Descargar copia de la jornada','','dark')}${btn('goto','Volver a pedidos','pedidos')}</div></div>`+
  `<div class="card"><h2>Jornada nueva</h2><p class="subtle">Archiva movimientos y conserva el diccionario, proveedores y restaurantes. Antes de limpiar se descarga una copia.</p>${btn('newday','Archivar y comenzar otro día','','small red')}</div>`;
 }
-function render(){const drafts={};document.querySelectorAll('textarea').forEach(t=>{if(t.id&&t.value)drafts[t.id]=t.value;});const app=document.getElementById('app');if(!app)return;let screenHTML='';try{const view=({inicio:home,pedidos,global:globalView,compras,carga,reparto,mas,auditoria})[tab];if(!view)throw Error('Pantalla no disponible');screenHTML=view();}catch(error){console.error('Error al abrir sección de LISTAS:',tab,error);screenHTML=`<div class="card"><h2>No se pudo abrir ${esc(tab)}</h2><div class="notice red">${esc(error?.message||'Error de datos. No se ha borrado nada.')}</div><div class="tools">${btn('goto','Volver a Inicio','inicio','dark')}${btn('export','Descargar copia JSON','','small')}</div></div>`;}app.innerHTML=`<div class="top"><div class="top-inner"><div class="brand"><span class="logo">A</span><span>ARSLAN LISTAS <span style="font-weight:550">· REPARTO SEGURO</span><div class="subtitle">Compras · proveedores · reparto</div></span></div>${syncBadge()}<button type="button" class="top-more" data-action="goto" data-key="mas" aria-label="Más opciones" title="Más opciones">···</button></div></div><div class="shell">${nav()}<main>${toastMessage?`<div class="notice ${toastMessage.startsWith('ERROR')?'red':'green'}">${esc(toastMessage)}</div>`:''}${screenHTML}</main></div>`;Object.entries(drafts).forEach(([key,value])=>{const el=document.getElementById(key);if(el)el.value=value;});}
+function render(){
+ const drafts={};document.querySelectorAll('textarea').forEach(t=>{if(t.id&&t.value)drafts[t.id]=t.value;});
+ const app=document.getElementById('app');if(!app)return;
+ if(CLOUD_ENABLED&&!cloudUser){app.innerHTML=`<div class="auth-page">${cloudStatus==='conectando'?`<div class="auth-working"><span class="auth-logo">${uiIcon('purchases',38)}</span><h1>ARSLAN LISTAS NEXT</h1><p>Comprobando sesión guardada…</p></div>`:cloudPanel()}</div>`;return;}
+ let screenHTML='';try{const view=({inicio:home,pedidos,global:globalView,compras,carga,reparto,mas,auditoria})[tab];if(!view)throw Error('Pantalla no disponible');screenHTML=view();}
+ catch(error){console.error('Error al abrir sección de LISTAS:',tab,error);screenHTML=`<div class="card"><h2>No se pudo abrir ${esc(tab)}</h2><div class="notice red">${esc(error?.message||'Error de datos. No se ha borrado nada.')}</div><div class="tools">${btn('goto','Volver a Inicio','inicio','dark')}${btn('export','Descargar copia JSON','','small')}</div></div>`;}
+ app.innerHTML=`<div class="top"><div class="top-inner"><div class="brand"><span class="logo">${uiIcon('purchases',24)}</span><span><strong>ARSLAN LISTAS NEXT</strong><span class="subtitle">Pedidos, compras y reparto</span></span></div>${syncBadge()}<button type="button" class="top-more" data-action="goto" data-key="mas" aria-label="Más opciones" title="Más opciones">···</button></div></div><div class="shell">${nav()}<main>${toastMessage?`<div class="notice ${toastMessage.startsWith('ERROR')?'red':'green'}">${esc(toastMessage)}</div>`:''}${screenHTML}</main></div>`;
+ Object.entries(drafts).forEach(([key,value])=>{const el=document.getElementById(key);if(el)el.value=value;});
+}
 function download(name,text,type='text/plain'){const a=document.createElement('a');const url=URL.createObjectURL(new Blob([text],{type}));a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 async function copyText(text){try{await navigator.clipboard.writeText(text);return true;}catch{return false;}}
 
@@ -390,7 +430,7 @@ async function handleAction(action,key,target,dest){
  case 'team-add':{if(!cloudUser)throw Error('Inicia sesión');const id=document.getElementById('team-member-id')?.value.trim();await cloudAdapter.addMember(id);teamMembers=await cloudAdapter.listMembers();toastMessage='Trabajador autorizado. Ya puede usar tu espacio de LISTAS.';render();return;}
  case 'team-revoke':{if(!cloudUser)throw Error('Inicia sesión');if(!confirm('¿Retirar acceso a este trabajador? No se borrarán los pedidos ni las bajadas.'))return;await cloudAdapter.revokeMember(key);teamMembers=await cloudAdapter.listMembers();toastMessage='Acceso retirado, sin borrar la jornada';render();return;}
  case 'team-join':{if(!cloudUser||!cloudAdapter)throw Error('Inicia sesión');const owner=document.getElementById('team-owner-id')?.value.trim();if(!/^[a-zA-Z0-9]{16,128}$/.test(owner))throw Error('ID de propietario inválido');if(owner===teamOwnerUid){toastMessage='Ya estás en este espacio de equipo';render();return;}if(cloudEngine?.dirty||cloudEngine?.conflict||cloudEngine?.running)throw Error('Hay cambios por guardar. No se cambia de equipo mientras haya modificaciones pendientes');if(!confirm('¿Cambiar de espacio? Se descargará antes una copia de esta jornada. Los datos existentes no se borrarán.'))return;download('ARSLAN_LISTAS_COPIA_ANTES_CAMBIAR_EQUIPO.json',JSON.stringify(state,null,2),'application/json');localStorage.setItem(KEY+':team:'+cloudUser.id,owner);const user={uid:cloudUser.id,email:cloudUser.email};if(cloudEngine)cloudEngine.stop();cloudEngine=null;cloudUser=null;await beginCloudUser(user);toastMessage='Espacio de equipo seleccionado. Solo verás datos si el propietario te ha autorizado.';render();return;}
- case 'cloud-login':case 'cloud-signup':case 'cloud-reset': {const email=document.getElementById('cloud-email')?.value?.trim(),password=document.getElementById('cloud-password')?.value||'';if(!email||!email.includes('@'))throw Error('Introduce un correo válido');if(action==='cloud-reset'){await cloudAdapter.resetPassword(email);toastMessage='Correo de recuperación solicitado; revisa tu buzón';}else if(action==='cloud-signup'){await cloudAdapter.signUp(email,password);toastMessage='Cuenta creada: confirma los permisos de Firebase';}else{await cloudAdapter.sendLogin(email,password);toastMessage='Sesión iniciada';}render();return;}
+ case 'cloud-login':case 'cloud-signup':case 'cloud-reset': {const email=document.getElementById('cloud-email')?.value?.trim(),password=document.getElementById('cloud-password')?.value||'';if(!email||!email.includes('@'))throw Error('Introduce un correo válido');if(action==='cloud-reset'){await cloudAdapter.resetPassword(email);toastMessage='Correo de recuperación solicitado; revisa tu buzón';}else if(action==='cloud-signup'){await cloudAdapter.signUp(email,password);toastMessage='Cuenta creada: confirma los permisos de Firebase';}else{await cloudAdapter.sendLogin(email,password);try{localStorage.setItem('arslan_listas_last_email',email)}catch{}toastMessage='Sesión iniciada';}render();return;}
  case 'cloud-refresh': {if(!cloudEngine)throw Error('Sin sesión');await cloudEngine.refresh();toastMessage='Sincronización comprobada: '+cloudMessage;render();return;}
  case 'cloud-init': {if(!confirm('¿Subir los datos de este dispositivo a la nube nueva? Antes se descargará una copia JSON. Comprueba que estás en el ordenador que tiene los pedidos buenos.'))return;download('ARSLAN_LISTAS_COPIA_ANTES_DE_SUBIR.json',JSON.stringify(state,null,2),'application/json');await cloudEngine.initializeFromLocal();render();return;}
  case 'cloud-use-remote': {if(!cloudEngine?.conflict)throw Error('No hay conflicto');if(!confirm('¿Usar la versión de la nube? Antes se descargará la versión LOCAL para recuperarla si lo necesitas.'))return;download('ARSLAN_COPIA_LOCAL_ANTES_DE_CAMBIAR.json',JSON.stringify(state,null,2),'application/json');await cloudEngine.useRemote();render();return;}
@@ -456,7 +496,8 @@ async function handleAction(action,key,target,dest){
   toastMessage='WhatsApp preparado solo con lo pendiente. El envío es manual y NO marca nada como comprado.';render();return;
  }
  
-  case 'filter':filter=key;render();return;
+  case 'goto-additional':purchaseView='additional';tab='compras';toastMessage='';render();return;
+ case 'filter':filter=key;render();return;
  case 'selprov':supplier=key;render();return;
  case 'destqty':{await changeDemandOneTap(key,dest,target);return;}
  case 'breakdown':expandedPurchaseKey=expandedPurchaseKey===key?'':key;render();return;
