@@ -34,7 +34,7 @@ assert.match(html.innerHTML,/data-action="clearday"/);
 assert.match(html.innerHTML,/>Limpiar día<\/button>/);
 const before=vm.runInContext('structuredClone(state)',ctx);
 assert.equal(before.orders.length,91);
-assert.match(html.innerHTML,/¿Empezar pedidos nuevos\?/);
+assert.match(html.innerHTML,/Mi jornada/);
 await vm.runInContext("handleAction('clearday','','','')",ctx);
 assert.equal(vm.runInContext('state.orders.length',ctx),91, 'cancelar no borra');
 allow=true;
