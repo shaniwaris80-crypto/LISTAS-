@@ -92,6 +92,27 @@ async function createArslanCloudAdapter(config=ARSLAN_FIREBASE_CONFIG) {
    const latest=await get(location);
    return {...outcome,document:latest.exists()?normalize(latest.val()):null};
   },
+  /** Cambiar cantidad de una tienda en la última versión de Firebase.
+   * Un segundo clic obsoleto no pisa el cambio de otra persona.
+   */
+  async mutateDemand(operation){
+   const location=ref(db,docPath());
+   let outcome={changed:false,code:'NO_DISPONIBLE'};
+   const tx=await runTransaction(location,old=>{
+    if(!old||!old.data||!Number.isSafeInteger(old.revision)){
+     outcome={changed:false,code:'NO_DISPONIBLE'};return;
+    }
+    const draft=structuredClone(old.data);
+    const result=adjustDestinationDemand(draft,operation.key,operation.dest,operation.delta,{
+     expectedQuantity:operation.expectedQuantity,day:operation.day,historyLength:operation.historyLength});
+    outcome=result;
+    if(!result.changed)return;
+    return {revision:old.revision+1,data:draft,updated_at:Date.now()};
+   },{applyLocally:false});
+   if(tx.committed)return {...outcome,document:normalize(tx.snapshot.val())};
+   const latest=await get(location);
+   return {...outcome,document:latest.exists()?normalize(latest.val()):null};
+  },
   watch(callback){
    let first=true;
    const unsub=onValue(ref(db,docPath()),()=>{
