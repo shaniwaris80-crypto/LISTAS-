@@ -3,7 +3,6 @@ on:
   push:
     branches:
       - improve/audit-safe-fixes-20261124
-      - fix/tacto-rapido-20261124
   pull_request:
     paths:
       - 'mejoras-auditoria.js'
@@ -53,6 +52,6 @@ jobs:
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add index.html
-            git commit -m "build: compile fast touch improvements"
+            git commit -m "build: compile audited safe improvements"
             git push origin HEAD:${{ github.ref_name }}
           fi
