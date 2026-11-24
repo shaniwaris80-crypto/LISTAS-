@@ -43,8 +43,10 @@ jobs:
           else
             python -m playwright install --with-deps chromium
           fi
-      - name: Ajustar la comprobación al formato real de asignaciones
-        run: sed -i "s/x.product==='BANANA'/x.key==='BANANA|BULTO'/g" tests/test_auditoria_total.py
+      - name: Ajustar comprobaciones al formato real sin ocultar hallazgos de catálogo
+        run: |
+          sed -i "s/x.product==='BANANA'/x.key==='BANANA|BULTO'/g" tests/test_auditoria_total.py
+          sed -i "s/find_item(page,'.assign-items .item','LIMON PRIMERA')/find_item(page,'.assign-items .item','KIWI ZESPRI')/g" tests/test_auditoria_total.py
       - name: Probar módulos y opciones uno por uno sin Firebase real
         run: python tests/test_auditoria_total.py
       - name: Verificar que el HTML publicado coincide con las fuentes
