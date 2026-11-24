@@ -46,6 +46,39 @@
 .load-completed .clickable{color:#0a7137}
 .rider-clear{border-color:#ead6d8;color:#9b2932;background:#fff8f8}
 .rider-clear:hover{background:#fff0f1}
+
+/* Respuesta inmediata al dedo. Se aplica también a tarjetas con role=button,
+   no sólo a button, y elimina el retraso visual del resaltado de Safari. */
+:where(button,[role="button"],[data-action],summary){
+ touch-action:manipulation;
+ -webkit-tap-highlight-color:rgba(19,133,66,.16);
+ -webkit-user-select:none;
+ user-select:none;
+}
+.touch-processing{
+ box-shadow:0 0 0 3px rgba(19,133,66,.2)!important;
+}
+@media(hover:none) and (pointer:coarse){
+ :where(button,[role="button"],[data-action],summary){
+  transition:transform 60ms ease,filter 60ms ease,background-color 80ms ease,border-color 80ms ease;
+  transform-origin:center;
+ }
+ :where(button,[role="button"],[data-action],summary).touch-pressed,
+ :where(button,[role="button"],[data-action],summary):active{
+  transform:scale(.975);
+  filter:brightness(.92);
+ }
+ .touch-row-active{
+  border-color:#8f9d94!important;
+  background:#f3f8f4!important;
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ :where(button,[role="button"],[data-action],summary){transition:none!important}
+ :where(button,[role="button"],[data-action],summary).touch-pressed,
+ :where(button,[role="button"],[data-action],summary):active{transform:none;filter:none}
+}
+
 @media(max-width:850px){
  .top-inner{gap:7px}
  .brand{min-width:0;flex:1 1 auto}

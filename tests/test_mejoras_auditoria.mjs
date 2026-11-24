@@ -24,15 +24,37 @@ assert.match(improvements,/button:not\(\[type\]\)/);
 assert.match(improvements,/aria-live/);
 assert.match(improvements,/other-destinations/);
 
+// Tacto rápido: ejecución en pointerup, supresión del click retrasado y
+// cancelación segura al desplazar el dedo.
+assert.match(improvements,/AUDIT_SAFE_TOUCH_SELECTOR/);
+assert.match(improvements,/pointerdown/);
+assert.match(improvements,/pointermove/);
+assert.match(improvements,/pointerup/);
+assert.match(improvements,/pointercancel/);
+assert.match(improvements,/stopImmediatePropagation/);
+assert.match(improvements,/touch-pressed/);
+assert.match(improvements,/AUDIT_SAFE_TOUCH_DISTANCE=12/);
+
+// Carga: deliveryPlan debe calcularse una sola vez para todas las filas.
+assert.match(improvements,/tab!==['"]carga['"]/);
+assert.match(improvements,/new Map\(deliveryPlan\(state\)\.eligible\.map/);
+assert.doesNotMatch(improvements,/for\([^)]*data-action=\\"load\\"[\s\S]{0,400}deliveryPlan\(state\)\.eligible\.find/);
+
 assert.match(css,/\.sync-pill\{[\s\S]*min-height:44px/);
 assert.match(css,/@media\(max-width:850px\)[\s\S]*min-height:42px/);
 assert.match(css,/\.load-completed/);
 assert.match(css,/\.rider-clear/);
+assert.match(css,/-webkit-tap-highlight-color/);
+assert.match(css,/touch-action:manipulation/);
+assert.match(css,/\.touch-processing/);
+assert.match(css,/\.touch-row-active/);
+assert.match(css,/transform:scale\(\.975\)/);
 
 assert.match(build,/mejoras-auditoria\.js/);
 assert.match(build,/mejoras-auditoria\.css/);
 assert.match(html,/AUDIT_SAFE_CATALOG_ADDITIONS/,'El HTML compilado debe incluir las mejoras');
+assert.match(html,/AUDIT_SAFE_TOUCH_SELECTOR/,'El HTML compilado debe incluir el tacto rápido');
 assert.match(html,/\.other-destinations/,'El HTML compilado debe incluir sus estilos');
 assert.doesNotMatch(html,/PEDIDO SP\n3 MANZANA GOLDEN 28/,'Producción no incluye datos de demostración');
 
-console.log('MEJORAS DE AUDITORÍA: 25 comprobaciones seguras correctas');
+console.log('MEJORAS DE AUDITORÍA Y TACTO RÁPIDO: 41 comprobaciones seguras correctas');

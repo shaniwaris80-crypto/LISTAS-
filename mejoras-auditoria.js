@@ -68,10 +68,13 @@ function auditSafeEnhanceOtherDestinations(){
 }
 
 function auditSafeEnhanceLoadButtons(){
- if(!auditSafeCanEnhanceDom())return;
+ if(!auditSafeCanEnhanceDom()||tab!=='carga')return;
+ // deliveryPlan es costoso. Se calcula una sola vez por pantalla, no una vez
+ // por cada producto, para que una lista grande responda rápido en iPhone.
+ const rows=new Map(deliveryPlan(state).eligible.map(item=>[item.key+'@'+item.dest,item]));
  for(const control of document.querySelectorAll('button[data-action="load"]')){
   const key=decodeURIComponent(control.dataset.key||''),dest=decodeURIComponent(control.dataset.dest||'');
-  const row=deliveryPlan(state).eligible.find(item=>item.key===key&&item.dest===dest);
+  const row=rows.get(key+'@'+dest);
   if(!row)continue;
   const loaded=Number(state.load?.[key+'@'+dest])||0;
   const completed=loaded>=row.allowed-1e-8;
@@ -113,6 +116,118 @@ function auditSafeEnhanceAccessibility(){
  }
 }
 
+// Respuesta táctil rápida: en pantallas táctiles la acción se ejecuta al soltar
+// el dedo, sin esperar al click posterior. El movimiento cancela el toque para
+// que desplazar una lista nunca active un botón accidentalmente.
+const AUDIT_SAFE_TOUCH_SELECTOR='[data-action]';
+const AUDIT_SAFE_TOUCH_DISTANCE=12;
+const AUDIT_SAFE_TOUCH_DURATION=900;
+let auditSafeFastTouchBound=false;
+let auditSafeTouchGesture=null;
+let auditSafeSuppressedClick=null;
+
+function auditSafeTouchControl(event){
+ if(!auditSafeCanEnhanceDom())return null;
+ const origin=event?.target;
+ return typeof origin?.closest==='function'?origin.closest(AUDIT_SAFE_TOUCH_SELECTOR):null;
+}
+function auditSafeTouchDisabled(control){
+ return !control||Boolean(control.disabled)||control.getAttribute?.('aria-disabled')==='true';
+}
+function auditSafeTouchSignature(control){
+ if(!control?.dataset)return '';
+ return [control.dataset.action||'',control.dataset.key||'',control.dataset.target||'',control.dataset.dest||''].join('\u0001');
+}
+function auditSafeClearTouchVisual(control){
+ if(!control?.classList)return;
+ control.classList.remove('touch-pressed');
+ control.closest?.('.item,.card,.purchase-item')?.classList.remove('touch-row-active');
+}
+function auditSafeSetTouchProcessing(control,busy){
+ if(!control?.classList)return;
+ control.classList.toggle('touch-processing',busy);
+ if(busy){
+  if(!control.hasAttribute('aria-busy'))control.dataset.auditSafeBusy='1';
+  control.setAttribute('aria-busy','true');
+ }else if(control.dataset.auditSafeBusy==='1'){
+  control.removeAttribute('aria-busy');
+  delete control.dataset.auditSafeBusy;
+ }
+}
+function auditSafeStartTouch(event){
+ if(!['touch','pen'].includes(event.pointerType))return;
+ const control=auditSafeTouchControl(event);
+ if(auditSafeTouchDisabled(control))return;
+ auditSafeTouchGesture={
+  pointerId:event.pointerId,
+  control,
+  startX:Number(event.clientX)||0,
+  startY:Number(event.clientY)||0,
+  started:Date.now(),
+  cancelled:false
+ };
+ control.classList.add('touch-pressed');
+ control.closest?.('.item,.card,.purchase-item')?.classList.add('touch-row-active');
+}
+function auditSafeMoveTouch(event){
+ const gesture=auditSafeTouchGesture;
+ if(!gesture||gesture.pointerId!==event.pointerId||gesture.cancelled)return;
+ const dx=(Number(event.clientX)||0)-gesture.startX,dy=(Number(event.clientY)||0)-gesture.startY;
+ if(Math.hypot(dx,dy)>AUDIT_SAFE_TOUCH_DISTANCE){
+  gesture.cancelled=true;
+  auditSafeClearTouchVisual(gesture.control);
+ }
+}
+function auditSafeCancelTouch(event){
+ const gesture=auditSafeTouchGesture;
+ if(!gesture||gesture.pointerId!==event.pointerId)return;
+ auditSafeClearTouchVisual(gesture.control);
+ auditSafeTouchGesture=null;
+}
+function auditSafeRunTouchAction(control){
+ const action=control.dataset.action;
+ if(!action)return;
+ const key=dec(control.dataset.key||''),target=control.dataset.target?dec(control.dataset.target):'',dest=control.dataset.dest?dec(control.dataset.dest):'';
+ auditSafeSetTouchProcessing(control,true);
+ Promise.resolve(handleAction(action,key,target,dest))
+  .catch(error=>{toastMessage='ERROR: '+(error?.message||String(error));render();})
+  .finally(()=>{setTimeout(()=>{if(control.isConnected)auditSafeSetTouchProcessing(control,false);},90);});
+}
+function auditSafeEndTouch(event){
+ const gesture=auditSafeTouchGesture;
+ if(!gesture||gesture.pointerId!==event.pointerId)return;
+ const control=gesture.control;
+ const sameControl=auditSafeTouchControl(event)===control;
+ const valid=!gesture.cancelled&&sameControl&&!auditSafeTouchDisabled(control)&&Date.now()-gesture.started<=AUDIT_SAFE_TOUCH_DURATION;
+ auditSafeClearTouchVisual(control);
+ auditSafeTouchGesture=null;
+ if(!valid)return;
+ event.preventDefault();
+ auditSafeSuppressedClick={signature:auditSafeTouchSignature(control),until:Date.now()+1100};
+ auditSafeRunTouchAction(control);
+}
+function auditSafeSuppressDelayedClick(event){
+ const control=auditSafeTouchControl(event),suppressed=auditSafeSuppressedClick;
+ const signature=auditSafeTouchSignature(control);
+ if(!suppressed||signature!==suppressed.signature||Date.now()>suppressed.until){
+  if(suppressed&&Date.now()>suppressed.until)auditSafeSuppressedClick=null;
+  return;
+ }
+ event.preventDefault();
+ event.stopImmediatePropagation();
+ auditSafeSuppressedClick=null;
+}
+function auditSafeBindFastTouch(){
+ if(!auditSafeCanEnhanceDom()||auditSafeFastTouchBound||typeof document.addEventListener!=='function')return;
+ auditSafeFastTouchBound=true;
+ document.documentElement?.classList?.add('fast-touch-ready');
+ document.addEventListener('pointerdown',auditSafeStartTouch,{capture:true,passive:true});
+ document.addEventListener('pointermove',auditSafeMoveTouch,{capture:true,passive:true});
+ document.addEventListener('pointerup',auditSafeEndTouch,{capture:true,passive:false});
+ document.addEventListener('pointercancel',auditSafeCancelTouch,{capture:true,passive:true});
+ document.addEventListener('click',auditSafeSuppressDelayedClick,true);
+}
+
 function auditSafeEnhanceRenderedUI(){
  if(!auditSafeCanEnhanceDom())return;
  auditSafeEnhanceBrand();
@@ -120,6 +235,7 @@ function auditSafeEnhanceRenderedUI(){
  auditSafeEnhanceLoadButtons();
  auditSafeEnhanceRiderClear();
  auditSafeEnhanceAccessibility();
+ auditSafeBindFastTouch();
 }
 
 const auditSafeOriginalRender=render;
@@ -134,26 +250,31 @@ render=function(options={}){
 
 const auditSafeOriginalHandleAction=handleAction;
 handleAction=async function(action,key,target,dest){
- if(action==='load-toggle'){
-  const row=deliveryPlan(state).eligible.find(item=>item.key===key&&item.dest===dest);
-  if(!row)throw Error('Producto no habilitado para carga');
-  const location=key+'@'+dest,loaded=Number(state.load?.[location])||0;
-  if(loaded<row.allowed-1e-8)return auditSafeOriginalHandleAction('load',key,target,dest);
-  if(deliveryBusy)throw Error('Hay otra operación en curso. Comprueba su resultado.');
-  if(CLOUD_ENABLED&&!cloudCanEdit())throw Error('La nube debe estar lista antes de corregir la carga.');
-  delete state.load[location];
-  commit('Carga desmarcada; no se modificó el reparto ni la compra');
-  return;
+ try{
+  if(action==='load-toggle'){
+   const row=deliveryPlan(state).eligible.find(item=>item.key===key&&item.dest===dest);
+   if(!row)throw Error('Producto no habilitado para carga');
+   const location=key+'@'+dest,loaded=Number(state.load?.[location])||0;
+   if(loaded<row.allowed-1e-8)return auditSafeOriginalHandleAction('load',key,target,dest);
+   if(deliveryBusy)throw Error('Hay otra operación en curso. Comprueba su resultado.');
+   if(CLOUD_ENABLED&&!cloudCanEdit())throw Error('La nube debe estar lista antes de corregir la carga.');
+   delete state.load[location];
+   commit('Carga desmarcada; no se modificó el reparto ni la compra');
+   return;
+  }
+  if(action==='clear-rider'){
+   if(deliveryBusy)throw Error('Hay otra operación en curso. Comprueba su resultado.');
+   if(CLOUD_ENABLED&&!cloudCanEdit())throw Error('La nube debe estar lista antes de quitar el repartidor.');
+   if(!state.riderAssignments?.[key])return;
+   delete state.riderAssignments[key];
+   commit('Repartidor quitado; pedidos, compras y bajadas permanecen intactos');
+   return;
+  }
+  return await auditSafeOriginalHandleAction(action,key,target,dest);
+ }catch(error){
+  toastMessage='ERROR: '+(error?.message||String(error));
+  render();
  }
- if(action==='clear-rider'){
-  if(deliveryBusy)throw Error('Hay otra operación en curso. Comprueba su resultado.');
-  if(CLOUD_ENABLED&&!cloudCanEdit())throw Error('La nube debe estar lista antes de quitar el repartidor.');
-  if(!state.riderAssignments?.[key])return;
-  delete state.riderAssignments[key];
-  commit('Repartidor quitado; pedidos, compras y bajadas permanecen intactos');
-  return;
- }
- return auditSafeOriginalHandleAction(action,key,target,dest);
 };
 
 if(typeof window!=='undefined'&&typeof window.addEventListener==='function'){
