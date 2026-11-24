@@ -840,3 +840,36 @@ input[type=search]{appearance:none}
  .delivery-pending .item,.delivery-completed .item{padding:11px}
  .delivery-pending .item .mini-actions,.delivery-completed .item .mini-actions{justify-content:flex-end}
 }
+
+/* ARSLAN SESSION STATUS 2026-11-24 — solo presentación, sin tocar datos */
+.sync-pill{cursor:pointer;min-height:34px;display:inline-flex;align-items:center;justify-content:center}
+.sync-pill.err{background:#fff0f1;color:#b41d2a;border-color:#efc6c9}
+.saved-session-card .auth-heading{margin-bottom:20px}
+.account-ready{display:flex;align-items:center;gap:12px;border:1px solid #d3e9da;background:#f5fbf6;border-radius:15px;padding:14px;margin:20px 0 14px}
+.account-ready .icon-tile{background:#e2f5e8;color:#087b3c}
+.account-ready strong{display:block;font-size:15px;color:#16341e;font-weight:850}
+.account-ready small{display:block;color:#64766b;font-size:12px;overflow-wrap:anywhere;margin-top:4px}
+.saved-session-card .auth-buttons{margin-top:22px}
+.account-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;margin-bottom:16px}
+.account-cards>.card{min-width:0}
+.account-info .sectionline{align-items:flex-start;gap:12px}
+.account-info h2{display:flex;align-items:center;gap:9px;font-size:17px;line-height:1.2}
+.account-info .account-row{border-bottom:1px solid #e9eee9;padding:12px 0;display:flex;flex-wrap:wrap;gap:6px;justify-content:space-between;align-items:center;font-size:12px}
+.account-info .account-row>span{color:#69766d}
+.account-info .account-row>strong{font-size:12px;font-weight:770;text-align:right;overflow-wrap:anywhere}
+.account-info .tools{margin-top:17px}
+.account-status-title{display:block;font-size:15px;line-height:1.4;margin:12px 0 5px}
+.account-info .notice{margin-top:13px}
+.operation-indicator{position:sticky;top:85px;z-index:60;display:flex;align-items:center;gap:9px;background:#e6f7eb;border:1px solid #bce1c6;border-radius:10px;padding:10px 14px;margin:0 0 11px;color:#126b38;font-weight:800;font-size:13px;box-shadow:0 2px 7px rgba(3,70,27,.07)}
+.operation-indicator:before{content:"";border:2px solid #bcdcc6;border-top-color:#0b873b;border-radius:50%;width:14px;height:14px;flex:0 0 14px;animation:arslan-spin .65s linear infinite}
+.operation-indicator[hidden]{display:none!important}
+@keyframes arslan-spin{to{transform:rotate(360deg)}}
+button{transition:background-color .1s ease,border-color .1s ease,transform .09s ease}
+button:active:not(:disabled){transform:scale(.98)}
+button[aria-busy=true]{opacity:.6;cursor:progress}
+@media(max-width:850px){
+ .account-cards{grid-template-columns:1fr}
+ .account-info .tools .btn{flex:1 1 135px}
+ .operation-indicator{top:65px}
+ .saved-session-card .auth-buttons .btn{min-height:54px}
+}

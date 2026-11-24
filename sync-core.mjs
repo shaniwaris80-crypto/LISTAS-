@@ -153,12 +153,20 @@ export class SyncEngine {
     try{const created=await this.adapter.create(this.local);this.revision=created.revision;this.base=clone(created.data);this.dirty=false;this.conflict=null;this.persist(this.local,this.getMeta());this.setStatus('sincronizado','Datos de este dispositivo subidos a la nube');}
     catch(err){const remote=await this.adapter.read();if(remote)await this.acceptRemote(remote);else throw err;}
   }
-  async refresh(){
+  async refresh(force=false){
+    // Si Firebase ha denegado la escritura, no repetir solicitudes cada 7 s.
+    // Reintentar expresamente desde Cuenta y sincronización.
     if(this.stopped||this.running||this.status==='importar'||this.status==='conflicto')return;
+    if(this.status==='permiso_denegado'&&!force)return;
     if(this.dirty){await this.flush();return;}
     this.running=true;
     try{const remote=await this.adapter.read();if(remote&&remote.revision!==this.revision){await this.acceptRemote(remote);}else if(this.revision!==null)this.setStatus('sincronizado','Sincronizado con la nube');}
-    catch(err){this.setStatus('sin_conexion','Sin conexión: '+(err?.message||err));}
+    catch(err){
+      const denied=/(permission[_ -]?denied|PERMISSION_DENIED)/i.test(String(err?.code||'')+' '+String(err?.message||err));
+      this.setStatus(denied?'permiso_denegado':'sin_conexion',denied?
+        'Firebase ha rechazado la lectura o escritura por permisos. No borres datos; descarga una copia.':
+        'Sin conexión: '+(err?.message||err));
+    }
     finally{this.running=false;}
   }
   async flush(){
@@ -175,8 +183,16 @@ export class SyncEngine {
         this.revision=remote.revision;this.base=clone(remote.data);this.apply(merge.value);
       }
       this.setStatus('pendiente','La nube cambió varias veces; reintenta sincronizar');
-    }catch(err){this.setStatus('sin_conexion','No se pudo enviar a la nube; cambios guardados localmente: '+(err?.message||err));}
-    finally{this.running=false;if(this.dirty&&!this.conflict&&this.status!=='sin_conexion')this.schedule();}
+    }catch(err){
+      const denied=/(permission[_ -]?denied|PERMISSION_DENIED)/i.test(String(err?.code||'')+' '+String(err?.message||err));
+      this.setStatus(denied?'permiso_denegado':'sin_conexion',
+       denied?'Firebase denegó el guardado. Los datos quedan en este navegador; descarga una copia y revisa las reglas.':
+       'No se pudo enviar a la nube; cambios guardados localmente: '+(err?.message||err));
+    }
+    finally{
+      this.running=false;
+      if(this.dirty&&!this.conflict&&!['sin_conexion','permiso_denegado'].includes(this.status))this.schedule();
+    }
   }
   /** Incorporar una bajada confirmada atómicamente en Firebase. */
   applyConfirmedDocument(remote){
