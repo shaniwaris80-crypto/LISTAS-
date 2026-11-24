@@ -412,7 +412,7 @@ function render(){
  if(CLOUD_ENABLED&&!accessUnlocked){app.innerHTML=`<div class="auth-page">${accessGate()}</div>`;return;}
  let screenHTML='';try{const view=({inicio:home,pedidos,global:globalView,compras,carga,reparto,mas,cuenta:accountView,auditoria})[tab];if(!view)throw Error('Pantalla no disponible');screenHTML=view();}
  catch(error){console.error('Error al abrir sección de LISTAS:',tab,error);screenHTML=`<div class="card"><h2>No se pudo abrir ${esc(tab)}</h2><div class="notice red">${esc(error?.message||'Error de datos. No se ha borrado nada.')}</div><div class="tools">${btn('goto','Volver a Inicio','inicio','dark')}${btn('export','Descargar copia JSON','','small')}</div></div>`;}
- app.innerHTML=`<div class="top"><div class="top-inner"><div class="brand"><span class="logo">${uiIcon('purchases',24)}</span><span><strong>ARSLAN LISTAS NEXT</strong><span class="subtitle">Pedidos, compras y reparto</span></span></div>${syncBadge()}<button type="button" class="top-more" data-action="goto" data-key="mas" aria-label="Más opciones" title="Más opciones">···</button></div></div><div class="shell">${nav()}<main>${toastMessage?`<div class="notice ${toastMessage.startsWith('ERROR')?'red':'green'}">${esc(toastMessage)}</div>`:''}${screenHTML}</main></div>`;
+ app.innerHTML=`<div class="top"><div class="top-inner"><div class="brand"><span class="logo">${uiIcon('purchases',24)}</span><span><strong>ARSLAN LISTAS NEXT</strong><span class="subtitle">Pedidos, compras y reparto</span></span></div>${syncBadge()}<button type="button" class="top-more" data-action="goto" data-key="mas" aria-label="Más opciones" title="Más opciones">···</button></div></div><div class="shell">${nav()}<main><div id="operation-indicator" class="operation-indicator" role="status" aria-live="polite" hidden></div>${toastMessage?`<div class="notice ${toastMessage.startsWith('ERROR')?'red':'green'}">${esc(toastMessage)}</div>`:''}${screenHTML}</main></div>`;
  Object.entries(drafts).forEach(([key,value])=>{const el=document.getElementById(key);if(el)el.value=value;});
 }
 function download(name,text,type='text/plain'){const a=document.createElement('a');const url=URL.createObjectURL(new Blob([text],{type}));a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
@@ -422,6 +422,22 @@ async function copyText(text){try{await navigator.clipboard.writeText(text);retu
  * Una operación concurrente sobre la misma fila no se aplica dos veces.
  */
 /** Cada + / − guarda directamente: nunca marca como comprado el incremento. */
+/** Feedback inmediato de + / − y Bajar sin reconstruir toda la pantalla.
+ * La entrega se confirma SOLO cuando Firebase acepta la transacción. */
+function setOperationBusy(busy,label='Guardando cambio en Firebase…'){
+ const banner=document.getElementById('operation-indicator');
+ if(banner){banner.hidden=!busy;if(busy)banner.textContent=label;}
+ for(const el of document.querySelectorAll('[data-action="deliver"],[data-action="deliver-step"],[data-action="undodelivery"],[data-action="deliverpartial"],[data-action="destqty"]')){
+  if(busy){
+   if(!el.disabled){el.disabled=true;el.dataset.temporaryBusy='1';}
+   el.setAttribute('aria-busy','true');
+  }else{
+   if(el.dataset.temporaryBusy==='1'){el.disabled=false;delete el.dataset.temporaryBusy;}
+   el.removeAttribute('aria-busy');
+  }
+ }
+}
+
 async function changeDemandOneTap(key,dest,rawDelta){
  if(deliveryBusy)throw Error('Ya hay un cambio en curso. Comprueba la lista.');
  const row=totals(state).find(r=>r.key===key);
@@ -440,7 +456,7 @@ async function changeDemandOneTap(key,dest,rawDelta){
  if(typeof navigator!=='undefined'&&!navigator.onLine)
   throw Error('Sin internet. No se ha actualizado el pedido compartido.');
  const operation={key,dest,delta,expectedQuantity:expected,day:state.day,historyLength:(state.history||[]).length};
- deliveryBusy=true;toastMessage='';render();
+ deliveryBusy=true;toastMessage='';setOperationBusy(true,'Actualizando cantidad en Firebase…');
  try{
   const result=await cloudAdapter.mutateDemand(operation);
   if(!result?.document)throw Error('Firebase no confirmó la cantidad; no se hizo ningún cambio local');
@@ -450,7 +466,7 @@ async function changeDemandOneTap(key,dest,rawDelta){
    result.code==='MODIFICADO_POR_OTRO'?'Otra persona actualizó este producto. Ya ves la cantidad nueva.':
    result.code==='JORNADA_CAMBIADA'?'La jornada ha cambiado. No se modificó la cantidad.':
    'No se modificó el producto; revisa la cantidad actual.';
- }finally{deliveryBusy=false;render();}
+ }finally{deliveryBusy=false;setOperationBusy(false);render();}
 }
 
 async function processDeliveryClick(action,key,dest,qty=null){
@@ -483,7 +499,7 @@ async function processDeliveryClick(action,key,dest,qty=null){
   throw Error('Conecta Firebase y espera a que el estado sea SINCRONIZADO antes de bajar. No se ha marcado nada.');
  if(typeof navigator!=='undefined'&&!navigator.onLine)
   throw Error('Sin conexión. Para evitar duplicados, las bajadas compartidas requieren confirmar Firebase.');
- deliveryBusy=true;toastMessage='Confirmando bajada con Firebase…';render();
+ deliveryBusy=true;toastMessage='';setOperationBusy(true,'Confirmando bajada con Firebase…');
  try{
   const op={action,key,dest,quantity:qty,expectedDelivered:row.delivered,expectedAllowed:row.allowed,
    day:state.day,historyLength:(state.history||[]).length};
@@ -498,7 +514,7 @@ async function processDeliveryClick(action,key,dest,qty=null){
   toastMessage=result.changed?
    (action==='deshacer'?'Bajada deshecha y sincronizada con el equipo':action==='ajustar'?'Cantidad bajada ajustada en Firebase':'Bajada confirmada en Firebase · progreso actualizado'):
    (reason[result.code]||'Otro repartidor cambió esta línea. Comprueba la lista.');
- }finally{deliveryBusy=false;render();}
+ }finally{deliveryBusy=false;setOperationBusy(false);render();}
 }
 
 async function handleAction(action,key,target,dest){
