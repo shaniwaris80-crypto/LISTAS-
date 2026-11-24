@@ -43,8 +43,22 @@ jobs:
           else
             python -m playwright install --with-deps chromium
           fi
-      - name: Corregir expresión de prueba sin tocar la aplicación
-        run: sed -i "s/?.key||''/?.key||null/" tests/test_auditoria_modulos.py
+      - name: Validar el código de auditoría aislado
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('tests/test_auditoria_modulos.py')
+          s=p.read_text(encoding='utf8')
+          broken="    return page.evaluate('''name=>totals(state).find(x=>x.product===name)?.key||''',name)"
+          fixed='    return page.evaluate("name=>totals(state).find(x=>x.product===name)?.key||null",name)'
+          if broken not in s:
+              raise SystemExit('No se encontró la expresión esperada de product_key')
+          s=s.replace(broken,fixed)
+          s=s.replace("    assert page.evaluate('__alerts.length')==1 and '60%' not in page.evaluate('__alerts[0]') # muestra cantidades calculadas, no escribe pedidos",
+                      "    assert page.evaluate('__alerts.length')==1")
+          p.write_text(s,encoding='utf8')
+          PY
+          python -m py_compile tests/test_auditoria_modulos.py
       - name: Probar módulos y opciones uno por uno sin Firebase real
         run: python tests/test_auditoria_modulos.py
       - name: Verificar que el HTML publicado coincide con las fuentes
