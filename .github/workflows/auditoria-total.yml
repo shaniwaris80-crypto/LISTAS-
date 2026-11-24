@@ -1,0 +1,57 @@
+name: Auditoría total aislada
+on:
+  push:
+    branches:
+      - audit/full-options-20261124
+  pull_request:
+    paths:
+      - 'ui.js'
+      - 'motor.mjs'
+      - 'sync-core.mjs'
+      - 'firebase-adapter.js'
+      - 'estilos.css'
+      - 'index.html'
+      - 'tests/test_action_inventory.mjs'
+      - 'tests/test_auditoria_total.py'
+      - '.github/workflows/auditoria-total.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Compilar y ejecutar las pruebas de reglas de negocio
+        run: npm run check
+      - name: Inventariar todas las acciones y sus protecciones
+        run: node tests/test_action_inventory.mjs
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Preparar Chromium aislado
+        run: |
+          python -m pip install --disable-pip-version-check playwright==1.56.0
+          if command -v google-chrome >/dev/null 2>&1 || command -v google-chrome-stable >/dev/null 2>&1 || command -v chromium >/dev/null 2>&1 || command -v chromium-browser >/dev/null 2>&1; then
+            echo "Usando navegador del runner"
+          else
+            python -m playwright install --with-deps chromium
+          fi
+      - name: Probar módulos y opciones uno por uno sin Firebase real
+        run: python tests/test_auditoria_total.py
+      - name: Verificar que el HTML publicado coincide con las fuentes
+        run: git diff --exit-code -- index.html
+      - name: Guardar informe y capturas
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: auditoria-arslan-listas-${{ github.sha }}
+          path: audit-output/
+          if-no-files-found: warn
+          retention-days: 30
