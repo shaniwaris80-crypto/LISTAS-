@@ -45,6 +45,7 @@ with sync_playwright() as p:
         additions=page.evaluate("AUDIT_SAFE_CATALOG_ADDITIONS.every(x=>state.catalog.includes(x))")
         assert additions,(width,'faltan productos del catálogo')
         assert page.evaluate("new Set(state.catalog.map(canonical)).size===state.catalog.length"),(width,'catálogo duplicado')
+        assert page.evaluate("AUDIT_SAFE_CATALOG_ADDITIONS.every(x=>createState().catalog.includes(x))")
 
         # Encabezado y controles seguros.
         assert page.locator('.brand strong').inner_text()==('ARSLAN NEXT' if mobile else 'ARSLAN LISTAS NEXT')
@@ -57,7 +58,7 @@ with sync_playwright() as p:
         settle(page)
         details=page.locator('details.other-destinations')
         assert details.count()==1
-        assert details.get_attribute('open') is ('' if not mobile else None)
+        assert details.get_attribute('open') == (None if mobile else '')
         if mobile:
             details.locator('summary').click();settle(page);assert details.get_attribute('open')==''
             page.evaluate("render()")
