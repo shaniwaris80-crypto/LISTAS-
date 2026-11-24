@@ -54,6 +54,8 @@ jobs:
           marker="    for act in ['copy','copyall','provdownload','provdownloadall','whatsapp']:\n"
           text=text.replace(marker,"    page.locator('.provider-card[data-provider=\"MONTENEGRO\"] details summary').click()\n"+marker)
           text=text.replace("        if loc.count(): action(page,act,loc)","        if loc.count() and loc.is_visible(): action(page,act,loc)")
+          sent_marker="    assert page.evaluate(\"state.allocations.filter(x=>x.supplier==='MONTENEGRO').every(x=>x.status==='sent')\")\n"
+          text=text.replace(sent_marker,sent_marker+"    page.locator('.provider-card[data-provider=\"MONTENEGRO\"] details summary').click()\n")
           path.write_text(text)
           PY
       - name: Probar módulos y opciones uno por uno sin Firebase real
