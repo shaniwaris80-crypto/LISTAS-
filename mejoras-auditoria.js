@@ -14,12 +14,14 @@ function auditSafeAppendCatalog(target){
   const key=canonical(product);
   if(!existing.has(key)){target.catalog.push(product);existing.add(key);}
  }
- target.catalog.sort((a,b)=>a.localeCompare(b,'es',{numeric:true}));
  return target;
 }
 
-// Las copias antiguas conservan todo su contenido y reciben únicamente los
-// nombres nuevos que falten. No se reemplaza el catálogo aprendido.
+// Tanto una jornada nueva como una copia antigua conservan todo su contenido y
+// reciben únicamente los nombres que falten. Nunca se reemplaza ni reordena el
+// catálogo aprendido por el usuario.
+const auditSafeOriginalCreateState=createState;
+createState=function(){return auditSafeAppendCatalog(auditSafeOriginalCreateState());};
 const auditSafeOriginalNormalizeRuntimeState=normalizeRuntimeState;
 normalizeRuntimeState=function(value){
  return auditSafeAppendCatalog(auditSafeOriginalNormalizeRuntimeState(value));
