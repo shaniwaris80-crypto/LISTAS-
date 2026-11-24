@@ -6,7 +6,7 @@
           "document": {
             ".read": "auth != null && (auth.uid === $owner || root.child('arslanListas').child('arslan-listas-next-v1').child($owner).child('members').child(auth.uid).val() === true)",
             ".write": "auth != null && (auth.uid === $owner || root.child('arslanListas').child('arslan-listas-next-v1').child($owner).child('members').child(auth.uid).val() === true)",
-            ".validate": "newData.hasChildren(['revision', 'data']) && newData.child('revision').isNumber() && newData.child('revision').val() >= 1 && newData.child('data').hasChildren(['day','orders','destinations','catalog'])"
+            ".validate": "newData.hasChildren(['revision', 'data']) && newData.child('revision').isNumber() && newData.child('revision').val() >= 1 && newData.child('data').hasChildren(['day','destinations','catalog'])"
           },
           "members": {
             ".read": "auth != null && auth.uid === $owner",
