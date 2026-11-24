@@ -1,4 +1,4 @@
-"""Pruebas de navegador de las mejoras seguras de la auditoría.
+"""Pruebas de navegador de las mejoras seguras y el tacto rápido.
 
 Red bloqueada, localStorage en memoria y datos sintéticos. No usa Firebase real.
 """
@@ -9,6 +9,7 @@ from playwright.sync_api import sync_playwright
 ROOT=Path(__file__).resolve().parents[1]
 HTML=(ROOT/'index.html').read_text(encoding='utf8')
 assert 'AUDIT_SAFE_CATALOG_ADDITIONS' in HTML
+assert 'AUDIT_SAFE_TOUCH_SELECTOR' in HTML
 HTML=HTML.replace('const ARSLAN_CLOUD_ACTIVE = Boolean(','const ARSLAN_CLOUD_ACTIVE = false && Boolean(',1)
 
 
@@ -22,6 +23,13 @@ def launch_browser(p):
 
 def settle(page):
     page.evaluate('() => new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))')
+
+
+def activate(locator,mobile):
+    if mobile:
+        locator.tap()
+    else:
+        locator.click()
 
 
 def setup(browser,width,height,mobile):
@@ -53,6 +61,23 @@ with sync_playwright() as p:
         assert sync.evaluate('(el)=>el.getBoundingClientRect().height')>=40
         assert page.locator('button:not([type])').count()==0
 
+        # La respuesta visual empieza con pointerdown y la acción ocurre en pointerup.
+        nav=page.locator('[data-action="goto"][data-key="pedidos"]').first
+        nav.dispatch_event('pointerdown',{'pointerId':77,'pointerType':'touch','clientX':20,'clientY':20,'button':0,'buttons':1})
+        assert 'touch-pressed' in (nav.get_attribute('class') or '')
+        nav.dispatch_event('pointerup',{'pointerId':77,'pointerType':'touch','clientX':20,'clientY':20,'button':0,'buttons':0})
+        settle(page)
+        assert page.evaluate("tab==='pedidos'"),(width,'pointerup no abrió Pedidos')
+
+        # Mover el dedo cancela el toque: no debe navegar ni ejecutar otra acción.
+        page.evaluate("tab='inicio';render()")
+        nav=page.locator('[data-action="goto"][data-key="pedidos"]').first
+        nav.dispatch_event('pointerdown',{'pointerId':78,'pointerType':'touch','clientX':20,'clientY':20,'button':0,'buttons':1})
+        nav.dispatch_event('pointermove',{'pointerId':78,'pointerType':'touch','clientX':60,'clientY':20,'button':0,'buttons':1})
+        nav.dispatch_event('pointerup',{'pointerId':78,'pointerType':'touch','clientX':60,'clientY':20,'button':0,'buttons':0})
+        settle(page)
+        assert page.evaluate("tab==='inicio'"),(width,'un desplazamiento activó el botón')
+
         # Otros destinos se agrupa; cerrado en móvil y abierto en escritorio.
         page.evaluate("state=createState();importBlocks(state,'PEDIDO SP\\n1 BANANA');tab='pedidos';orderView='all';render()")
         settle(page)
@@ -69,12 +94,30 @@ with sync_playwright() as p:
           tab='carga';render();window.__beforeOrders=JSON.stringify(state.orders);window.__beforeManual=JSON.stringify(state.manual)}''')
         button=page.locator('[data-action="load-toggle"]').first
         assert button.count()==1 and button.get_attribute('aria-pressed')=='false'
-        button.click();settle(page)
+        activate(button,mobile);settle(page)
         assert page.evaluate("state.load['BANANA|BULTO@SP']")==2
         assert page.locator('[data-action="load-toggle"]').first.get_attribute('aria-pressed')=='true'
-        page.locator('[data-action="load-toggle"]').first.click();settle(page)
+        activate(page.locator('[data-action="load-toggle"]').first,mobile);settle(page)
         assert page.evaluate("state.load['BANANA|BULTO@SP']===undefined")
         assert page.evaluate("JSON.stringify(state.orders)===window.__beforeOrders && JSON.stringify(state.manual)===window.__beforeManual")
+
+        # Una lista grande no recalcula deliveryPlan por cada fila.
+        plan_calls=page.evaluate('''() => {
+          state=createState();
+          for(let i=0;i<45;i++){
+            const product='PRODUCTO RAPIDO '+i;
+            state.catalog.push(product);
+            state.orders.push({id:'qa_'+i,raw:'1 '+product,sourceName:product,product,q:1,unit:'BULTO',review:false,issues:[],suggestions:[],dest:'SP'});
+            manualBuySafe(state,product+'|BULTO',1);
+          }
+          const original=deliveryPlan;let calls=0;
+          deliveryPlan=function(...args){calls++;return original(...args);};
+          tab='carga';render();
+          deliveryPlan=original;
+          return calls;
+        }''')
+        assert plan_calls<=3,(width,'deliveryPlan se recalculó demasiadas veces',plan_calls)
+        assert page.locator('[data-action="load-toggle"]').count()==45
 
         # Quitar repartidor conserva cantidades, compras y bajadas.
         page.evaluate('''() => {assignRider(state,'SP','RIDER QA');tab='reparto';selectedDeliveryDest='SP';
@@ -82,7 +125,7 @@ with sync_playwright() as p:
           window.__beforeDelivery=JSON.stringify(state.delivery);render()}''')
         clear=page.locator('[data-action="clear-rider"]')
         assert clear.count()==1
-        clear.click();settle(page)
+        activate(clear,mobile);settle(page)
         assert page.evaluate("state.riderAssignments.SP===undefined")
         assert page.evaluate("JSON.stringify(state.orders)===window.__beforeRiderOrders && JSON.stringify(state.manual)===window.__beforeRiderManual && JSON.stringify(state.delivery)===window.__beforeDelivery")
 
@@ -97,4 +140,4 @@ with sync_playwright() as p:
         context.close()
     browser.close()
 
-print('MEJORAS DE AUDITORÍA EN NAVEGADOR: móvil y escritorio correctos, 0 red y 0 datos reales')
+print('TACTO RÁPIDO EN NAVEGADOR: móvil y escritorio correctos, gesto de scroll protegido, 0 red y 0 datos reales')
