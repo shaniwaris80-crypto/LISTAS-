@@ -115,7 +115,7 @@ with sync_playwright() as p:
           tab='global';supplier='MONTENEGRO';filter='pending';render();
           const list=document.querySelector('.assign-items');
           list.scrollTop=1300;
-          window.scrollTo(0,window.scrollY+list.getBoundingClientRect().top-180);
+          window.scrollTo({left:0,top:window.scrollY+list.getBoundingClientRect().top-180,behavior:'instant'});
         }''')
         settle(page)
         assert position(page)['scroll']>1000
@@ -141,7 +141,7 @@ with sync_playwright() as p:
         page.evaluate('''() => {
           const list=document.querySelector('.assign-items');
           list.scrollTop=100;
-          window.scrollTo(0,window.scrollY+list.getBoundingClientRect().top-180);
+          window.scrollTo({left:0,top:window.scrollY+list.getBoundingClientRect().top-180,behavior:'instant'});
         }''')
         settle(page)
         check_assignment(page,f'{width}px filtered assignment')
