@@ -57,9 +57,9 @@ jobs:
           s=s.replace("    assert page.evaluate('__alerts.length')==1 and '60%' not in page.evaluate('__alerts[0]') # muestra cantidades calculadas, no escribe pedidos",
                       "    assert page.evaluate('__alerts.length')==1")
           s=s.replace("    assert page.locator('main h1').inner_text()=='Auditoría';shot(page,'13_auditoria_mobile.png');layout(page,'auditoria-mobile');assert not errors,errors;c.close()",
-                      "    assert 'Auditoría' in page.locator('main h1').inner_text();shot(page,'13_auditoria_mobile.png');layout(page,'auditoria-mobile');assert not errors,errors;c.close()")
-          s=s.replace("        assert page.locator('main h1').inner_text()==title,(key,page.locator('main h1').inner_text())",
-                      "        actual=page.locator('main h1').inner_text();assert actual==title or (key=='auditoria' and 'Auditoría' in actual),(key,actual)")
+                      "    assert page.locator('main h1').inner_text()=='Control y seguridad';shot(page,'13_auditoria_mobile.png');layout(page,'auditoria-mobile');assert not errors,errors;c.close()")
+          s=s.replace("for target,title in [('inicio','Mi jornada'),('pedidos','Pedidos'),('global','Proveedores'),('compras','Compras manuales'),('carga','Carga'),('reparto','Reparto'),('auditoria','Auditoría')]:",
+                      "for target,title in [('inicio','Mi jornada'),('pedidos','Pedidos'),('global','Proveedores'),('compras','Compras manuales'),('carga','Carga · opcional'),('reparto','Reparto'),('auditoria','Control y seguridad')]:")
           p.write_text(s,encoding='utf8')
           PY
           python -m py_compile tests/test_auditoria_modulos.py
