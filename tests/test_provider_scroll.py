@@ -86,7 +86,8 @@ def check_assignment(page, label, last=False):
 with sync_playwright() as p:
     launch={'headless':True,'args':['--no-sandbox']}
     managed_browser=Path(p.chromium.executable_path)
-    system_browser=shutil.which('chromium') or shutil.which('chromium-browser')
+    system_browser=(shutil.which('google-chrome') or shutil.which('google-chrome-stable')
+                    or shutil.which('chromium') or shutil.which('chromium-browser'))
     if not managed_browser.exists() and system_browser:
         launch['executable_path']=system_browser
     browser=p.chromium.launch(**launch)

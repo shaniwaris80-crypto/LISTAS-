@@ -29,6 +29,10 @@ jobs:
       - name: Preparar navegador aislado
         run: |
           python -m pip install --disable-pip-version-check playwright==1.56.0
-          python -m playwright install --with-deps chromium
+          if command -v google-chrome >/dev/null 2>&1 || command -v google-chrome-stable >/dev/null 2>&1 || command -v chromium >/dev/null 2>&1 || command -v chromium-browser >/dev/null 2>&1; then
+            echo "Navegador del runner disponible para las pruebas aisladas"
+          else
+            python -m playwright install --with-deps chromium
+          fi
       - name: Probar scroll en móvil y ordenador sin Firebase
         run: python tests/test_provider_scroll.py
