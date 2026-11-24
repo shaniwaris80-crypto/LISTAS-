@@ -134,6 +134,10 @@ function auditSafeTouchControl(event){
 function auditSafeTouchDisabled(control){
  return !control||Boolean(control.disabled)||control.getAttribute?.('aria-disabled')==='true';
 }
+function auditSafeTouchSignature(control){
+ if(!control?.dataset)return '';
+ return [control.dataset.action||'',control.dataset.key||'',control.dataset.target||'',control.dataset.dest||''].join('\u0001');
+}
 function auditSafeClearTouchVisual(control){
  if(!control?.classList)return;
  control.classList.remove('touch-pressed');
@@ -199,12 +203,13 @@ function auditSafeEndTouch(event){
  auditSafeTouchGesture=null;
  if(!valid)return;
  event.preventDefault();
- auditSafeSuppressedClick={control,until:Date.now()+1100};
+ auditSafeSuppressedClick={signature:auditSafeTouchSignature(control),until:Date.now()+1100};
  auditSafeRunTouchAction(control);
 }
 function auditSafeSuppressDelayedClick(event){
  const control=auditSafeTouchControl(event),suppressed=auditSafeSuppressedClick;
- if(!suppressed||control!==suppressed.control||Date.now()>suppressed.until){
+ const signature=auditSafeTouchSignature(control);
+ if(!suppressed||signature!==suppressed.signature||Date.now()>suppressed.until){
   if(suppressed&&Date.now()>suppressed.until)auditSafeSuppressedClick=null;
   return;
  }
