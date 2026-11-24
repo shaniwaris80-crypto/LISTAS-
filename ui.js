@@ -21,6 +21,8 @@ let orderView='all',expandedOrderDest='';
 const purchaseDrafts=Object.create(null); // Sólo controles temporales. Ninguna compra se guarda sin confirmar.
 let cloudAdapter=null,cloudEngine=null,cloudUser=null;
 let teamOwnerUid=null,teamMembers=[],deliveryBusy=false;
+// Bloqueo visual por pestaña: mantiene la sesión Firebase y sus datos sin exigir contraseña.
+let accessUnlocked=false,lastCloudSuccess=null;
 let cloudStatus=CLOUD_ENABLED?'conectando':'sin_configurar';
 let cloudMessage=CLOUD_ENABLED?'Iniciando conexión…':'Guardado solo en este dispositivo';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -38,12 +40,45 @@ function normalizeRuntimeState(value){
 }
 
 function freshCloudState(){const s=createState(),d=new Date();s.day=[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');return s;}
-function cloudCanEdit(){return !CLOUD_ENABLED||(cloudUser&&cloudEngine&&['sincronizado','pendiente','sin_conexion'].includes(cloudStatus)&&cloudEngine.revision!==null&&!cloudEngine.conflict);}
+
+function accessGate(){
+ const email=cloudUser?.email||'Cuenta conectada';
+ const blocked=['permiso_denegado','conflicto','error','sin_conexion'].includes(cloudStatus);
+ return `<div class="auth-card saved-session-card"><div class="auth-heading"><span class="auth-logo">${uiIcon('purchases',36)}</span><h1>ARSLAN LISTAS NEXT</h1><p>Pedidos, compras y reparto</p></div>
+ <div class="account-ready"><span class="icon-tile">${uiIcon('check',25)}</span><div><strong>Sesión iniciada</strong><small>${esc(email)}</small></div></div>
+ <p class="subtle">Tu cuenta ya está reconocida en este dispositivo. Pulsa Entrar para abrir tu jornada sin escribir la contraseña de nuevo.</p>
+ ${blocked?`<div class="notice ${cloudStatus==='permiso_denegado'?'red':'amber'}"><b>${esc(cloudStatus==='permiso_denegado'?'Firebase ha denegado el guardado':'Sincronización pendiente')}</b>${esc(cloudMessage)}. Tus datos locales no se eliminarán.</div>`:''}
+ <div class="auth-buttons">${btn('unlock-access','Entrar a mis listas','','dark')}${btn('cloud-logout','Cambiar de cuenta','','small')}${blocked?btn('cloud-backup','Guardar copia de seguridad','','small'):''}</div>
+ <p class="auth-footer">La sesión de Firebase sigue protegida. Este acceso no vuelve a enviar contraseñas.</p></div>`;
+}
+function accountView(){
+ const logged=Boolean(cloudUser);
+ const synced=cloudStatus==='sincronizado'&&!cloudEngine?.dirty&&!cloudEngine?.conflict;
+ const denied=cloudStatus==='permiso_denegado',pending=Boolean(cloudEngine?.dirty);
+ const cloudTitle=synced?'Datos sincronizados':denied?'Firebase ha denegado el guardado':cloudStatus==='sin_conexion'?'Sin conexión con Firebase':'Sincronización pendiente';
+ return sectionTitle('Cuenta y sincronización','Comprueba tu sesión, el estado de Firebase y los datos pendientes de guardar.')+
+ `<div class="account-cards">
+ <div class="card account-info"><div class="sectionline"><h2>${uiIcon('check',20)} Inicio de sesión</h2>${pill(logged?'SESIÓN INICIADA':'SIN SESIÓN',logged?'ok':'warn')}</div>
+ <div class="account-row"><span>Correo electrónico</span><strong>${esc(cloudUser?.email||'No conectado')}</strong></div>
+ <div class="account-row"><span>Espacio de trabajo</span><strong>${logged?'Tu equipo ARSLAN LISTAS':'Sin conectar'}</strong></div>
+ <div class="tools">${btn('lock-access','Bloquear pantalla','','small')}${btn('cloud-logout','Cerrar sesión','','small red')}</div></div>
+ <div class="card account-info"><div class="sectionline"><h2>${uiIcon('delivery',20)} Sincronización</h2>${pill(synced?'SINCRONIZADO':denied?'ACCESO DENEGADO':cloudStatus==='sin_conexion'?'SIN CONEXIÓN':'PENDIENTE',synced?'ok':denied?'err':'warn')}</div>
+ <strong class="account-status-title">${cloudTitle}</strong>
+ <p class="subtle">${esc(cloudMessage)}</p>
+ <div class="account-row"><span>Último estado confirmado</span><strong>${lastCloudSuccess?esc(new Date(lastCloudSuccess).toLocaleString('es-ES')):'Sin confirmar en esta sesión'}</strong></div>
+ <div class="account-row"><span>Cambios locales sin subir</span><strong>${pending?'SÍ · conserva esta copia':'No detectados'}</strong></div>
+ ${denied?`<div class="notice red"><b>Atención: no borres los datos.</b> El servidor ha rechazado una escritura. Revisa las reglas de Firebase antes de dar la jornada por sincronizada.</div>`:''}
+ <div class="tools">${btn('cloud-refresh','Reintentar sincronización','','small dark')}${btn('cloud-backup','Descargar copia JSON','','small')}</div></div></div>
+ <div class="card"><h2>Seguridad de tus pedidos</h2><p class="subtle">Puedes descargar la jornada completa, incluidos proveedores enviados, compras, bajadas e historial. La copia no cambia los datos de Firebase.</p>${btn('cloud-backup','Descargar copia de esta jornada','','small')}${denied?'<p class="subtle">Para corregir las reglas del proyecto consulta la consola Firebase. El código de GitHub no publica automáticamente cambios en esas reglas.</p>':''}</div>
+ ${teamPanel()}`;
+}
+
+function cloudCanEdit(){return !CLOUD_ENABLED||(accessUnlocked&&cloudUser&&cloudEngine&&['sincronizado','pendiente','sin_conexion'].includes(cloudStatus)&&cloudEngine.revision!==null&&!cloudEngine.conflict);}
 function persistCloudUser(next,meta){if(!cloudUser)return;try{localStorage.setItem(KEY+':user:'+cloudUser.id+':team:'+(teamOwnerUid||cloudUser.id),JSON.stringify({state:next,meta}));}catch(e){cloudStatus='error';cloudMessage='El navegador no permite guardar el trabajo: '+(e?.message||e);updateSyncDisplay();}}
 function syncBadge(withId=true){
- const titles={sin_configurar:'SOLO EN ESTE DISPOSITIVO',conectando:'CONECTANDO',sin_sesion:'ENTRA PARA SINCRONIZAR',sincronizado:'SINCRONIZADO',pendiente:'GUARDANDO…',sin_conexion:'SIN CONEXIÓN',conflicto:'REVISAR CONFLICTO',importar:'IMPORTAR A NUBE',esperando_origen:'ESPERANDO LISTAS DEL ORDENADOR',error:'ERROR DE SINCRONIZACIÓN'};
- const tone=cloudStatus==='sincronizado'?'ok':cloudStatus==='conflicto'||cloudStatus==='error'?'err':'warn';
- return `<span class="sync-pill ${tone}" ${withId?'id="sync-badge"':''} title="${esc(cloudMessage)}">${esc(titles[cloudStatus]||cloudStatus)}</span>`;
+ const titles={sin_configurar:'SOLO EN ESTE DISPOSITIVO',conectando:'CONECTANDO',sin_sesion:'SIN SESIÓN',sincronizado:'SINCRONIZADO',pendiente:'GUARDANDO…',sin_conexion:'SIN CONEXIÓN',permiso_denegado:'ACCESO DENEGADO',conflicto:'REVISAR CONFLICTO',importar:'IMPORTAR A NUBE',esperando_origen:'ESPERANDO LISTAS',error:'ERROR DE SINCRONIZACIÓN'};
+ const tone=cloudStatus==='sincronizado'?'ok':['conflicto','error','permiso_denegado'].includes(cloudStatus)?'err':'warn';
+ return `<button type="button" class="sync-pill ${tone}" ${withId?'id="sync-badge"':''} data-action="goto" data-key="cuenta" title="Ver cuenta y sincronización" aria-label="Ver cuenta y sincronización: ${esc(titles[cloudStatus]||cloudStatus)}">${esc(titles[cloudStatus]||cloudStatus)}</button>`;
 }
 function legacyBackupButtons(){let saved=null;try{saved=JSON.parse(localStorage.getItem(KEY)||'null');}catch{}return saved&&Array.isArray(saved.orders)?`<div class="notice"><b>Datos anteriores en este navegador:</b> ${saved.orders.length} líneas. Descarga una copia antes de conectar la nube. ${btn('cloud-legacy-export','Descargar copia JSON','','small')}</div>`:'';}
 
@@ -68,7 +103,7 @@ function cloudPanel(){
  if(!cloudUser)return `<div class="auth-card"><div class="auth-heading"><span class="auth-logo">${uiIcon('purchases',36)}</span><h1>ARSLAN LISTAS NEXT</h1><p>Pedidos, compras y reparto</p><span class="auth-help">${uiIcon('check',17)} Accede a tu jornada en segundos</span></div>
  ${state.orders.length?`<div class="notice amber"><b>Hay ${state.orders.length} líneas en este navegador.</b> Descarga una copia antes de importar o cambiar de equipo.</div>`:''}
  <div class="auth-fields"><label for="cloud-email">Correo electrónico</label><input id="cloud-email" type="email" autocomplete="username" inputmode="email" placeholder="Tu correo" value="${esc(localStorage.getItem('arslan_listas_last_email')||'')}"><label for="cloud-password">Contraseña</label><input id="cloud-password" type="password" autocomplete="current-password" placeholder="Tu contraseña"></div>
- <p class="auth-explainer">${uiIcon('check',18)} Este dispositivo recuerda la sesión. Si continúa válida, entrarás directamente.</p>
+ <p class="auth-explainer">${uiIcon('check',18)} Este dispositivo recuerda la sesión. Si continúa válida, al abrir solo tendrás que pulsar Entrar.</p>
  <div class="auth-buttons">${btn('cloud-login','Entrar','','dark')}${btn('cloud-reset','¿Olvidaste la contraseña?','','small')}${btn('cloud-signup','Crear cuenta','','small')}</div>
  <p class="subtle">${esc(cloudMessage)}</p>${legacyBackupButtons()}<p class="auth-footer">Inicio seguro con Firebase · No guardamos contraseñas en el código.</p></div>`;
  const user=esc(cloudUser.email||'Cuenta conectada');
@@ -76,6 +111,7 @@ function cloudPanel(){
  if(cloudStatus==='esperando_origen')actions=`<div class="notice"><b>La nube está vacía y este dispositivo no tiene pedidos guardados.</b> No crearemos una jornada vacía que pueda bloquear la importación del ordenador. Abre LISTAS desde el navegador donde hiciste los pedidos, inicia sesión con esta misma cuenta y pulsa «Subir los datos de este dispositivo». Después pulsa ${btn('cloud-refresh','Comprobar si ya están las listas','','dark')} aquí.</div>`;
   else if(cloudStatus==='importar')actions=`<div class="notice"><b>Hay datos locales y la nube está vacía.</b> Para evitar pérdidas no subimos nada automáticamente.</div><div class="tools">${btn('cloud-init','Subir los datos de este dispositivo','','dark')}</div>`;
  else if(cloudStatus==='conflicto')actions=`<div class="notice red"><b>Dos dispositivos modificaron los datos.</b> Nada se sobrescribirá automáticamente. Al elegir una opción se descargará una copia de seguridad.</div><div class="tools">${btn('cloud-use-remote','Usar datos de la nube','','dark')}${btn('cloud-publish-local','Publicar mis datos locales','','red')}</div>`;
+ else if(cloudStatus==='permiso_denegado')actions=`<div class="notice red"><b>Firebase ha denegado el guardado.</b> No se ha confirmado la sincronización. Conserva la copia del navegador y revisa las reglas de acceso; no pulses «Limpiar día».</div><div class="tools">${btn('cloud-refresh','Reintentar conexión','','small')}${btn('cloud-backup','Descargar copia de seguridad','','small dark')}</div>`;
  else actions=`<div class="tools">${btn('cloud-refresh','Sincronizar ahora','','dark')}${localStorage.getItem(KEY)?btn('cloud-import-local','Recuperar copia anterior de este navegador','','small'):''}</div>`;
  return `<div class="card sync-panel"><div class="sectionline"><h2>Sincronización de LISTAS</h2>${syncBadge(false)}</div><p class="subtle">${user} · ${esc(cloudMessage)}</p>${actions}<div class="tools">${btn('cloud-backup','Descargar copia de esta jornada','','small')}${btn('cloud-choose-import','Importar copia JSON de otro dispositivo','','small')}${btn('cloud-logout','Cerrar sesión','','small')}</div><input id="cloud-import-file" type="file" accept="application/json,.json" hidden><p class="subtle">El trabajo sin conexión queda pendiente de subir; nunca se sustituyen cambios conflictivos sin revisión. Para mover tus pedidos desde otra URL, primero exporta allí el JSON.</p></div>`+teamPanel();
 }
@@ -110,7 +146,11 @@ async function beginCloudUser(user){
  cloudStatus='conectando';cloudMessage='Leyendo los pedidos de la nube…';render();
  cloudEngine=new SyncEngine({adapter:cloudAdapter,initialState:state,meta:record?.meta??null,
   hasLocal:hasRecord||hasLegacy,onApply(next){state=normalizeRuntimeState(next);render();},
-  onStatus(status,message){cloudStatus=status;cloudMessage=message;updateSyncDisplay();},
+  onStatus(status,message){
+   cloudStatus=status;cloudMessage=message;
+   if(status==='sincronizado')lastCloudSuccess=Date.now();
+   if(accessUnlocked)updateSyncDisplay();else render();
+  },
   persist: persistCloudUser,setDelay:650});
  await cloudEngine.start();render();
 }
@@ -125,6 +165,7 @@ async function bootCloud(){
   cloudAdapter.onAuthChange((event,session)=>{
    if(session?.user&&cloudUser?.id!==(session.user.uid||session.user.id))void beginCloudUser(session.user);
    if(event==='SIGNED_OUT'){
+     accessUnlocked=false;lastCloudSuccess=null;
      if(cloudEngine)cloudEngine.stop();cloudEngine=null;cloudUser=null;teamOwnerUid=null;teamMembers=[];let old=null;try{old=JSON.parse(localStorage.getItem(KEY)||'null');}catch{}state=normalizeRuntimeState(old&&Array.isArray(old.orders)?old:createState());
      cloudStatus='sin_sesion';cloudMessage='Sesión cerrada; tus pedidos siguen en la nube';render();
    }
@@ -158,7 +199,7 @@ const pill=(t,cls='')=>`<span class="pill ${cls}">${esc(t)}</span>`;
 const sectionTitle=(s,d)=>`<div class="head"><div><h1>${s}</h1><p>${d}</p></div><div class="mini">Jornada ${esc(state.day)} · ${esc(CLOUD_ENABLED?(cloudStatus==='sincronizado'?'Sincronizado con Firebase':'Sincronización pendiente'):'Solo en este dispositivo')}</div></div>`;
 function stats(){let x=summary(state);return `<div class="grid"><div class="stat"><b>${x.originalLines}</b><span>Líneas de pedido</span></div><div class="stat"><b>${x.products}</b><span>Productos globales</span></div><div class="stat"><b>${x.unreviewed}</b><span>Por revisar</span></div></div>`;}
 function nav(){
- const links=[['inicio','Inicio','home'],['pedidos','Pedidos','orders'],['global','Proveedores','suppliers'],['compras','Compras','purchases'],['carga','Carga','package'],['reparto','Reparto','delivery'],['auditoria','Auditoría','alert']];
+ const links=[['inicio','Inicio','home'],['pedidos','Pedidos','orders'],['global','Proveedores','suppliers'],['compras','Compras','purchases'],['carga','Carga','package'],['reparto','Reparto','delivery'],['cuenta','Cuenta y sincronización','settings'],['auditoria','Auditoría','alert']];
  const mobile=[['inicio','Inicio','home'],['pedidos','Pedidos','orders'],['compras','Compras','purchases'],['reparto','Reparto','delivery']];
  return `<aside class="side"><div class="side-head"><span class="side-brand">A</span><div><strong>ARSLAN NEXT</strong><small>Operativa diaria</small></div></div><div class="caption">NAVEGACIÓN</div>${links.map(([k,label,icon])=>`<button type="button" class="${tab===k?'active':''}" data-action="goto" data-key="${k}">${uiIcon(icon,19)}<span>${label}</span></button>`).join('')}<div class="side-cloud">${uiIcon('check',16)} ${esc(CLOUD_ENABLED?cloudMessage:'Solo en este dispositivo')}</div></aside><nav class="bottomnav" aria-label="Navegación principal">${mobile.map(([k,label,icon])=>`<button type="button" aria-label="Abrir ${label}" aria-current="${tab===k?'page':'false'}" class="${tab===k?'active':''}" data-action="goto" data-key="${k}">${uiIcon(icon,23)}<span>${label}</span></button>`).join('')}</nav>`;
 }
@@ -341,7 +382,7 @@ function reparto(){
  (unready.length?`<div class="card delivery-unready"><div class="sectionline"><h2>Pendiente de comprar o enviar</h2>${pill(unready.length+' sin gestionar','err')}</div><p class="subtle">Estas cantidades forman parte del pedido de ${esc(current?.name||'la tienda')}, pero no están habilitadas para bajar.</p><div class="items">${unready.map(r=>`<div class="item err"><div class="keynum">${r.by[dest]}</div><div class="grow"><div class="product">${esc(r.product)}</div><div class="details">${esc(r.unit)} · Debe comprarse o enviarse al proveedor</div></div></div>`).join('')}</div></div>`:'')+
   (short.length?`<div class="notice amber"><b>Faltantes de ${esc(current?.name||'destino')}</b>${short.map(r=>`<div>Faltan ${r.missing} ${esc(r.product)}</div>`).join('')}</div>`:'');
 }
-function mas(){return sectionTitle('Más opciones','Herramientas de jornada, carga opcional, control y copia de seguridad.')+`<div class="card"><h2>Acciones</h2><div class="tools">${btn('goto','Carga opcional','carga','dark')}${btn('goto','Ver auditoría','auditoria')}${btn('goto','Pegar listas','pedidos')}</div></div>`;}
+function mas(){return sectionTitle('Más opciones','Cuenta, carga opcional, control y copias de seguridad.')+`<div class="card"><h2>Acciones</h2><div class="tools">${btn('goto','Cuenta y sincronización','cuenta','dark')}${btn('goto','Carga opcional','carga')}${btn('goto','Ver auditoría','auditoria')}${btn('goto','Pegar listas','pedidos')}</div></div>`;}
 function auditoria(){
  const x=summary(state),p=deliveryPlan(state);
  const noNames=state.orders.filter(l=>l.review).length;
@@ -368,7 +409,8 @@ function render(){
  const drafts={};document.querySelectorAll('textarea').forEach(t=>{if(t.id&&t.value)drafts[t.id]=t.value;});
  const app=document.getElementById('app');if(!app)return;
  if(CLOUD_ENABLED&&!cloudUser){app.innerHTML=`<div class="auth-page">${cloudStatus==='conectando'?`<div class="auth-working"><span class="auth-logo">${uiIcon('purchases',38)}</span><h1>ARSLAN LISTAS NEXT</h1><p>Comprobando sesión guardada…</p></div>`:cloudPanel()}</div>`;return;}
- let screenHTML='';try{const view=({inicio:home,pedidos,global:globalView,compras,carga,reparto,mas,auditoria})[tab];if(!view)throw Error('Pantalla no disponible');screenHTML=view();}
+ if(CLOUD_ENABLED&&!accessUnlocked){app.innerHTML=`<div class="auth-page">${accessGate()}</div>`;return;}
+ let screenHTML='';try{const view=({inicio:home,pedidos,global:globalView,compras,carga,reparto,mas,cuenta:accountView,auditoria})[tab];if(!view)throw Error('Pantalla no disponible');screenHTML=view();}
  catch(error){console.error('Error al abrir sección de LISTAS:',tab,error);screenHTML=`<div class="card"><h2>No se pudo abrir ${esc(tab)}</h2><div class="notice red">${esc(error?.message||'Error de datos. No se ha borrado nada.')}</div><div class="tools">${btn('goto','Volver a Inicio','inicio','dark')}${btn('export','Descargar copia JSON','','small')}</div></div>`;}
  app.innerHTML=`<div class="top"><div class="top-inner"><div class="brand"><span class="logo">${uiIcon('purchases',24)}</span><span><strong>ARSLAN LISTAS NEXT</strong><span class="subtitle">Pedidos, compras y reparto</span></span></div>${syncBadge()}<button type="button" class="top-more" data-action="goto" data-key="mas" aria-label="Más opciones" title="Más opciones">···</button></div></div><div class="shell">${nav()}<main>${toastMessage?`<div class="notice ${toastMessage.startsWith('ERROR')?'red':'green'}">${esc(toastMessage)}</div>`:''}${screenHTML}</main></div>`;
  Object.entries(drafts).forEach(([key,value])=>{const el=document.getElementById(key);if(el)el.value=value;});
@@ -461,16 +503,18 @@ async function processDeliveryClick(action,key,dest,qty=null){
 
 async function handleAction(action,key,target,dest){
  try{
- const readonly=['goto','export','copy','copyall','provdownload','provdownloadall','whatsapp','destcopy','destdownload','destwa','purchasefilter','breakdown','filter','selprov','purchase-step','additional-step','order-open','order-filter','toggle-paste','goto-additional','delivery-select','manual-copy-pending','manual-download-pending','manual-wa-pending'];
+ const readonly=['unlock-access','lock-access','goto','export','copy','copyall','provdownload','provdownloadall','whatsapp','destcopy','destdownload','destwa','purchasefilter','breakdown','filter','selprov','purchase-step','additional-step','order-open','order-filter','toggle-paste','goto-additional','delivery-select','manual-copy-pending','manual-download-pending','manual-wa-pending'];
  if(deliveryBusy&&!readonly.includes(action)&&!action.startsWith('cloud-')&&!action.startsWith('team-'))throw Error('Guardando el último cambio en Firebase.');
  if(CLOUD_ENABLED&&!action.startsWith('cloud-')&&!action.startsWith('team-')&&!readonly.includes(action)&&!cloudCanEdit())throw Error('Para guardar cambios debes entrar y tener sincronización lista. Revisa el estado de la nube en Inicio.');
  switch(action){
+ case 'unlock-access':{if(!cloudUser)throw Error('Debes iniciar sesión en Firebase');accessUnlocked=true;tab=['permiso_denegado','conflicto','error'].includes(cloudStatus)?'cuenta':'inicio';toastMessage='';render();return;}
+ case 'lock-access':{accessUnlocked=false;toastMessage='';render();return;}
  case 'team-copy-id':{if(!cloudUser)throw Error('Inicia sesión primero');const ok=await copyText(cloudUser.id);toastMessage=ok?'ID copiado para autorizar el equipo':'No se pudo copiar el ID';render();return;}
  case 'team-add':{if(!cloudUser)throw Error('Inicia sesión');const id=document.getElementById('team-member-id')?.value.trim();await cloudAdapter.addMember(id);teamMembers=await cloudAdapter.listMembers();toastMessage='Trabajador autorizado. Ya puede usar tu espacio de LISTAS.';render();return;}
  case 'team-revoke':{if(!cloudUser)throw Error('Inicia sesión');if(!confirm('¿Retirar acceso a este trabajador? No se borrarán los pedidos ni las bajadas.'))return;await cloudAdapter.revokeMember(key);teamMembers=await cloudAdapter.listMembers();toastMessage='Acceso retirado, sin borrar la jornada';render();return;}
  case 'team-join':{if(!cloudUser||!cloudAdapter)throw Error('Inicia sesión');const owner=document.getElementById('team-owner-id')?.value.trim();if(!/^[a-zA-Z0-9]{16,128}$/.test(owner))throw Error('ID de propietario inválido');if(owner===teamOwnerUid){toastMessage='Ya estás en este espacio de equipo';render();return;}if(cloudEngine?.dirty||cloudEngine?.conflict||cloudEngine?.running)throw Error('Hay cambios por guardar. No se cambia de equipo mientras haya modificaciones pendientes');if(!confirm('¿Cambiar de espacio? Se descargará antes una copia de esta jornada. Los datos existentes no se borrarán.'))return;download('ARSLAN_LISTAS_COPIA_ANTES_CAMBIAR_EQUIPO.json',JSON.stringify(state,null,2),'application/json');localStorage.setItem(KEY+':team:'+cloudUser.id,owner);const user={uid:cloudUser.id,email:cloudUser.email};if(cloudEngine)cloudEngine.stop();cloudEngine=null;cloudUser=null;await beginCloudUser(user);toastMessage='Espacio de equipo seleccionado. Solo verás datos si el propietario te ha autorizado.';render();return;}
- case 'cloud-login':case 'cloud-signup':case 'cloud-reset': {const email=document.getElementById('cloud-email')?.value?.trim(),password=document.getElementById('cloud-password')?.value||'';if(!email||!email.includes('@'))throw Error('Introduce un correo válido');if(action==='cloud-reset'){await cloudAdapter.resetPassword(email);toastMessage='Correo de recuperación solicitado; revisa tu buzón';}else if(action==='cloud-signup'){await cloudAdapter.signUp(email,password);toastMessage='Cuenta creada: confirma los permisos de Firebase';}else{await cloudAdapter.sendLogin(email,password);try{localStorage.setItem('arslan_listas_last_email',email)}catch{}toastMessage='Sesión iniciada';}render();return;}
- case 'cloud-refresh': {if(!cloudEngine)throw Error('Sin sesión');await cloudEngine.refresh();toastMessage='Sincronización comprobada: '+cloudMessage;render();return;}
+ case 'cloud-login':case 'cloud-signup':case 'cloud-reset': {const email=document.getElementById('cloud-email')?.value?.trim(),password=document.getElementById('cloud-password')?.value||'';if(!email||!email.includes('@'))throw Error('Introduce un correo válido');if(action==='cloud-reset'){await cloudAdapter.resetPassword(email);toastMessage='Correo de recuperación solicitado; revisa tu buzón';}else if(action==='cloud-signup'){await cloudAdapter.signUp(email,password);accessUnlocked=true;toastMessage='Cuenta creada: confirma los permisos de Firebase';}else{await cloudAdapter.sendLogin(email,password);accessUnlocked=true;try{localStorage.setItem('arslan_listas_last_email',email)}catch{}toastMessage='Sesión iniciada';}render();return;}
+ case 'cloud-refresh': {if(!cloudEngine)throw Error('Sin sesión');await cloudEngine.refresh(true);toastMessage='Sincronización comprobada: '+cloudMessage;render();return;}
  case 'cloud-init': {if(!confirm('¿Subir los datos de este dispositivo a la nube nueva? Antes se descargará una copia JSON. Comprueba que estás en el ordenador que tiene los pedidos buenos.'))return;download('ARSLAN_LISTAS_COPIA_ANTES_DE_SUBIR.json',JSON.stringify(state,null,2),'application/json');await cloudEngine.initializeFromLocal();render();return;}
  case 'cloud-use-remote': {if(!cloudEngine?.conflict)throw Error('No hay conflicto');if(!confirm('¿Usar la versión de la nube? Antes se descargará la versión LOCAL para recuperarla si lo necesitas.'))return;download('ARSLAN_COPIA_LOCAL_ANTES_DE_CAMBIAR.json',JSON.stringify(state,null,2),'application/json');await cloudEngine.useRemote();render();return;}
  case 'cloud-publish-local': {if(!cloudEngine?.conflict)throw Error('No hay conflicto');if(!confirm('ATENCIÓN: sustituirás la versión REMOTA por esta versión local. Se descargará primero una copia de la nube. ¿Confirmas?'))return;download('ARSLAN_COPIA_NUBE_ANTES_DE_CAMBIAR.json',JSON.stringify(cloudEngine.conflict.remote.data,null,2),'application/json');await cloudEngine.publishLocal();render();return;}
