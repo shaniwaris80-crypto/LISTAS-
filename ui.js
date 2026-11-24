@@ -43,7 +43,7 @@ function freshCloudState(){const s=createState(),d=new Date();s.day=[d.getFullYe
 
 function accessGate(){
  const email=cloudUser?.email||'Cuenta conectada';
- const blocked=['permiso_denegado','conflicto','error','sin_conexion'].includes(cloudStatus);
+ const blocked=['permiso_denegado','datos_invalidos','conflicto','error','sin_conexion'].includes(cloudStatus);
  return `<div class="auth-card saved-session-card"><div class="auth-heading"><span class="auth-logo">${uiIcon('purchases',36)}</span><h1>ARSLAN LISTAS NEXT</h1><p>Pedidos, compras y reparto</p></div>
  <div class="account-ready"><span class="icon-tile">${uiIcon('check',25)}</span><div><strong>Sesión iniciada</strong><small>${esc(email)}</small></div></div>
  <p class="subtle">Tu cuenta ya está reconocida en este dispositivo. Pulsa Entrar para abrir tu jornada sin escribir la contraseña de nuevo.</p>
@@ -54,15 +54,15 @@ function accessGate(){
 function accountView(){
  const logged=Boolean(cloudUser);
  const synced=cloudStatus==='sincronizado'&&!cloudEngine?.dirty&&!cloudEngine?.conflict;
- const denied=cloudStatus==='permiso_denegado',pending=Boolean(cloudEngine?.dirty);
- const cloudTitle=synced?'Datos sincronizados':denied?'Firebase ha denegado el guardado':cloudStatus==='sin_conexion'?'Sin conexión con Firebase':'Sincronización pendiente';
+ const denied=cloudStatus==='permiso_denegado',invalid=cloudStatus==='datos_invalidos',pending=Boolean(cloudEngine?.dirty);
+ const cloudTitle=synced?'Datos sincronizados':denied?'Firebase ha denegado el guardado':invalid?'No se puede interpretar la jornada de Firebase':cloudStatus==='sin_conexion'?'Sin conexión con Firebase':'Sincronización pendiente';
  return sectionTitle('Cuenta y sincronización','Comprueba tu sesión, el estado de Firebase y los datos pendientes de guardar.')+
  `<div class="account-cards">
  <div class="card account-info"><div class="sectionline"><h2>${uiIcon('check',20)} Inicio de sesión</h2>${pill(logged?'SESIÓN INICIADA':'SIN SESIÓN',logged?'ok':'warn')}</div>
  <div class="account-row"><span>Correo electrónico</span><strong>${esc(cloudUser?.email||'No conectado')}</strong></div>
  <div class="account-row"><span>Espacio de trabajo</span><strong>${logged?'Tu equipo ARSLAN LISTAS':'Sin conectar'}</strong></div>
  <div class="tools">${btn('lock-access','Bloquear pantalla','','small')}${btn('cloud-logout','Cerrar sesión','','small red')}</div></div>
- <div class="card account-info"><div class="sectionline"><h2>${uiIcon('delivery',20)} Sincronización</h2>${pill(synced?'SINCRONIZADO':denied?'ACCESO DENEGADO':cloudStatus==='sin_conexion'?'SIN CONEXIÓN':'PENDIENTE',synced?'ok':denied?'err':'warn')}</div>
+ <div class="card account-info"><div class="sectionline"><h2>${uiIcon('delivery',20)} Sincronización</h2>${pill(synced?'SINCRONIZADO':denied?'ACCESO DENEGADO':invalid?'ERROR DE DATOS':cloudStatus==='sin_conexion'?'SIN CONEXIÓN':'PENDIENTE',synced?'ok':denied||invalid?'err':'warn')}</div>
  <strong class="account-status-title">${cloudTitle}</strong>
  <p class="subtle">${esc(cloudMessage)}</p>
  <div class="account-row"><span>Último estado confirmado</span><strong>${lastCloudSuccess?esc(new Date(lastCloudSuccess).toLocaleString('es-ES')):'Sin confirmar en esta sesión'}</strong></div>
@@ -76,8 +76,8 @@ function accountView(){
 function cloudCanEdit(){return !CLOUD_ENABLED||(accessUnlocked&&cloudUser&&cloudEngine&&['sincronizado','pendiente','sin_conexion'].includes(cloudStatus)&&cloudEngine.revision!==null&&!cloudEngine.conflict);}
 function persistCloudUser(next,meta){if(!cloudUser)return;try{localStorage.setItem(KEY+':user:'+cloudUser.id+':team:'+(teamOwnerUid||cloudUser.id),JSON.stringify({state:next,meta}));}catch(e){cloudStatus='error';cloudMessage='El navegador no permite guardar el trabajo: '+(e?.message||e);updateSyncDisplay();}}
 function syncBadge(withId=true){
- const titles={sin_configurar:'SOLO EN ESTE DISPOSITIVO',conectando:'CONECTANDO',sin_sesion:'SIN SESIÓN',sincronizado:'SINCRONIZADO',pendiente:'GUARDANDO…',sin_conexion:'SIN CONEXIÓN',permiso_denegado:'ACCESO DENEGADO',conflicto:'REVISAR CONFLICTO',importar:'IMPORTAR A NUBE',esperando_origen:'ESPERANDO LISTAS',error:'ERROR DE SINCRONIZACIÓN'};
- const tone=cloudStatus==='sincronizado'?'ok':['conflicto','error','permiso_denegado'].includes(cloudStatus)?'err':'warn';
+ const titles={sin_configurar:'SOLO EN ESTE DISPOSITIVO',conectando:'CONECTANDO',sin_sesion:'SIN SESIÓN',sincronizado:'SINCRONIZADO',pendiente:'GUARDANDO…',sin_conexion:'SIN CONEXIÓN',permiso_denegado:'ACCESO DENEGADO',datos_invalidos:'ERROR DE DATOS',conflicto:'REVISAR CONFLICTO',importar:'IMPORTAR A NUBE',esperando_origen:'ESPERANDO LISTAS',error:'ERROR DE SINCRONIZACIÓN'};
+ const tone=cloudStatus==='sincronizado'?'ok':['conflicto','error','permiso_denegado','datos_invalidos'].includes(cloudStatus)?'err':'warn';
  return `<button type="button" class="sync-pill ${tone}" ${withId?'id="sync-badge"':''} data-action="goto" data-key="cuenta" title="Ver cuenta y sincronización" aria-label="Ver cuenta y sincronización: ${esc(titles[cloudStatus]||cloudStatus)}">${esc(titles[cloudStatus]||cloudStatus)}</button>`;
 }
 function legacyBackupButtons(){let saved=null;try{saved=JSON.parse(localStorage.getItem(KEY)||'null');}catch{}return saved&&Array.isArray(saved.orders)?`<div class="notice"><b>Datos anteriores en este navegador:</b> ${saved.orders.length} líneas. Descarga una copia antes de conectar la nube. ${btn('cloud-legacy-export','Descargar copia JSON','','small')}</div>`:'';}
@@ -112,6 +112,7 @@ function cloudPanel(){
   else if(cloudStatus==='importar')actions=`<div class="notice"><b>Hay datos locales y la nube está vacía.</b> Para evitar pérdidas no subimos nada automáticamente.</div><div class="tools">${btn('cloud-init','Subir los datos de este dispositivo','','dark')}</div>`;
  else if(cloudStatus==='conflicto')actions=`<div class="notice red"><b>Dos dispositivos modificaron los datos.</b> Nada se sobrescribirá automáticamente. Al elegir una opción se descargará una copia de seguridad.</div><div class="tools">${btn('cloud-use-remote','Usar datos de la nube','','dark')}${btn('cloud-publish-local','Publicar mis datos locales','','red')}</div>`;
  else if(cloudStatus==='permiso_denegado')actions=`<div class="notice red"><b>Firebase ha denegado el guardado.</b> No se ha confirmado la sincronización. Conserva la copia del navegador y revisa las reglas de acceso; no pulses «Limpiar día».</div><div class="tools">${btn('cloud-refresh','Reintentar conexión','','small')}${btn('cloud-backup','Descargar copia de seguridad','','small dark')}</div>`;
+ else if(cloudStatus==='datos_invalidos')actions=`<div class="notice red"><b>La respuesta de Firebase tiene un formato incompatible.</b> Se conserva la copia de este dispositivo. Descarga una copia antes de revisar la jornada.</div><div class="tools">${btn('cloud-refresh','Reintentar sincronización','','small')}${btn('cloud-backup','Descargar copia de seguridad','','small dark')}</div>`;
  else actions=`<div class="tools">${btn('cloud-refresh','Sincronizar ahora','','dark')}${localStorage.getItem(KEY)?btn('cloud-import-local','Recuperar copia anterior de este navegador','','small'):''}</div>`;
  return `<div class="card sync-panel"><div class="sectionline"><h2>Sincronización de LISTAS</h2>${syncBadge(false)}</div><p class="subtle">${user} · ${esc(cloudMessage)}</p>${actions}<div class="tools">${btn('cloud-backup','Descargar copia de esta jornada','','small')}${btn('cloud-choose-import','Importar copia JSON de otro dispositivo','','small')}${btn('cloud-logout','Cerrar sesión','','small')}</div><input id="cloud-import-file" type="file" accept="application/json,.json" hidden><p class="subtle">El trabajo sin conexión queda pendiente de subir; nunca se sustituyen cambios conflictivos sin revisión. Para mover tus pedidos desde otra URL, primero exporta allí el JSON.</p></div>`+teamPanel();
 }
@@ -142,9 +143,12 @@ async function beginCloudUser(user){
  let legacy=null;if(owner===userId)try{legacy=JSON.parse(localStorage.getItem(KEY)||'null');}catch{}
  const hasRecord=!!(record?.state&&Array.isArray(record.state.orders));
  const hasLegacy=!!(!hasRecord&&legacy&&Array.isArray(legacy.orders));
- state=normalizeRuntimeState(hasRecord?record.state:hasLegacy?legacy:freshCloudState());
+ // Comparar la caché anterior y su base con la misma representación de Firebase.
+ // Solo se normalizan en memoria; la copia persistida se conserva hasta confirmar.
+ state=hydrateCloudDocumentState(normalizeRuntimeState(hasRecord?record.state:hasLegacy?legacy:freshCloudState()));
+ const syncMeta=record?.meta?{...record.meta,base:record.meta.base?hydrateCloudDocumentState(record.meta.base):null}:null;
  cloudStatus='conectando';cloudMessage='Leyendo los pedidos de la nube…';render();
- cloudEngine=new SyncEngine({adapter:cloudAdapter,initialState:state,meta:record?.meta??null,
+ cloudEngine=new SyncEngine({adapter:cloudAdapter,initialState:state,meta:syncMeta,
   hasLocal:hasRecord||hasLegacy,onApply(next){state=normalizeRuntimeState(next);render();},
   onStatus(status,message){
    cloudStatus=status;cloudMessage=message;
@@ -523,20 +527,20 @@ async function handleAction(action,key,target,dest){
  if(deliveryBusy&&!readonly.includes(action)&&!action.startsWith('cloud-')&&!action.startsWith('team-'))throw Error('Guardando el último cambio en Firebase.');
  if(CLOUD_ENABLED&&!action.startsWith('cloud-')&&!action.startsWith('team-')&&!readonly.includes(action)&&!cloudCanEdit())throw Error('Para guardar cambios debes entrar y tener sincronización lista. Revisa el estado de la nube en Inicio.');
  switch(action){
- case 'unlock-access':{if(!cloudUser)throw Error('Debes iniciar sesión en Firebase');accessUnlocked=true;tab=['permiso_denegado','conflicto','error'].includes(cloudStatus)?'cuenta':'inicio';toastMessage='';render();return;}
+ case 'unlock-access':{if(!cloudUser)throw Error('Debes iniciar sesión en Firebase');accessUnlocked=true;tab=['permiso_denegado','datos_invalidos','conflicto','error'].includes(cloudStatus)?'cuenta':'inicio';toastMessage='';render();return;}
  case 'lock-access':{accessUnlocked=false;toastMessage='';render();return;}
  case 'team-copy-id':{if(!cloudUser)throw Error('Inicia sesión primero');const ok=await copyText(cloudUser.id);toastMessage=ok?'ID copiado para autorizar el equipo':'No se pudo copiar el ID';render();return;}
  case 'team-add':{if(!cloudUser)throw Error('Inicia sesión');const id=document.getElementById('team-member-id')?.value.trim();await cloudAdapter.addMember(id);teamMembers=await cloudAdapter.listMembers();toastMessage='Trabajador autorizado. Ya puede usar tu espacio de LISTAS.';render();return;}
  case 'team-revoke':{if(!cloudUser)throw Error('Inicia sesión');if(!confirm('¿Retirar acceso a este trabajador? No se borrarán los pedidos ni las bajadas.'))return;await cloudAdapter.revokeMember(key);teamMembers=await cloudAdapter.listMembers();toastMessage='Acceso retirado, sin borrar la jornada';render();return;}
  case 'team-join':{if(!cloudUser||!cloudAdapter)throw Error('Inicia sesión');const owner=document.getElementById('team-owner-id')?.value.trim();if(!/^[a-zA-Z0-9]{16,128}$/.test(owner))throw Error('ID de propietario inválido');if(owner===teamOwnerUid){toastMessage='Ya estás en este espacio de equipo';render();return;}if(cloudEngine?.dirty||cloudEngine?.conflict||cloudEngine?.running)throw Error('Hay cambios por guardar. No se cambia de equipo mientras haya modificaciones pendientes');if(!confirm('¿Cambiar de espacio? Se descargará antes una copia de esta jornada. Los datos existentes no se borrarán.'))return;download('ARSLAN_LISTAS_COPIA_ANTES_CAMBIAR_EQUIPO.json',JSON.stringify(state,null,2),'application/json');localStorage.setItem(KEY+':team:'+cloudUser.id,owner);const user={uid:cloudUser.id,email:cloudUser.email};if(cloudEngine)cloudEngine.stop();cloudEngine=null;cloudUser=null;await beginCloudUser(user);toastMessage='Espacio de equipo seleccionado. Solo verás datos si el propietario te ha autorizado.';render();return;}
  case 'cloud-login':case 'cloud-signup':case 'cloud-reset': {const email=document.getElementById('cloud-email')?.value?.trim(),password=document.getElementById('cloud-password')?.value||'';if(!email||!email.includes('@'))throw Error('Introduce un correo válido');if(action==='cloud-reset'){await cloudAdapter.resetPassword(email);toastMessage='Correo de recuperación solicitado; revisa tu buzón';}else if(action==='cloud-signup'){await cloudAdapter.signUp(email,password);accessUnlocked=true;toastMessage='Cuenta creada: confirma los permisos de Firebase';}else{await cloudAdapter.sendLogin(email,password);accessUnlocked=true;try{localStorage.setItem('arslan_listas_last_email',email)}catch{}toastMessage='Sesión iniciada';}render();return;}
- case 'cloud-refresh': {if(!cloudEngine)throw Error('Sin sesión');await cloudEngine.refresh(true);toastMessage='Sincronización comprobada: '+cloudMessage;render();return;}
+ case 'cloud-refresh': {if(!cloudEngine)throw Error('Sin sesión');await cloudEngine.refresh(true);toastMessage=(cloudStatus==='sincronizado'?'Sincronización comprobada: ':'ERROR: Sincronización pendiente: ')+cloudMessage;render();return;}
  case 'cloud-init': {if(!confirm('¿Subir los datos de este dispositivo a la nube nueva? Antes se descargará una copia JSON. Comprueba que estás en el ordenador que tiene los pedidos buenos.'))return;download('ARSLAN_LISTAS_COPIA_ANTES_DE_SUBIR.json',JSON.stringify(state,null,2),'application/json');await cloudEngine.initializeFromLocal();render();return;}
  case 'cloud-use-remote': {if(!cloudEngine?.conflict)throw Error('No hay conflicto');if(!confirm('¿Usar la versión de la nube? Antes se descargará la versión LOCAL para recuperarla si lo necesitas.'))return;download('ARSLAN_COPIA_LOCAL_ANTES_DE_CAMBIAR.json',JSON.stringify(state,null,2),'application/json');await cloudEngine.useRemote();render();return;}
  case 'cloud-publish-local': {if(!cloudEngine?.conflict)throw Error('No hay conflicto');if(!confirm('ATENCIÓN: sustituirás la versión REMOTA por esta versión local. Se descargará primero una copia de la nube. ¿Confirmas?'))return;download('ARSLAN_COPIA_NUBE_ANTES_DE_CAMBIAR.json',JSON.stringify(cloudEngine.conflict.remote.data,null,2),'application/json');await cloudEngine.publishLocal();render();return;}
  case 'cloud-logout':{
   if(!cloudAdapter)return;
-  if(cloudEngine?.dirty||cloudEngine?.conflict||cloudStatus==='permiso_denegado'){
+  if(cloudEngine?.dirty||cloudEngine?.conflict||['permiso_denegado','datos_invalidos'].includes(cloudStatus)){
    if(!confirm('Hay cambios sin confirmar en Firebase. Antes de cambiar de cuenta descargaremos una copia de seguridad. ¿Continuar?'))return;
    download('ARSLAN_LISTAS_COPIA_ANTES_DE_SALIR_'+state.day+'.json',JSON.stringify(state,null,2),'application/json');
   }

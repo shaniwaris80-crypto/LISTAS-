@@ -4,6 +4,14 @@ export const SYNC_SCHEMA_VERSION = 1;
 
 const clone = value => value === undefined ? undefined : structuredClone(value);
 const plain = v => v !== null && typeof v === 'object' && !Array.isArray(v);
+function syncFailureStatus(error){
+ if(error?.code==='INVALID_CLOUD_DATA')return 'datos_invalidos';
+ if(/permission[_ -]?denied/i.test(String(error?.code||'')+' '+String(error?.message||error)))return 'permiso_denegado';
+ return 'sin_conexion';
+}
+function invalidCloudMessage(error){
+ return 'Firebase ha respondido, pero no se puede interpretar la jornada. Los cambios locales se conservan: '+(error?.message||error);
+}
 export function same(a, b) {
   if (Object.is(a,b)) return true;
   if (Array.isArray(a) && Array.isArray(b)) return a.length===b.length && a.every((v,i)=>same(v,b[i]));
@@ -125,12 +133,18 @@ export class SyncEngine {
       else {this.revision=null;this.base=null;this.setStatus('esperando_origen','La nube está vacía. Para proteger tus pedidos, entra primero desde el ordenador que tiene las listas y pulsa «Subir los datos de este dispositivo».');}
       if(this.adapter.watch){this.unsubscribe=this.adapter.watch(()=>{if(!this.stopped)void this.refresh();});}
     }catch(err){
-      if(this.revision!==null&&this.base){this.dirty=!same(this.local,this.base);this.setStatus('sin_conexion','Sin conexión; los cambios se guardan aquí y quedan pendientes');}
+      if(this.revision!==null&&this.base)this.dirty=!same(this.local,this.base);
+      const status=syncFailureStatus(err);
+      if(status==='datos_invalidos')this.setStatus(status,invalidCloudMessage(err));
+      else if(status==='permiso_denegado')this.setStatus(status,'Firebase ha rechazado la lectura por permisos. Se conserva la copia local.');
+      else if(this.revision!==null&&this.base)this.setStatus('sin_conexion','Sin conexión; los cambios se guardan aquí y quedan pendientes');
       else this.setStatus('error','No se pudo leer la nube: '+(err?.message||err));
     }
   }
   async acceptRemote(remote){
-    if(!Number.isInteger(remote.revision)||!plain(remote.data)||!Array.isArray(remote.data.orders))throw Error('Datos de nube no válidos');
+    if(!Number.isSafeInteger(remote.revision)||remote.revision<1||!plain(remote.data)||!Array.isArray(remote.data.orders)){
+      const error=new Error('Datos de nube no válidos');error.code='INVALID_CLOUD_DATA';throw error;
+    }
     // Ya sincronizado y sin cambios pendientes: aceptar la última revisión
     // de Firebase, sin provocar conflictos contra la copia del primer inicio.
     if(this.revision!==null&&!this.dirty&&this.base&&same(this.local,this.base)){
@@ -154,16 +168,16 @@ export class SyncEngine {
     catch(err){const remote=await this.adapter.read();if(remote)await this.acceptRemote(remote);else throw err;}
   }
   async refresh(force=false){
-    // Si Firebase ha denegado la escritura, no repetir solicitudes cada 7 s.
+    // No repetir automáticamente fallos de permisos o formato cada 7 s.
     // Reintentar expresamente desde Cuenta y sincronización.
     if(this.stopped||this.running||this.status==='importar'||this.status==='conflicto')return;
-    if(this.status==='permiso_denegado'&&!force)return;
+    if(['permiso_denegado','datos_invalidos'].includes(this.status)&&!force)return;
     if(this.dirty){await this.flush();return;}
     this.running=true;
     try{const remote=await this.adapter.read();if(remote&&remote.revision!==this.revision){await this.acceptRemote(remote);}else if(this.revision!==null)this.setStatus('sincronizado','Sincronizado con la nube');}
     catch(err){
-      const denied=/(permission[_ -]?denied|PERMISSION_DENIED)/i.test(String(err?.code||'')+' '+String(err?.message||err));
-      this.setStatus(denied?'permiso_denegado':'sin_conexion',denied?
+      const status=syncFailureStatus(err);
+      this.setStatus(status,status==='datos_invalidos'?invalidCloudMessage(err):status==='permiso_denegado'?
         'Firebase ha rechazado la lectura o escritura por permisos. No borres datos; descarga una copia.':
         'Sin conexión: '+(err?.message||err));
     }
@@ -178,20 +192,23 @@ export class SyncEngine {
         const saved=await this.adapter.update(draft,version);
         if(saved){this.revision=saved.revision;this.base=draft;this.dirty=!same(this.local,draft);this.persist(this.local,this.getMeta());if(this.dirty){this.setStatus('pendiente','Hay cambios adicionales por guardar');}else this.setStatus('sincronizado','Cambios guardados en todos los dispositivos');return;}
         const remote=await this.adapter.read();if(!remote)throw Error('El documento remoto no existe');
+        // Una versión anterior podía confirmar la transacción y fallar al leer
+        // orders vacío. Reconocer ese guardado sin reenviarlo ni duplicar archivos.
+        if(same(this.local,remote.data)){await this.acceptRemote(remote);return;}
         const merge=mergeStates(this.base,this.local,remote.data);
         if(!merge.ok){this.conflict={remote:clone(remote),local:clone(this.local)};this.setStatus('conflicto',merge.reason+' — se necesita revisión, no se ha sobrescrito la nube');return;}
         this.revision=remote.revision;this.base=clone(remote.data);this.apply(merge.value);
       }
       this.setStatus('pendiente','La nube cambió varias veces; reintenta sincronizar');
     }catch(err){
-      const denied=/(permission[_ -]?denied|PERMISSION_DENIED)/i.test(String(err?.code||'')+' '+String(err?.message||err));
-      this.setStatus(denied?'permiso_denegado':'sin_conexion',
-       denied?'Firebase denegó el guardado. Los datos quedan en este navegador; descarga una copia y revisa las reglas.':
+      const status=syncFailureStatus(err);
+      this.setStatus(status,status==='datos_invalidos'?invalidCloudMessage(err):
+       status==='permiso_denegado'?'Firebase denegó el guardado. Los datos quedan en este navegador; descarga una copia y revisa las reglas.':
        'No se pudo enviar a la nube; cambios guardados localmente: '+(err?.message||err));
     }
     finally{
       this.running=false;
-      if(this.dirty&&!this.conflict&&!['sin_conexion','permiso_denegado'].includes(this.status))this.schedule();
+      if(this.dirty&&!this.conflict&&!['sin_conexion','permiso_denegado','datos_invalidos'].includes(this.status))this.schedule();
     }
   }
   /** Incorporar una bajada confirmada atómicamente en Firebase. */
