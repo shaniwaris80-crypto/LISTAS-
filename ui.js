@@ -69,7 +69,7 @@ function accountView(){
  <div class="account-row"><span>Cambios locales sin subir</span><strong>${pending?'SÍ · conserva esta copia':'No detectados'}</strong></div>
  ${denied?`<div class="notice red"><b>Atención: no borres los datos.</b> El servidor ha rechazado una escritura. Revisa las reglas de Firebase antes de dar la jornada por sincronizada.</div>`:''}
  <div class="tools">${btn('cloud-refresh','Reintentar sincronización','','small dark')}${btn('cloud-backup','Descargar copia JSON','','small')}</div></div></div>
- <div class="card"><h2>Seguridad de tus pedidos</h2><p class="subtle">Puedes descargar la jornada completa, incluidos proveedores enviados, compras, bajadas e historial. La copia no cambia los datos de Firebase.</p>${btn('cloud-backup','Descargar copia de esta jornada','','small')}${denied?'<p class="subtle">Para corregir las reglas del proyecto consulta la consola Firebase. El código de GitHub no publica automáticamente cambios en esas reglas.</p>':''}</div>
+ <div class="card"><h2>Seguridad de tus pedidos</h2><p class="subtle">Puedes descargar la jornada completa, incluidos proveedores enviados, compras, bajadas e historial. La copia no cambia los datos de Firebase.</p>${btn('cloud-backup','Descargar copia de esta jornada','','small')}${denied?'<p class="subtle">Para corregir las reglas del proyecto consulta la consola Firebase. El código de GitHub no publica automáticamente cambios en esas reglas. <a href="https://console.firebase.google.com/project/arslan-listas-next/database/arslan-listas-next-default-rtdb/rules" target="_blank" rel="noopener noreferrer">Abrir reglas de Firebase</a></p>':''}</div>
  ${teamPanel()}`;
 }
 
@@ -149,7 +149,7 @@ async function beginCloudUser(user){
   onStatus(status,message){
    cloudStatus=status;cloudMessage=message;
    if(status==='sincronizado')lastCloudSuccess=Date.now();
-   if(accessUnlocked)updateSyncDisplay();else render();
+   if(!accessUnlocked||tab==='cuenta')render();else updateSyncDisplay();
   },
   persist: persistCloudUser,setDelay:650});
  await cloudEngine.start();render();
@@ -541,7 +541,7 @@ async function handleAction(action,key,target,dest){
  case 'cloud-import-local': {if(!cloudEngine||!cloudCanEdit())throw Error('Primero conecta a la nube');const legacy=JSON.parse(localStorage.getItem(KEY)||'null');if(!legacy||!Array.isArray(legacy.orders))throw Error('No hay datos locales anteriores');if(state.orders.length||state.allocations.length||state.manual.length||Object.keys(state.delivery||{}).length)throw Error('Esta cuenta ya tiene una jornada con datos; exporta antes y no sobreescribas sin revisarlos');if(!confirm('¿Importar la copia anterior de este navegador? Verifica la fecha, tiendas y cantidades antes de confirmar. Se descargará una copia y no se sustituirá una jornada con pedidos.'))return;download('ARSLAN_COPIA_LOCAL_PREVIA.json',JSON.stringify(legacy,null,2),'application/json');state=normalizeRuntimeState(legacy);commit('Datos anteriores importados; sincronizando con la nube');return;}
 
  case 'goto':tab=key;toastMessage='';render();try{window.scrollTo({top:0,behavior:'instant'});}catch{}return;
- case 'purchasefilter':purchaseView=['pending','supplier','manual','all'].includes(key)?key:'pending';render();return;
+ case 'purchasefilter':purchaseView=['pending','additional','supplier','manual','all'].includes(key)?key:'pending';render();return;
  case 'additional-step':{
   const input=[...document.querySelectorAll('[data-additional-qty]')].find(el=>el.dataset.additionalKey===key);
   if(!input)throw Error('No está disponible la cantidad adicional');
