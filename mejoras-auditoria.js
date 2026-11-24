@@ -28,8 +28,10 @@ normalizeRuntimeState=function(value){
 };
 
 let auditSafeOtherDestinationsOpen=null;
+const auditSafeCanEnhanceDom=()=>typeof document!=='undefined'&&typeof document.querySelector==='function'&&typeof document.querySelectorAll==='function'&&typeof document.createElement==='function';
 
 function auditSafeEnhanceBrand(){
+ if(!auditSafeCanEnhanceDom())return;
  const brand=document.querySelector('.brand strong');
  if(!brand)return;
  brand.setAttribute('aria-label','ARSLAN LISTAS NEXT');
@@ -37,7 +39,7 @@ function auditSafeEnhanceBrand(){
 }
 
 function auditSafeEnhanceOtherDestinations(){
- if(tab!=='pedidos')return;
+ if(!auditSafeCanEnhanceDom()||tab!=='pedidos')return;
  const heading=[...document.querySelectorAll('main .sectionline h2')]
   .find(node=>node.textContent.trim()==='Otros destinos');
  const section=heading?.closest('.sectionline'),grid=section?.nextElementSibling;
@@ -66,6 +68,7 @@ function auditSafeEnhanceOtherDestinations(){
 }
 
 function auditSafeEnhanceLoadButtons(){
+ if(!auditSafeCanEnhanceDom())return;
  for(const control of document.querySelectorAll('button[data-action="load"]')){
   const key=decodeURIComponent(control.dataset.key||''),dest=decodeURIComponent(control.dataset.dest||'');
   const row=deliveryPlan(state).eligible.find(item=>item.key===key&&item.dest===dest);
@@ -84,7 +87,7 @@ function auditSafeEnhanceLoadButtons(){
 }
 
 function auditSafeEnhanceRiderClear(){
- if(tab!=='reparto')return;
+ if(!auditSafeCanEnhanceDom()||tab!=='reparto')return;
  const dest=selectedDeliveryDest,current=state.riderAssignments?.[dest];
  if(!dest||!current||document.querySelector('[data-action="clear-rider"]'))return;
  const riderButton=document.querySelector('.destination-picker [data-action="rider"]');
@@ -100,6 +103,7 @@ function auditSafeEnhanceRiderClear(){
 }
 
 function auditSafeEnhanceAccessibility(){
+ if(!auditSafeCanEnhanceDom())return;
  // Los botones sin tipo pueden enviar formularios accidentalmente si en el
  // futuro una tarjeta se integra dentro de un formulario.
  document.querySelectorAll('button:not([type])').forEach(button=>button.type='button');
@@ -110,6 +114,7 @@ function auditSafeEnhanceAccessibility(){
 }
 
 function auditSafeEnhanceRenderedUI(){
+ if(!auditSafeCanEnhanceDom())return;
  auditSafeEnhanceBrand();
  auditSafeEnhanceOtherDestinations();
  auditSafeEnhanceLoadButtons();
@@ -119,8 +124,10 @@ function auditSafeEnhanceRenderedUI(){
 
 const auditSafeOriginalRender=render;
 render=function(options={}){
- const current=document.querySelector('.other-destinations');
- if(current)auditSafeOtherDestinationsOpen=current.open;
+ if(auditSafeCanEnhanceDom()){
+  const current=document.querySelector('.other-destinations');
+  if(current)auditSafeOtherDestinationsOpen=current.open;
+ }
  auditSafeOriginalRender(options);
  auditSafeEnhanceRenderedUI();
 };
