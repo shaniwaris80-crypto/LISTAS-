@@ -48,7 +48,9 @@ const emitters=new Set([
  ...[...ui.matchAll(/data-action=\\?'([^'\\]+)\\?'/g)].map(m=>m[1])
 ]);
 const ignoredEmitters=new Set(['']);
-const orphanEmitters=[...emitters].filter(x=>x&&!ignoredEmitters.has(x)&&!uniqueCases.includes(x)).sort();
+// Los atributos construidos con plantillas como data-action="${action}" se
+// resuelven en tiempo de ejecución y no constituyen una acción literal.
+const orphanEmitters=[...emitters].filter(x=>x&&!ignoredEmitters.has(x)&&!x.includes('${')&&!uniqueCases.includes(x)).sort();
 assert.deepEqual(orphanEmitters,[],`Botones o controles sin manejador: ${orphanEmitters.join(', ')}`);
 
 const sensitive={
@@ -91,7 +93,7 @@ const report={
  generatedAt:new Date().toISOString(),
  totalActions:uniqueCases.length,
  groups:Object.fromEntries(Object.entries(groups).map(([name,actions])=>[name,{count:actions.length,actions}])),
- uiEmitters:[...emitters].filter(Boolean).sort(),
+ uiEmitters:[...emitters].filter(x=>x&&!x.includes('${')).sort(),
  handlerActions:uniqueCases,
  safetyChecks:Object.keys(sensitive),
  status:'PASS'
