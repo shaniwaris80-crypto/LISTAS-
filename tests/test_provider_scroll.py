@@ -31,7 +31,8 @@ def position(page):
       return {scroll:list.scrollTop,max:list.scrollHeight-list.clientHeight,
         top:list.getBoundingClientRect().top,
         panelTop:document.querySelector('.assign-panel').getBoundingClientRect().top,
-        pageY:window.scrollY};
+        pageY:window.scrollY,
+        pageMax:Math.max(0,document.scrollingElement.scrollHeight-innerHeight)};
     }''')
 
 
@@ -51,7 +52,7 @@ def target_in_view(page, last=False):
     }''', last)
 
 
-def check_assignment(page, label, last=False):
+def check_assignment(page, label, last=False, allow_page_clamp=False):
     target=target_in_view(page,last)
     before=position(page)
     count=page.locator('.assign-items [data-action="assign"]').count()
@@ -61,8 +62,20 @@ def check_assignment(page, label, last=False):
     expected=min(before['scroll'],after['max'])
     assert abs(after['scroll']-expected)<=2, (
         label, 'assignment reset the nested list', before, after)
-    assert abs(after['top']-before['top'])<=2, (
-        label, 'assignment moved the list in the page', before, after)
+    if allow_page_clamp:
+        # A short search result can become shorter than the viewport. Keep
+        # the anchor exactly unless reaching the real document boundary makes
+        # that position impossible; never permit an arbitrary jump.
+        document_top=after['top']+after['pageY']
+        desired_page_y=document_top-before['top']
+        expected_page_y=max(0,min(desired_page_y,after['pageMax']))
+        expected_top=document_top-expected_page_y
+        assert abs(after['top']-expected_top)<=2 and abs(after['pageY']-expected_page_y)<=2, (
+            label,'unexpected page position',before,after,
+            {'expectedTop':expected_top,'expectedPageY':expected_page_y})
+    else:
+        assert abs(after['top']-before['top'])<=2, (
+            label, 'assignment moved the list in the page', before, after)
     assert page.locator('.assign-items [data-action="assign"]').count()==count-1
     result=page.evaluate('''key => ({
       selected:supplier,
@@ -144,7 +157,7 @@ with sync_playwright() as p:
           window.scrollTo({left:0,top:window.scrollY+list.getBoundingClientRect().top-180,behavior:'instant'});
         }''')
         settle(page)
-        check_assignment(page,f'{width}px filtered assignment')
+        check_assignment(page,f'{width}px filtered assignment',allow_page_clamp=True)
         assert page.locator('#searchRows').input_value()=='MANZANA'
         visible_names=page.locator('.assign-items .searchable:visible .product').all_text_contents()
         assert visible_names and all('MANZANA' in name for name in visible_names)
