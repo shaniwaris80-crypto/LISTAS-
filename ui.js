@@ -409,7 +409,48 @@ function auditoria(){
  `<div class="card"><h2>Copias de seguridad</h2><p class="subtle">Descarga una copia JSON antes de cambiar de equipo o realizar correcciones importantes. Tus datos no se suben a GitHub.</p><div class="tools">${btn('export','Descargar copia de la jornada','','dark')}${btn('goto','Volver a pedidos','pedidos')}</div></div>`+
  `<div class="card"><h2>Jornada nueva</h2><p class="subtle">Archiva movimientos y conserva el diccionario, proveedores y restaurantes. Antes de limpiar se descarga una copia.</p>${btn('newday','Archivar y comenzar otro día','','small red')}</div>`;
 }
-function render(){
+// El listado de asignación tiene su propio scroll. Conservar su contexto antes
+// de reemplazar el DOM evita volver al primer producto después de cada clic.
+function captureProviderViewport(resetList=false){
+ if(tab!=='global')return null;
+ const panel=document.querySelector?.('.assign-panel');
+ const list=panel?.querySelector('.assign-items');
+ if(!panel||!list)return null;
+ const rect=list.getBoundingClientRect();
+ return {
+  listTop:resetList?0:list.scrollTop,listLeft:list.scrollLeft,
+  pageTop:window.scrollY,pageLeft:window.scrollX,panelTop:panel.getBoundingClientRect().top,
+  listVisible:rect.bottom>0&&rect.top<window.innerHeight,
+  search:document.getElementById('searchRows')?.value||'',
+  openProviders:[...document.querySelectorAll('.provider-card')].flatMap(card=>{
+   const details=card.querySelector('.provider-details');
+   return details?.open?[{provider:card.dataset.provider,top:details.querySelector('.items')?.scrollTop||0}]:[];
+  })
+ };
+}
+function restoreProviderViewport(view){
+ if(!view||tab!=='global')return;
+ const panel=document.querySelector('.assign-panel'),list=panel?.querySelector('.assign-items');
+ if(!panel||!list)return;
+ const search=document.getElementById('searchRows');
+ if(search){
+  search.value=view.search;
+  const word=canonical(view.search);
+  document.querySelectorAll('.searchable').forEach(el=>{el.hidden=!canonical(el.dataset.search).includes(word);});
+ }
+ for(const card of document.querySelectorAll('.provider-card')){
+  const saved=view.openProviders.find(item=>item.provider===card.dataset.provider);
+  const details=card.querySelector('.provider-details');
+  if(saved&&details){details.open=true;const items=details.querySelector('.items');if(items)items.scrollTop=saved.top;}
+ }
+ // Restaurar después de filtrar y abrir detalles para medir la altura final.
+ // El navegador limita scrollTop si al quitar una fila ya estamos al final.
+ list.scrollTop=view.listTop;list.scrollLeft=view.listLeft;
+ const top=view.listVisible?window.scrollY+panel.getBoundingClientRect().top-view.panelTop:view.pageTop;
+ window.scrollTo({left:view.pageLeft,top:Math.max(0,top),behavior:'instant'});
+}
+function render({resetProviderScroll=false}={}){
+ const providerViewport=captureProviderViewport(resetProviderScroll);
  const drafts={};document.querySelectorAll('textarea').forEach(t=>{if(t.id&&t.value)drafts[t.id]=t.value;});
  const app=document.getElementById('app');if(!app)return;
  if(CLOUD_ENABLED&&!cloudUser){app.innerHTML=`<div class="auth-page">${cloudStatus==='conectando'?`<div class="auth-working"><span class="auth-logo">${uiIcon('purchases',38)}</span><h1>ARSLAN LISTAS NEXT</h1><p>Comprobando sesión guardada…</p></div>`:cloudPanel()}</div>`;return;}
@@ -418,6 +459,7 @@ function render(){
  catch(error){console.error('Error al abrir sección de LISTAS:',tab,error);screenHTML=`<div class="card"><h2>No se pudo abrir ${esc(tab)}</h2><div class="notice red">${esc(error?.message||'Error de datos. No se ha borrado nada.')}</div><div class="tools">${btn('goto','Volver a Inicio','inicio','dark')}${btn('export','Descargar copia JSON','','small')}</div></div>`;}
  app.innerHTML=`<div class="top"><div class="top-inner"><div class="brand"><span class="logo">${uiIcon('purchases',24)}</span><span><strong>ARSLAN LISTAS NEXT</strong><span class="subtitle">Pedidos, compras y reparto</span></span></div>${syncBadge()}<button type="button" class="top-more" data-action="goto" data-key="mas" aria-label="Más opciones" title="Más opciones">···</button></div></div><div class="shell">${nav()}<main><div id="operation-indicator" class="operation-indicator" role="status" aria-live="polite" hidden></div>${toastMessage?`<div class="notice ${toastMessage.startsWith('ERROR')?'red':'green'}">${esc(toastMessage)}</div>`:''}${screenHTML}</main></div>`;
  Object.entries(drafts).forEach(([key,value])=>{const el=document.getElementById(key);if(el)el.value=value;});
+ restoreProviderViewport(providerViewport);
 }
 function download(name,text,type='text/plain'){const a=document.createElement('a');const url=URL.createObjectURL(new Blob([text],{type}));a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 async function copyText(text){try{await navigator.clipboard.writeText(text);return true;}catch{return false;}}
@@ -648,7 +690,7 @@ async function handleAction(action,key,target,dest){
  case 'order-filter':orderView=key;render();return;
  case 'order-open':expandedOrderDest=expandedOrderDest===key?'':key;render();return;
  case 'toggle-paste':{const p=document.getElementById('bulkPaste');if(p){p.open=true;p.scrollIntoView({behavior:'smooth',block:'start'});}return;}
- case 'filter':filter=key;render();return;
+ case 'filter':filter=key;render({resetProviderScroll:true});return;
  case 'selprov':supplier=key;render();return;
  case 'destqty':{await changeDemandOneTap(key,dest,target);return;}
  case 'breakdown':expandedPurchaseKey=expandedPurchaseKey===key?'':key;render();return;
