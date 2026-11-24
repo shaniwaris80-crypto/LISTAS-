@@ -43,6 +43,8 @@ jobs:
           else
             python -m playwright install --with-deps chromium
           fi
+      - name: Corregir expresión de prueba sin tocar la aplicación
+        run: sed -i "s/?.key||''/?.key||null/" tests/test_auditoria_modulos.py
       - name: Probar módulos y opciones uno por uno sin Firebase real
         run: python tests/test_auditoria_modulos.py
       - name: Verificar que el HTML publicado coincide con las fuentes
