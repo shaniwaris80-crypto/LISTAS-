@@ -31,7 +31,7 @@ function auditSafeEnhanceBrand(){
  const brand=document.querySelector('.brand strong');
  if(!brand)return;
  brand.setAttribute('aria-label','ARSLAN LISTAS NEXT');
- brand.textContent=window.innerWidth<=850?'ARSLAN NEXT':'ARSLAN LISTAS NEXT';
+ brand.textContent=(typeof window!=='undefined'&&window.innerWidth<=850)?'ARSLAN NEXT':'ARSLAN LISTAS NEXT';
 }
 
 function auditSafeEnhanceOtherDestinations(){
@@ -43,7 +43,7 @@ function auditSafeEnhanceOtherDestinations(){
  const count=grid.querySelectorAll('.order-card').length;
  const details=document.createElement('details');
  details.className='other-destinations card';
- details.open=auditSafeOtherDestinationsOpen??window.innerWidth>850;
+ details.open=auditSafeOtherDestinationsOpen??(typeof window!=='undefined'&&window.innerWidth>850);
  const summary=document.createElement('summary');
  summary.innerHTML=`<span><strong>Otros destinos</strong><small>${count} disponibles · toca para ${details.open?'cerrar':'abrir'}</small></span><span class="other-destinations-chevron" aria-hidden="true">⌄</span>`;
  details.append(summary);
@@ -147,7 +147,9 @@ handleAction=async function(action,key,target,dest){
  return auditSafeOriginalHandleAction(action,key,target,dest);
 };
 
-window.addEventListener('resize',auditSafeEnhanceBrand,{passive:true});
+if(typeof window!=='undefined'&&typeof window.addEventListener==='function'){
+ window.addEventListener('resize',auditSafeEnhanceBrand,{passive:true});
+}
 
 // Aplicar la migración acumulativa también a la copia que ya estaba cargada
 // antes de que este complemento terminase de ejecutarse.
