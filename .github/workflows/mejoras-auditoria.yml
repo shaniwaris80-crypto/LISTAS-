@@ -1,0 +1,57 @@
+name: Mejoras seguras de auditoría
+on:
+  push:
+    branches:
+      - improve/audit-safe-fixes-20261124
+  pull_request:
+    paths:
+      - 'mejoras-auditoria.js'
+      - 'mejoras-auditoria.css'
+      - 'build.mjs'
+      - 'package.json'
+      - 'tests/test_mejoras_auditoria.mjs'
+      - 'tests/test_mejoras_auditoria.py'
+      - '.github/workflows/mejoras-auditoria.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Compilar y ejecutar todas las pruebas Node
+        run: npm run check
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Preparar Chromium aislado
+        run: |
+          python -m pip install --disable-pip-version-check playwright==1.56.0
+          if command -v google-chrome >/dev/null 2>&1 || command -v google-chrome-stable >/dev/null 2>&1 || command -v chromium >/dev/null 2>&1 || command -v chromium-browser >/dev/null 2>&1; then
+            echo "Usando navegador del runner"
+          else
+            python -m playwright install --with-deps chromium
+          fi
+      - name: Probar mejoras en móvil y escritorio sin Firebase
+        run: python tests/test_mejoras_auditoria.py
+      - name: Publicar el HTML compilado en la rama
+        if: github.event_name == 'push'
+        run: |
+          if git diff --quiet -- index.html; then
+            echo "index.html ya está actualizado"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add index.html
+            git commit -m "build: compile audited safe improvements"
+            git push origin HEAD:${{ github.ref_name }}
+          fi
