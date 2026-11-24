@@ -5,19 +5,45 @@
  * Recupera campos vacíos ausentes, conserva el contenido real y rechaza
  * estructuras incompatibles para no borrar pedidos, compras ni bajadas.
  */
+function cloudDataError(message){
+ const error=new Error(message);
+ error.code='INVALID_CLOUD_DATA';
+ return error;
+}
 function hydrateCloudDocumentState(input){
- if(!input||typeof input!=='object'||Array.isArray(input)||!Array.isArray(input.orders))
-  throw Error('Documento de jornada inválido; no se ha modificado la nube');
- const defaults=createState();
- const state={...input};
- for(const field of ['catalog','orders','allocations','manual','receipts','destinations','history','sentMessages','importedFingerprints','riders']){
-  if(state[field]===undefined||state[field]===null)state[field]=structuredClone(defaults[field]);
-  else if(!Array.isArray(state[field]))throw Error('Campo de jornada incompatible: '+field+'. No se han modificado datos.');
- }
- for(const field of ['aliases','delivery','load','shortageAllocation','riderAssignments']){
-  if(state[field]===undefined||state[field]===null)state[field]={};
-  else if(typeof state[field]!=='object'||Array.isArray(state[field]))throw Error('Campo de jornada incompatible: '+field+'. No se han modificado datos.');
- }
+ const object=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
+ const invalid=field=>cloudDataError('Campo de jornada incompatible: '+field+'. Se conserva la copia local.');
+ // Identificar una jornada real antes de restaurar sus colecciones vacías.
+ // Un documento ausente o dañado nunca se convierte en una jornada nueva.
+ if(!object(input)||typeof input.day!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(input.day))
+  throw cloudDataError('Documento de jornada inválido; se conserva la copia local');
+ for(const field of ['catalog','destinations'])if(!Array.isArray(input[field]))throw invalid(field);
+ const restore=(value,arrays,maps,path)=>{
+  if(!object(value))throw invalid(path);
+  const result={...value};
+  for(const field of arrays){
+   if(result[field]===undefined||result[field]===null)result[field]=[];
+   else if(!Array.isArray(result[field]))throw invalid(path+'.'+field);
+  }
+  for(const field of maps){
+   if(result[field]===undefined||result[field]===null)result[field]={};
+   else if(!object(result[field]))throw invalid(path+'.'+field);
+  }
+  // También desaparecen las listas vacías de cada línea y del historial.
+  // Restaurarlas evita conflictos falsos con la copia guardada en el navegador.
+  if(arrays.includes('orders'))result.orders=result.orders.map((line,index)=>{
+   const order=restore(line,['issues','suggestions'],[],path+'.orders['+index+']');
+   if(order.q===undefined)order.q=null; // Cantidad pendiente de confirmar.
+   return order;
+  });
+  return result;
+ };
+ const state=restore(input,
+  ['orders','allocations','manual','receipts','history','sentMessages','importedFingerprints','riders'],
+  ['aliases','delivery','load','shortageAllocation','riderAssignments'],'data');
+ state.history=state.history.map((entry,index)=>restore(entry,
+  ['orders','allocations','manual','receipts','sentMessages'],
+  ['delivery','load','shortageAllocation','riderAssignments'],'data.history['+index+']'));
  return state;
 }
 const FIREBASE_SDK_VERSION='12.16.0'; // versión usada en RUTA1 como referencia de compatibilidad
@@ -45,9 +71,10 @@ async function createArslanCloudAdapter(config=ARSLAN_FIREBASE_CONFIG) {
  const docPath=()=>`${workspacePath()}/document`;
  const validUid=id=>typeof id==='string'&&/^[A-Za-z0-9]{16,128}$/.test(id);
  const normalize=(obj)=>{
-   if(!obj)return null;
-   const rev=Number(obj.revision);
-   if(!Number.isSafeInteger(rev) || rev<1 || !obj.data || !Array.isArray(obj.data.orders))throw Error('Los datos recibidos de Firebase no tienen un formato válido');
+   if(obj===null||obj===undefined)return null;
+   const rev=obj.revision;
+   if(typeof obj!=='object'||Array.isArray(obj)||!Number.isSafeInteger(rev)||rev<1||!obj.data)
+    throw cloudDataError('Los datos recibidos de Firebase no tienen un formato válido');
    return {revision:rev,data:hydrateCloudDocumentState(obj.data),updated_at:obj.updated_at||null};
  };
  const {ref,get,set,onValue,runTransaction}=dbSDK;
@@ -87,8 +114,14 @@ async function createArslanCloudAdapter(config=ARSLAN_FIREBASE_CONFIG) {
   },
   async update(state,expectedRevision){
    const location=ref(db,docPath());
-   const tx=await runTransaction(location,old=>old?.revision===expectedRevision?
-    {revision:expectedRevision+1,data:state,updated_at:Date.now()}:undefined,{applyLocally:false});
+   const tx=await runTransaction(location,old=>{
+    if(old?.revision===expectedRevision){
+     // Un reintento explícito tampoco debe sobrescribir un documento dañado.
+     normalize(old);
+     return {revision:expectedRevision+1,data:state,updated_at:Date.now()};
+    }
+    return undefined;
+   },{applyLocally:false});
    return tx.committed?normalize(tx.snapshot.val()):null;
   },
   /** Cada tick se procesa dentro de UNA transacción sobre el documento vigente.
