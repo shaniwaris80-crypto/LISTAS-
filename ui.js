@@ -534,7 +534,14 @@ async function handleAction(action,key,target,dest){
  case 'cloud-init': {if(!confirm('¿Subir los datos de este dispositivo a la nube nueva? Antes se descargará una copia JSON. Comprueba que estás en el ordenador que tiene los pedidos buenos.'))return;download('ARSLAN_LISTAS_COPIA_ANTES_DE_SUBIR.json',JSON.stringify(state,null,2),'application/json');await cloudEngine.initializeFromLocal();render();return;}
  case 'cloud-use-remote': {if(!cloudEngine?.conflict)throw Error('No hay conflicto');if(!confirm('¿Usar la versión de la nube? Antes se descargará la versión LOCAL para recuperarla si lo necesitas.'))return;download('ARSLAN_COPIA_LOCAL_ANTES_DE_CAMBIAR.json',JSON.stringify(state,null,2),'application/json');await cloudEngine.useRemote();render();return;}
  case 'cloud-publish-local': {if(!cloudEngine?.conflict)throw Error('No hay conflicto');if(!confirm('ATENCIÓN: sustituirás la versión REMOTA por esta versión local. Se descargará primero una copia de la nube. ¿Confirmas?'))return;download('ARSLAN_COPIA_NUBE_ANTES_DE_CAMBIAR.json',JSON.stringify(cloudEngine.conflict.remote.data,null,2),'application/json');await cloudEngine.publishLocal();render();return;}
- case 'cloud-logout': {if(!cloudAdapter)return;await cloudAdapter.signOut();return;}
+ case 'cloud-logout':{
+  if(!cloudAdapter)return;
+  if(cloudEngine?.dirty||cloudEngine?.conflict||cloudStatus==='permiso_denegado'){
+   if(!confirm('Hay cambios sin confirmar en Firebase. Antes de cambiar de cuenta descargaremos una copia de seguridad. ¿Continuar?'))return;
+   download('ARSLAN_LISTAS_COPIA_ANTES_DE_SALIR_'+state.day+'.json',JSON.stringify(state,null,2),'application/json');
+  }
+  await cloudAdapter.signOut();return;
+ }
  case 'cloud-legacy-export': {const old=localStorage.getItem(KEY);if(!old)throw Error('No hay copia local antigua');download('ARSLAN_LISTAS_COPIA_NAVEGADOR.json',old,'application/json');return;}
  case 'cloud-backup': {download('ARSLAN_LISTAS_COPIA_'+state.day+'.json',JSON.stringify(state,null,2),'application/json');return;}
  case 'cloud-choose-import': {if(!cloudEngine||cloudStatus==='conectando'||cloudStatus==='error')throw Error('Primero conecta la cuenta Firebase');document.getElementById('cloud-import-file')?.click();return;}
