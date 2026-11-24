@@ -45,8 +45,17 @@ jobs:
           fi
       - name: Ajustar comprobaciones al formato real sin ocultar hallazgos de catálogo
         run: |
-          sed -i "s/x.product==='BANANA'/x.key==='BANANA|BULTO'/g" tests/test_auditoria_total.py
-          sed -i "s/find_item(page,'.assign-items .item','LIMON PRIMERA')/find_item(page,'.assign-items .item','KIWI ZESPRI')/g" tests/test_auditoria_total.py
+          python - <<'PY'
+          from pathlib import Path
+          path=Path('tests/test_auditoria_total.py')
+          text=path.read_text()
+          text=text.replace("x.product==='BANANA'","x.key==='BANANA|BULTO'")
+          text=text.replace("find_item(page,'.assign-items .item','LIMON PRIMERA')","find_item(page,'.assign-items .item','KIWI ZESPRI')")
+          marker="    for act in ['copy','copyall','provdownload','provdownloadall','whatsapp']:\n"
+          text=text.replace(marker,"    page.locator('.provider-card[data-provider=\"MONTENEGRO\"] details summary').click()\n"+marker)
+          text=text.replace("        if loc.count(): action(page,act,loc)","        if loc.count() and loc.is_visible(): action(page,act,loc)")
+          path.write_text(text)
+          PY
       - name: Probar módulos y opciones uno por uno sin Firebase real
         run: python tests/test_auditoria_total.py
       - name: Verificar que el HTML publicado coincide con las fuentes
