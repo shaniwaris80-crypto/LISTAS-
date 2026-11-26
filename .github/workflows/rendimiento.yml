@@ -15,7 +15,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   performance:
@@ -23,6 +23,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -41,3 +43,15 @@ jobs:
           fi
       - name: Medir jornada grande en móvil sin Firebase
         run: python tests/test_rendimiento.py
+      - name: Publicar HTML compilado en la rama
+        if: github.event_name == 'push'
+        run: |
+          if git diff --quiet -- index.html; then
+            echo "index.html ya está actualizado"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add index.html
+            git commit -m "build: compile fluid performance layer"
+            git push origin HEAD:${{ github.ref_name }}
+          fi
