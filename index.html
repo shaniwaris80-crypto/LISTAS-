@@ -971,8 +971,9 @@ button[aria-busy=true]{opacity:.6;cursor:progress}
 
 /* ARSLAN LISTAS NEXT · rendimiento fluido 2026-11-26 */
 html{scroll-behavior:auto!important}
-/* Evitar que el navegador calcule y pinte cientos de filas fuera de pantalla. */
-.assign-items>.item,
+/* Evitar que el navegador calcule y pinte cientos de filas fuera de pantalla.
+ * La lista de asignación de proveedor queda fuera: necesita alturas exactas
+ * para conservar la posición tras quitar una fila. */
 .purchases-list>.items>.item,
 .purchase-completed .item,
 .delivery-ready>.items>.item,
@@ -992,7 +993,7 @@ html{scroll-behavior:auto!important}
 .touch-processing{opacity:.78}
 .fast-touch-ready :where(button,[role="button"],[data-action]){will-change:auto}
 @media(max-width:850px){
- .assign-items,.purchases-list>.items,.delivery-ready>.items,.delivery-unready>.items{contain:layout style}
+ .purchases-list>.items,.delivery-ready>.items,.delivery-unready>.items{contain:layout style}
  .item,.card{box-shadow:none!important}
 }
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation-duration:.001ms!important;transition-duration:.001ms!important}}
