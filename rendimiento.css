@@ -1,0 +1,27 @@
+/* ARSLAN LISTAS NEXT · rendimiento fluido 2026-11-26 */
+html{scroll-behavior:auto!important}
+/* Evitar que el navegador calcule y pinte cientos de filas fuera de pantalla. */
+.assign-items>.item,
+.purchases-list>.items>.item,
+.purchase-completed .item,
+.delivery-ready>.items>.item,
+.delivery-unready>.items>.item,
+.orders-grid>.order-card,
+.provider-grid>.provider-card{
+ content-visibility:auto;
+ contain:layout style paint;
+ contain-intrinsic-size:82px;
+}
+.provider-grid>.provider-card{contain-intrinsic-size:210px}
+.orders-grid>.order-card{contain-intrinsic-size:118px}
+/* Respuesta corta y nítida; eliminar animaciones que daban sensación de cámara lenta. */
+:where(button,[role="button"],[data-action],summary){
+ transition-duration:35ms!important;
+}
+.touch-processing{opacity:.78}
+.fast-touch-ready :where(button,[role="button"],[data-action]){will-change:auto}
+@media(max-width:850px){
+ .assign-items,.purchases-list>.items,.delivery-ready>.items,.delivery-unready>.items{contain:layout style}
+ .item,.card{box-shadow:none!important}
+}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation-duration:.001ms!important;transition-duration:.001ms!important}}
